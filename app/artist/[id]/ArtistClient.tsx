@@ -8,9 +8,9 @@ import Link from 'next/link'
 export default function ArtistClient({ artist, albums, tracks }: { artist: any, albums: any[], tracks: any[] }) {
   const { playTrack, currentTrack, isPlaying } = usePlayer()
   const [isMobile, setIsMobile] = useState(false)
-  const [modalVideo, setModalVideo] = useState(null)
-  const [modalThumb, setModalThumb] = useState(null)
-  const [modalLabel, setModalLabel] = useState(null)
+const [modalVideo, setModalVideo] = useState<string | null>(null)
+const [modalThumb, setModalThumb] = useState<string | null>(null)
+const [modalLabel, setModalLabel] = useState<string | null>(null)
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
