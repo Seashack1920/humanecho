@@ -31,7 +31,7 @@ const [modalLabel, setModalLabel] = useState<string | null>(null)
     setModalLabel(null)
   }
 
-  const originBadge = (origin) => {
+  const originBadge = (origin: string) => {
     const map = {
       '100% human': '🧑 100% Human',
       'human+ai': '🧑🤖 Human + AI',
