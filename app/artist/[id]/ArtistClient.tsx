@@ -6,7 +6,7 @@ import VideoModal from '@/components/VideoModal'
 import Link from 'next/link'
 
 export default function ArtistClient({ artist, albums, tracks }: { artist: any, albums: any[], tracks: any[] }) {
-  const { playTrack, currentTrack, isPlaying } = usePlayer()
+  const { playTrack, currentTrack, isPlaying } = usePlayer() as any
   const [isMobile, setIsMobile] = useState(false)
 const [modalVideo, setModalVideo] = useState<string | null>(null)
 const [modalThumb, setModalThumb] = useState<string | null>(null)
