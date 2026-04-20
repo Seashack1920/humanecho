@@ -1,26 +1,115 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap');
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Light Mode â€” Sun-bleached Coastal */
+  --bg-primary: #faf7f2;
+  --bg-secondary: #f2ede4;
+  --bg-card: #ffffff;
+  --bg-player: rgba(255, 255, 255, 0.85);
+
+  --text-primary: #1a1410;
+  --text-secondary: #6b5f52;
+  --text-muted: #a89880;
+
+  --accent-primary: #2b7a8f;   /* ocean blue */
+  --accent-secondary: #e07a5f; /* warm coral */
+  --accent-gold: #c4a265;      /* sandy gold */
+
+  --border: rgba(0, 0, 0, 0.08);
+  --shadow: 0 8px 40px rgba(0, 0, 0, 0.10);
+  --shadow-player: 0 20px 60px rgba(0, 0, 0, 0.15);
+
+  --player-bg: rgba(250, 247, 242, 0.92);
+  --player-border: rgba(196, 162, 101, 0.3);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+[data-theme='dark'] {
+  /* Dark Mode â€” Warm Cinematic */
+  --bg-primary: #0f0c09;
+  --bg-secondary: #1a1410;
+  --bg-card: #231e18;
+  --bg-player: rgba(26, 20, 14, 0.92);
+
+  --text-primary: #f2e8d9;
+  --text-secondary: #a89880;
+  --text-muted: #6b5f52;
+
+  --accent-primary: #4fa8be;   /* lighter ocean blue */
+  --accent-secondary: #e07a5f; /* warm coral stays */
+  --accent-gold: #c4a265;      /* sandy gold stays */
+
+  --border: rgba(255, 255, 255, 0.07);
+  --shadow: 0 8px 40px rgba(0, 0, 0, 0.40);
+  --shadow-player: 0 20px 60px rgba(0, 0, 0, 0.50);
+
+  --player-bg: rgba(26, 20, 14, 0.95);
+  --player-border: rgba(196, 162, 101, 0.2);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Playfair Display', serif;
+  line-height: 1.2;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: 'DM Sans', sans-serif;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-gold);
+  border-radius: 3px;
+}
+
+/* Utilities */
+.playfair {
+  font-family: 'Playfair Display', serif;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  
+}html, body {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
 }
