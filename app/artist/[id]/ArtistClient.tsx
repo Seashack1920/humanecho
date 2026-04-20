@@ -5,7 +5,7 @@ import { usePlayer } from '@/context/PlayerContext'
 import VideoModal from '@/components/VideoModal'
 import Link from 'next/link'
 
-export default function ArtistClient({ artist, albums, tracks }) {
+export default function ArtistClient({ artist, albums, tracks }: { artist: any, albums: any[], tracks: any[] }) {
   const { playTrack, currentTrack, isPlaying } = usePlayer()
   const [isMobile, setIsMobile] = useState(false)
   const [modalVideo, setModalVideo] = useState(null)
