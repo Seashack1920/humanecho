@@ -19,7 +19,7 @@ export default function ArtistClient({ artist, albums, tracks }: { artist: any, 
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  const openModal = (videoUrl, thumbUrl, label) => {
+  const openModal = (videoUrl: string, thumbUrl: string, label: string) => {
     setModalVideo(videoUrl)
     setModalThumb(thumbUrl)
     setModalLabel(label || null)
