@@ -115,7 +115,7 @@ const [modalLabel, setModalLabel] = useState<string | null>(null)
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             {tracks.length > 0 && (
               <button
-                onClick={() => playTrack(tracks[0])}
+                onClick={() => playTrack(tracks[0], tracks)}
                 style={{
                   padding: '12px 28px', borderRadius: '8px',
                   background: 'var(--accent-primary)', color: 'white',
@@ -273,7 +273,7 @@ const [modalLabel, setModalLabel] = useState<string | null>(null)
                   >
                     {/* Play button */}
                     <div
-                      onClick={() => playTrack(track)}
+                      onClick={() => playTrack(track, tracks)}
                       style={{
                         width: isMobile ? '28px' : '32px',
                         height: isMobile ? '28px' : '32px',
@@ -304,7 +304,7 @@ const [modalLabel, setModalLabel] = useState<string | null>(null)
                     </div>
 
                     {/* Title + duration */}
-                    <div onClick={() => playTrack(track)}>
+                    <div onClick={() => playTrack(track, tracks)}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{
                           fontSize: isMobile ? '13px' : '15px',
