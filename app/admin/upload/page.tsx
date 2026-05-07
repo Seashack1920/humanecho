@@ -101,7 +101,7 @@ export default function AdminUpload() {
   useEffect(() => {
     if (trackAudioFile) {
       readAudioDuration(trackAudioFile).then((dur) => {
-        const ext = trackAudioFile.name.split('.').pop().toLowerCase()
+        const ext = (trackAudioFile.name.split('.').pop() || 'flac').toLowerCase()
         setTrack(t => ({
           ...t,
           duration: dur || t.duration,
