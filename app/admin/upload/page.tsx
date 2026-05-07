@@ -73,7 +73,7 @@ export default function AdminUpload() {
     isrc: '', iswc: '', composer: '', lyricist: '', producer: '',
     publisher: '', catalog_number: '', bpm: '', musical_key: '',
     mood: '', theme: '', language: 'en',
-    copyright_year: new Date().getFullYear(), copyright_owner: '',
+    copyright_year: String(new Date().getFullYear()), copyright_owner: '',
     sync_eligible: false, stems_available: false,
     instrumental_available: false, explicit: false,
   }
