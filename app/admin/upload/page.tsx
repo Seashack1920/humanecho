@@ -276,7 +276,7 @@ export default function AdminUpload() {
     sectionTitle: { fontFamily: 'Playfair Display, serif', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px' },
     divider: { height: '1px', background: 'var(--border)', margin: '20px 0' },
     checkbox: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--text-secondary)', cursor: 'pointer' },
-    resizeHint: { textAlign: 'right', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', marginBottom: '8px' },
+    resizeHint: { textAlign: 'right' as const, fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', marginBottom: '8px' },
     savedTrack: { padding: '12px 16px', borderRadius: '8px', background: 'var(--bg-card)', border: '1px solid var(--accent-primary)', marginBottom: '8px' },
   }
 
