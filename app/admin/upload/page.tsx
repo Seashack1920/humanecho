@@ -54,8 +54,8 @@ export default function AdminUpload() {
   const [artistMode, setArtistMode] = useState('select')
   const [selectedArtistId, setSelectedArtistId] = useState('')
   const [newArtist, setNewArtist] = useState({ name: '', bio: '', content_origin: '100% human' })
-  const [artistPhotoFile, setArtistPhotoFile] = useState(null)
-  const [artistMessageFile, setArtistMessageFile] = useState(null)
+  const [artistPhotoFile, setArtistPhotoFile] = useState<File | null>(null)
+  const [artistMessageFile, setArtistMessageFile] = useState<File | null>(null)
   
   const [albumMode, setAlbumMode] = useState('select')
   const [selectedAlbumId, setSelectedAlbumId] = useState('')
@@ -63,8 +63,8 @@ export default function AdminUpload() {
     title: '', description: '', price: '', album_type: 'music',
     content_origin: '100% human', status: 'draft',
   })
-  const [albumCoverFile, setAlbumCoverFile] = useState(null)
-  const [albumMessageFile, setAlbumMessageFile] = useState(null)
+  const [albumCoverFile, setAlbumCoverFile] = useState<File | null>(null)
+  const [albumMessageFile, setAlbumMessageFile] = useState<File | null>(null)
 
   const emptyTrack = {
     title: '', track_number: '', duration: '', track_type: 'song',
@@ -78,10 +78,10 @@ export default function AdminUpload() {
     instrumental_available: false, explicit: false,
   }
   const [track, setTrack] = useState(emptyTrack)
-  const [trackAudioFile, setTrackAudioFile] = useState(null)
-  const [trackImageFile, setTrackImageFile] = useState(null)
-  const [trackMessageFile, setTrackMessageFile] = useState(null)
-  const [trackMusicVideoFile, setTrackMusicVideoFile] = useState(null)
+  const [trackAudioFile, setTrackAudioFile] = useState<File | null>(null)
+  const [trackImageFile, setTrackImageFile] = useState<File | null>(null)
+  const [trackMessageFile, setTrackMessageFile] = useState<File | null>(null)
+  const [trackMusicVideoFile, setTrackMusicVideoFile] = useState<File | null>(null)
   const [showPublishing, setShowPublishing] = useState(false)
 
   useEffect(() => {
