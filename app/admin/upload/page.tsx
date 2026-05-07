@@ -46,7 +46,7 @@ async function readAudioDuration(file: File): Promise<string> {
 export default function AdminUpload() {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState(null)
+  const [message, setMessage] = useState<{ type: string; text: string } | null>(null)
   const [savedTracks, setSavedTracks] = useState([])
   const [artists, setArtists] = useState<any[]>([])
   const [albums, setAlbums] = useState<any[]>([])
