@@ -10,7 +10,7 @@ const supabase = createClient(
 
 const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 
-async function uploadToCloudinary(file, folder, resourceType = 'auto') {
+async function uploadToCloudinary(file: File, folder: string, resourceType: string = 'auto') {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('upload_preset', 'humanecho_upload')
