@@ -335,12 +335,12 @@ export default function AdminUpload() {
              <div style={s.row}>
   <div>
     <label style={s.label}>Artist Photo</label>
-    <input type="file" accept="image/*" style={s.fileInput} onChange={e => setArtistPhotoFile(e.target.files[0])} />
+    <input type="file" accept="image/*" style={s.fileInput} onChange={e => setArtistPhotoFile(e.target.files?.[0] || null)} />
     {artistPhotoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistPhotoFile.name}</div>}
   </div>
   <div>
     <label style={s.label}>Artist Message Video (optional)</label>
-    <input type="file" accept="video/*" style={s.fileInput} onChange={e => setArtistMessageFile(e.target.files[0])} />
+    <input type="file" accept="video/*" style={s.fileInput} onChange={e => setArtistMessageFile(e.target.files?.[0] || null)} />
     {artistMessageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistMessageFile.name}</div>}
   </div>
 </div>
@@ -348,7 +348,7 @@ export default function AdminUpload() {
 <div style={s.row}>
   <div>
     <label style={s.label}>Profile Video (optional — plays once on artist page)</label>
-    <input type="file" accept="video/*" style={s.fileInput} onChange={e => setArtistProfileVideoFile(e.target.files[0])} />
+    <input type="file" accept="video/*" style={s.fileInput} onChange={e => setArtistProfileVideoFile(e.target.files?.[0] || null)} />
     {artistProfileVideoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistProfileVideoFile.name}</div>}
   </div>
 </div>
@@ -426,12 +426,12 @@ export default function AdminUpload() {
               <div style={s.row}>
                 <div>
                   <label style={s.label}>Album Cover</label>
-                  <input type="file" accept="image/*" style={s.fileInput} onChange={e => setAlbumCoverFile(e.target.files[0])} />
+                  <input type="file" accept="image/*" style={s.fileInput} onChange={e => setAlbumCoverFile(e.target.files?.[0] || null)} />
                   {albumCoverFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumCoverFile.name}</div>}
                 </div>
                 <div>
                   <label style={s.label}>Artist Message Video (optional)</label>
-                  <input type="file" accept="video/*" style={s.fileInput} onChange={e => setAlbumMessageFile(e.target.files[0])} />
+                  <input type="file" accept="video/*" style={s.fileInput} onChange={e => setAlbumMessageFile(e.target.files?.[0] || null)} />
                   {albumMessageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumMessageFile.name}</div>}
                 </div>
               </div>
@@ -492,7 +492,7 @@ export default function AdminUpload() {
 
           <div style={s.field}>
             <label style={s.label}>Audio File (FLAC/WAV/MP3) *</label>
-            <input type="file" accept=".flac,.wav,.mp3,audio/*" style={s.fileInput} onChange={e => setTrackAudioFile(e.target.files[0])} />
+            <input type="file" accept=".flac,.wav,.mp3,audio/*" style={s.fileInput} onChange={e => setTrackAudioFile(e.target.files?.[0] || null)} />
             {trackAudioFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackAudioFile.name}</div>}
           </div>
 
@@ -548,7 +548,7 @@ export default function AdminUpload() {
             </div>
             <div>
               <label style={s.label}>Track Image</label>
-              <input type="file" accept="image/*" style={s.fileInput} onChange={e => setTrackImageFile(e.target.files[0])} />
+              <input type="file" accept="image/*" style={s.fileInput} onChange={e => setTrackImageFile(e.target.files?.[0] || null)} />
               {trackImageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackImageFile.name}</div>}
             </div>
           </div>
@@ -567,12 +567,12 @@ export default function AdminUpload() {
           <div style={s.row}>
             <div>
               <label style={s.label}>Music Video (optional)</label>
-              <input type="file" accept="video/*" style={s.fileInput} onChange={e => setTrackMusicVideoFile(e.target.files[0])} />
+              <input type="file" accept="video/*" style={s.fileInput} onChange={e => setTrackMusicVideoFile(e.target.files?.[0] || null)} />
               {trackMusicVideoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackMusicVideoFile.name}</div>}
             </div>
             <div>
               <label style={s.label}>Artist Message Video (optional)</label>
-              <input type="file" accept="video/*" style={s.fileInput} onChange={e => setTrackMessageFile(e.target.files[0])} />
+              <input type="file" accept="video/*" style={s.fileInput} onChange={e => setTrackMessageFile(e.target.files?.[0] || null)} />
               {trackMessageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackMessageFile.name}</div>}
             </div>
           </div>
