@@ -39,7 +39,7 @@ const [tracks, setTracks] = useState<any[]>([])
     h1: { fontFamily: 'Playfair Display, serif', fontSize: '32px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' },
     subtitle: { fontSize: '14px', color: 'var(--text-muted)', marginBottom: '32px' },
     tabs: { display: 'flex', gap: '8px', marginBottom: '24px' },
-    tab: (active) => ({
+    tab: (active: boolean) => ({
       padding: '8px 20px', borderRadius: '20px', fontSize: '13px', fontWeight: '500',
       border: 'none', cursor: 'pointer',
       background: active ? 'var(--accent-primary)' : 'var(--bg-secondary)',
