@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePlayer } from '@/context/PlayerContext'
 import VideoModal from '@/components/VideoModal'
 import Link from 'next/link'
@@ -8,9 +8,12 @@ import Link from 'next/link'
 export default function ArtistClient({ artist, albums, tracks }: { artist: any, albums: any[], tracks: any[] }) {
   const { playTrack, currentTrack, isPlaying } = usePlayer() as any
   const [isMobile, setIsMobile] = useState(false)
-const [modalVideo, setModalVideo] = useState<string | null>(null)
-const [modalThumb, setModalThumb] = useState<string | null>(null)
-const [modalLabel, setModalLabel] = useState<string | null>(null)
+  const [modalVideo, setModalVideo] = useState<string | null>(null)
+  const [modalThumb, setModalThumb] = useState<string | null>(null)
+  const [modalLabel, setModalLabel] = useState<string | null>(null)
+  const [videoVisible, setVideoVisible] = useState(false)
+  const [videoPlayed, setVideoPlayed] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
@@ -18,6 +21,32 @@ const [modalLabel, setModalLabel] = useState<string | null>(null)
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
+
+  // Auto-play video once after 1 second if available
+  useEffect(() => {
+    if (!artist.artist_profile_video_url) return
+    const timer = setTimeout(() => {
+      setVideoVisible(true)
+      if (videoRef.current) {
+        videoRef.current.play().catch(() => {})
+      }
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [artist.artist_profile_video_url])
+
+  const handleVideoEnded = () => {
+    setVideoVisible(false)
+    setVideoPlayed(true)
+  }
+
+  const replayVideo = () => {
+    setVideoVisible(true)
+    setVideoPlayed(false)
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0
+      videoRef.current.play().catch(() => {})
+    }
+  }
 
   const openModal = (videoUrl: string, thumbUrl: string, label: string) => {
     setModalVideo(videoUrl)
@@ -32,13 +61,13 @@ const [modalLabel, setModalLabel] = useState<string | null>(null)
   }
 
   const originBadge = (origin: string): string | null => {
-  const map: { [key: string]: string } = {
-    '100% human': '🧑 100% Human',
-    'human+ai': '🧑🤖 Human + AI',
-    'ai generated': '🤖 AI Generated',
+    const map: { [key: string]: string } = {
+      '100% human': '🧑 100% Human',
+      'human+ai': '🧑🤖 Human + AI',
+      'ai generated': '🤖 AI Generated',
+    }
+    return map[origin] || null
   }
-  return map[origin] || null
-}
 
   return (
     <>
@@ -52,7 +81,7 @@ const [modalLabel, setModalLabel] = useState<string | null>(null)
         />
       )}
 
-      {/* Immersive Hero — Option B */}
+      {/* Immersive Hero */}
       <div style={{
         position: 'relative',
         height: isMobile ? '70vh' : '80vh',
@@ -60,7 +89,7 @@ const [modalLabel, setModalLabel] = useState<string | null>(null)
         display: 'flex',
         alignItems: 'flex-end',
       }}>
-        {/* Full bleed background photo */}
+        {/* Static photo — always present as base layer */}
         {artist.photo_url && (
           <div style={{
             position: 'absolute', inset: 0,
@@ -70,7 +99,27 @@ const [modalLabel, setModalLabel] = useState<string | null>(null)
           }} />
         )}
 
-        {/* Gradient overlay — dark at bottom for text legibility */}
+        {/* Profile video — fades in over photo, fades out when done */}
+        {artist.artist_profile_video_url && (
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            onEnded={handleVideoEnded}
+            style={{
+              position: 'absolute', inset: 0,
+              width: '100%', height: '100%',
+              objectFit: 'cover',
+              opacity: videoVisible ? 1 : 0,
+              transition: 'opacity 1s ease',
+              pointerEvents: 'none',
+            }}
+          >
+            <source src={artist.artist_profile_video_url} />
+          </video>
+        )}
+
+        {/* Gradient overlay */}
         <div style={{
           position: 'absolute', inset: 0,
           background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.92) 100%)',
@@ -112,7 +161,7 @@ const [modalLabel, setModalLabel] = useState<string | null>(null)
           </div>
 
           {/* Action buttons */}
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
             {tracks.length > 0 && (
               <button
                 onClick={() => playTrack(tracks[0], tracks)}
@@ -150,11 +199,31 @@ const [modalLabel, setModalLabel] = useState<string | null>(null)
                 <span>Artist Message</span>
               </button>
             )}
+
+            {/* Replay button — appears after video has played once */}
+            {artist.artist_profile_video_url && videoPlayed && (
+              <button
+                onClick={replayVideo}
+                style={{
+                  padding: '12px 20px', borderRadius: '8px',
+                  background: 'rgba(255,255,255,0.1)',
+                  backdropFilter: 'blur(10px)',
+                  color: 'rgba(255,255,255,0.7)', fontSize: '13px',
+                  cursor: 'pointer', border: '1px solid rgba(255,255,255,0.2)',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              >
+                ↺ Replay
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Main content */}
+      {/* Main content — bio, albums, tracks — unchanged */}
       <div style={{
         maxWidth: '1100px',
         margin: '0 auto',

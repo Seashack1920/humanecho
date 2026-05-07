@@ -3,10 +3,16 @@
 import { useState, useEffect } from 'react'
 import { usePlayer } from '@/context/PlayerContext'
 import VideoModal from '@/components/VideoModal'
-import Link from 'next/link'
 
 export default function AlbumClient({ album, artist, tracks }) {
-  const { playTrack, currentTrack, isPlaying } = usePlayer()
+  const { playTrack, currentTrack, isPlaying, setQueue } = usePlayer()
+
+  // Set the album tracklist as the queue when the page loads
+  useEffect(() => {
+    if (tracks.length > 0) {
+      setQueue(tracks, 0)
+    }
+  }, [tracks, setQueue])
   const [expandedTrack, setExpandedTrack] = useState(null)
   const [isMobile, setIsMobile] = useState(false)
   const [modalVideo, setModalVideo] = useState(null)
@@ -134,20 +140,9 @@ export default function AlbumClient({ album, artist, tracks }) {
                   <img src={artist.photo_url} alt={artist.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               )}
-             <Link 
-  href={`/artist/${artist?.id}`}
-  style={{ 
-    fontSize: '18px', 
-    color: 'var(--text-secondary)', 
-    fontWeight: '400',
-    textDecoration: 'none',
-    transition: 'color 0.2s ease',
-  }}
-  onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-primary)'}
-  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
->
-  {artist?.name || 'Unknown Artist'}
-</Link>
+              <span style={{ fontSize: '18px', color: 'var(--text-secondary)', fontWeight: '400' }}>
+                {artist?.name || 'Unknown Artist'}
+              </span>
             </div>
 
             {/* Meta */}
@@ -219,169 +214,166 @@ export default function AlbumClient({ album, artist, tracks }) {
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-           
-           {tracks.map((track, index) => {
-  const isActive = currentTrack?.id === track.id
-  const isCurrentlyPlaying = isActive && isPlaying
-  const isExpanded = expandedTrack === track.id
+            {tracks.map((track, index) => {
+              const isActive = currentTrack?.id === track.id
+              const isCurrentlyPlaying = isActive && isPlaying
+              const isExpanded = expandedTrack === track.id
 
-  return (
-    <div key={track.id}>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '32px 40px 1fr auto' : '40px 48px 1fr auto',
-          alignItems: 'center',
-          gap: isMobile ? '10px' : '16px',
-          padding: isMobile ? '10px 8px' : '12px 16px',
-          borderRadius: '10px',
-          background: isActive ? 'var(--bg-secondary)' : 'transparent',
-          transition: 'background 0.2s ease',
-          cursor: 'pointer',
-        }}
-        onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-secondary)' }}
-        onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
-      >
+              return (
+                <div key={track.id}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: isMobile ? '32px 40px 1fr auto' : '40px 48px 1fr auto',
+                      alignItems: 'center',
+                      gap: isMobile ? '10px' : '16px',
+                      padding: isMobile ? '10px 8px' : '12px 16px',
+                      borderRadius: '10px',
+                      background: isActive ? 'var(--bg-secondary)' : 'transparent',
+                      transition: 'background 0.2s ease',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-secondary)' }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                  >
+                    {/* Play button */}
+                    <div
+                      onClick={() => playTrack(track, tracks, index)}
+                      style={{
+                        width: isMobile ? '28px' : '32px',
+                        height: isMobile ? '28px' : '32px',
+                        borderRadius: '50%',
+                        background: isActive ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: isActive ? '11px' : '12px',
+                        color: isActive ? 'white' : 'var(--text-muted)',
+                        fontWeight: '500', transition: 'all 0.2s ease', flexShrink: 0, cursor: 'pointer',
+                      }}
+                    >
+                      {isCurrentlyPlaying ? '⏸' : isActive ? '▶' : track.track_number || index + 1}
+                    </div>
 
-        {/* Play button */}
-        <div
-          onClick={() => playTrack(track, tracks)}
-          style={{
-            width: isMobile ? '28px' : '32px',
-            height: isMobile ? '28px' : '32px',
-            borderRadius: '50%',
-            background: isActive ? 'var(--accent-primary)' : 'var(--bg-secondary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: isActive ? '11px' : '12px',
-            color: isActive ? 'white' : 'var(--text-muted)',
-            fontWeight: '500', transition: 'all 0.2s ease', flexShrink: 0, cursor: 'pointer',
-          }}
-        >
-          {isCurrentlyPlaying ? '⏸' : isActive ? '▶' : track.track_number || index + 1}
-        </div>
+                    {/* Track image */}
+                    <div style={{
+                      width: isMobile ? '36px' : '44px',
+                      height: isMobile ? '36px' : '44px',
+                      borderRadius: '6px', overflow: 'hidden',
+                      background: 'var(--bg-secondary)', flexShrink: 0,
+                    }}>
+                      {track.track_image_url ? (
+                        <img src={track.track_image_url} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>🎵</div>
+                      )}
+                    </div>
 
-        {/* Track image */}
-<div style={{
-  width: isMobile ? '36px' : '44px',
-  height: isMobile ? '36px' : '44px',
-  borderRadius: '6px', overflow: 'hidden',
-  background: 'var(--bg-secondary)', flexShrink: 0,
-}}>
-  {track.track_image_url ? (
-    <img src={track.track_image_url} alt={track.title}
-      style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-  ) : (
-    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>🎵</div>
-  )}
-</div>
+                    {/* Title + duration + links */}
+                    <div>
+                      <div onClick={() => playTrack(track)} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{
+                          fontSize: isMobile ? '13px' : '15px',
+                          fontWeight: isActive ? '500' : '400',
+                          color: isActive ? 'var(--accent-primary)' : 'var(--text-primary)',
+                          transition: 'color 0.2s ease',
+                        }}>
+                          {track.title}
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                          {track.duration || '—'}
+                        </span>
+                      </div>
 
-        {/* Title + duration + links */}
-        <div>
-          <div onClick={() => playTrack(track, tracks)} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{
-              fontSize: isMobile ? '13px' : '15px',
-              fontWeight: isActive ? '500' : '400',
-              color: isActive ? 'var(--accent-primary)' : 'var(--text-primary)',
-              transition: 'color 0.2s ease',
-            }}>
-              {track.title}
-            </span>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-              {track.duration || '—'}
-            </span>
+                      {/* Sub-links: Lyrics, Artist Message, Music Video */}
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
+                        {track.text_content && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleLyrics(track.id) }}
+                            style={{
+                              fontSize: '11px',
+                              color: isExpanded ? 'var(--accent-primary)' : 'var(--accent-gold)',
+                              background: 'none', border: 'none', cursor: 'pointer',
+                              padding: '0', lineHeight: '1.2',
+                            }}
+                          >
+                            {isExpanded ? 'Hide lyrics' : 'Lyrics'}
+                          </button>
+                        )}
+
+                        {track.artist_message_url && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openModal(track.artist_message_url, track.artist_message_thumb_url, artist?.name, 'Artist Message')
+                            }}
+                            style={{
+                              fontSize: '11px', color: 'var(--accent-gold)',
+                              background: 'none', border: 'none', cursor: 'pointer',
+                              padding: '0', lineHeight: '1.2',
+                            }}
+                          >
+                            ▶ Artist Message
+                          </button>
+                        )}
+
+                        {track.music_video_url && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openModal(track.music_video_url, track.music_video_thumb_url, track.title, 'Music Video')
+                            }}
+                            style={{
+                              fontSize: '11px', color: 'var(--accent-primary)',
+                              background: 'none', border: 'none', cursor: 'pointer',
+                              padding: '0', lineHeight: '1.2',
+                            }}
+                          >
+                            ▶ Music Video
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Buy button */}
+                    {track.price && (
+                      <button
+                        style={{
+                          fontSize: isMobile ? '11px' : '12px',
+                          color: 'var(--accent-secondary)', background: 'none',
+                          border: '1px solid var(--accent-secondary)', borderRadius: '4px',
+                          padding: isMobile ? '3px 8px' : '4px 10px',
+                          cursor: 'pointer', whiteSpace: 'nowrap',
+                          flexShrink: 0, transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-secondary)'; e.currentTarget.style.color = 'white' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--accent-secondary)' }}
+                      >
+                        ${parseFloat(track.price || 0).toFixed(2)}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Expanded lyrics */}
+                  {isExpanded && track.text_content && (
+                    <div style={{
+                      padding: isMobile ? '16px' : '16px 16px 16px 120px',
+                      borderRadius: '0 0 10px 10px',
+                      background: 'var(--bg-secondary)',
+                      marginTop: '-2px', marginBottom: '2px',
+                    }}>
+                      <pre style={{
+                        fontFamily: 'DM Sans, sans-serif', fontSize: '14px', lineHeight: '1.8',
+                        color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                      }}>
+                        {track.text_content}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
-
-          {/* Sub-links: Lyrics, Artist Message, Music Video */}
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
-            {track.text_content && (
-              <button
-                onClick={(e) => { e.stopPropagation(); toggleLyrics(track.id) }}
-                style={{
-                  fontSize: '11px',
-                  color: isExpanded ? 'var(--accent-primary)' : 'var(--accent-gold)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  padding: '0', lineHeight: '1.2',
-                }}
-              >
-                {isExpanded ? 'Hide lyrics' : 'Lyrics'}
-              </button>
-            )}
-
-            {track.artist_message_url && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  openModal(track.artist_message_url, track.artist_message_thumb_url, artist?.name, 'Artist Message')
-                }}
-                style={{
-                  fontSize: '11px', color: 'var(--accent-gold)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  padding: '0', lineHeight: '1.2',
-                }}
-              >
-                ▶ Artist Message
-              </button>
-            )}
-
-            {track.music_video_url && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  openModal(track.music_video_url, track.music_video_thumb_url, track.title, 'Music Video')
-                }}
-                style={{
-                  fontSize: '11px', color: 'var(--accent-primary)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  padding: '0', lineHeight: '1.2',
-                }}
-              >
-                ▶ Music Video
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Buy button */}
-        {track.price && (
-          <button
-            style={{
-              fontSize: isMobile ? '11px' : '12px',
-              color: 'var(--accent-secondary)', background: 'none',
-              border: '1px solid var(--accent-secondary)', borderRadius: '4px',
-              padding: isMobile ? '3px 8px' : '4px 10px',
-              cursor: 'pointer', whiteSpace: 'nowrap',
-              flexShrink: 0, transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-secondary)'; e.currentTarget.style.color = 'white' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--accent-secondary)' }}
-          >
-            ${parseFloat(track.price || 0).toFixed(2)}
-          </button>
-        )}
-      </div>
-
-      {/* Expanded lyrics */}
-      {isExpanded && track.text_content && (
-            <div style={{
-              padding: isMobile ? '16px' : '16px 16px 16px 120px',
-              borderRadius: '0 0 10px 10px',
-              background: 'var(--bg-secondary)',
-              marginTop: '-2px', marginBottom: '2px',
-            }}>
-              <pre style={{
-                fontFamily: 'DM Sans, sans-serif', fontSize: '14px', lineHeight: '1.8',
-                color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-              }}>
-                {track.text_content}
-              </pre>
-            </div>
-          )}
-        </div>
-      )
-    })}
         </div>
       </div>
-    </div>
     </>
   )
 }

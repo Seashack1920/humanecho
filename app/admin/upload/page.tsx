@@ -50,13 +50,13 @@ export default function AdminUpload() {
   const [savedTracks, setSavedTracks] = useState([])
   const [artists, setArtists] = useState([])
   const [albums, setAlbums] = useState([])
-
+  const [artistProfileVideoFile, setArtistProfileVideoFile] = useState(null)
   const [artistMode, setArtistMode] = useState('select')
   const [selectedArtistId, setSelectedArtistId] = useState('')
   const [newArtist, setNewArtist] = useState({ name: '', bio: '', content_origin: '100% human' })
   const [artistPhotoFile, setArtistPhotoFile] = useState(null)
   const [artistMessageFile, setArtistMessageFile] = useState(null)
-
+  
   const [albumMode, setAlbumMode] = useState('select')
   const [selectedAlbumId, setSelectedAlbumId] = useState('')
   const [newAlbum, setNewAlbum] = useState({
@@ -127,10 +127,12 @@ export default function AdminUpload() {
       const folder = slugify(newArtist.name)
       const photoUrl = artistPhotoFile ? await uploadToCloudinary(artistPhotoFile, folder, 'image') : ''
       const messageUrl = artistMessageFile ? await uploadToCloudinary(artistMessageFile, folder, 'video') : ''
+      const profileVideoUrl = artistProfileVideoFile ? await uploadToCloudinary(artistProfileVideoFile, folder, 'video') : ''
       const { data, error } = await supabase.from('artists').insert({
-        name: newArtist.name, bio: newArtist.bio,
-        photo_url: photoUrl, artist_message_url: messageUrl,
-      }).select().single()
+  name: newArtist.name, bio: newArtist.bio,
+  photo_url: photoUrl, artist_message_url: messageUrl,
+  artist_profile_video_url: profileVideoUrl,
+}).select().single()
       if (error) throw error
       setSelectedArtistId(data.id)
       setArtists(prev => [...prev, { id: data.id, name: data.name }])
@@ -330,18 +332,26 @@ export default function AdminUpload() {
                 <textarea style={s.textarea} value={newArtist.bio} onChange={e => setNewArtist(n => ({ ...n, bio: e.target.value }))} placeholder="Artist biography..." />
                 <div style={s.resizeHint}>↕ drag to resize</div>
               </div>
-              <div style={s.row}>
-                <div>
-                  <label style={s.label}>Artist Photo</label>
-                  <input type="file" accept="image/*" style={s.fileInput} onChange={e => setArtistPhotoFile(e.target.files[0])} />
-                  {artistPhotoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistPhotoFile.name}</div>}
-                </div>
-                <div>
-                  <label style={s.label}>Artist Message Video (optional)</label>
-                  <input type="file" accept="video/*" style={s.fileInput} onChange={e => setArtistMessageFile(e.target.files[0])} />
-                  {artistMessageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistMessageFile.name}</div>}
-                </div>
-              </div>
+             <div style={s.row}>
+  <div>
+    <label style={s.label}>Artist Photo</label>
+    <input type="file" accept="image/*" style={s.fileInput} onChange={e => setArtistPhotoFile(e.target.files[0])} />
+    {artistPhotoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistPhotoFile.name}</div>}
+  </div>
+  <div>
+    <label style={s.label}>Artist Message Video (optional)</label>
+    <input type="file" accept="video/*" style={s.fileInput} onChange={e => setArtistMessageFile(e.target.files[0])} />
+    {artistMessageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistMessageFile.name}</div>}
+  </div>
+</div>
+
+<div style={s.row}>
+  <div>
+    <label style={s.label}>Profile Video (optional — plays once on artist page)</label>
+    <input type="file" accept="video/*" style={s.fileInput} onChange={e => setArtistProfileVideoFile(e.target.files[0])} />
+    {artistProfileVideoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistProfileVideoFile.name}</div>}
+  </div>
+</div>
               <div style={s.field}>
                 <label style={s.label}>Content Origin</label>
                 <select style={s.select} value={newArtist.content_origin} onChange={e => setNewArtist(n => ({ ...n, content_origin: e.target.value }))}>

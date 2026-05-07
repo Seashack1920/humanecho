@@ -1,7 +1,6 @@
 'use client'
 
 import { usePlayer } from '@/context/PlayerContext'
-import { useState, useEffect, useRef } from 'react'
 
 export default function FloatingPlayer() {
   const {
@@ -11,26 +10,36 @@ export default function FloatingPlayer() {
     duration,
     volume,
     isExpanded,
+    hasNext,
+    hasPrev,
     setIsExpanded,
     togglePlay,
+    playNext,
+    playPrev,
     seek,
     changeVolume,
     formatTime,
-    pause, 
   } = usePlayer()
-
-  const [showVideo, setShowVideo] = useState(false)
-  const videoRef = useRef(null)
-  // Reset video view when track changes
-  useEffect(() => {
-    setShowVideo(false)
-
-  }, [currentTrack?.id])
 
   if (!currentTrack) return null
 
   const progressPercent = duration ? (progress / duration) * 100 : 0
-  const hasVideo = !!currentTrack.music_video_url
+
+  const btnStyle = (disabled = false) => ({
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    background: 'none',
+    border: 'none',
+    cursor: disabled ? 'default' : 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '14px',
+    color: disabled ? 'var(--border)' : 'var(--text-secondary)',
+    flexShrink: 0,
+    transition: 'color 0.2s ease',
+  })
 
   return (
     <div
@@ -39,7 +48,7 @@ export default function FloatingPlayer() {
         bottom: '24px',
         right: '24px',
         zIndex: 1000,
-        width: isExpanded ? '340px' : '280px',
+        width: isExpanded ? '340px' : '300px',
         background: 'var(--player-bg)',
         border: '1px solid var(--player-border)',
         borderRadius: '16px',
@@ -53,185 +62,94 @@ export default function FloatingPlayer() {
       {/* Expanded view */}
       {isExpanded && (
         <div style={{ padding: '20px 20px 0' }}>
-
-          {showVideo ? (
-            <>
-              {/* Video player — adapts to any aspect ratio */}
-              <div style={{
-                width: '100%',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                marginBottom: '12px',
-                background: '#000',
-              }}>
-                <video
-  ref={videoRef}
-  src={currentTrack.music_video_url}
-  controls
-  autoPlay
-  style={{
-    width: '100%',
-    display: 'block',
-    maxHeight: '400px',
-    objectFit: 'contain',
-  }}
-/>
-              </div>
-
-              {/* Back to audio button */}
-              <button
-                onClick={() => {
-  if (videoRef.current) {
-    videoRef.current.pause()
-    videoRef.current.currentTime = 0
-  }
-  setShowVideo(false)
-}}
-              >
-                ← Back to audio
-              </button>
-            </>
-          ) : (
-            <>
-              {/* Album art */}
-              <div style={{
-                width: '100%',
-                aspectRatio: '1',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                marginBottom: '12px',
-                background: 'var(--bg-secondary)',
-              }}>
-                {currentTrack.track_image_url ? (
-                  <img
-                    src={currentTrack.track_image_url}
-                    alt={currentTrack.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <div style={{
-                    width: '100%', height: '100%',
-                    display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontSize: '48px',
-                  }}>
-                    🎵
-                  </div>
-                )}
-              </div>
-
-              {/* Video button — only if track has a music video */}
-              {hasVideo && (
-                <button
-                  onClick={() => {
-  pause()
-  setShowVideo(true)
-}}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    fontSize: '12px', color: 'var(--accent-primary)',
-                    background: 'none', border: '1px solid var(--accent-primary)',
-                    borderRadius: '6px', cursor: 'pointer',
-                    padding: '5px 12px', marginBottom: '16px',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-primary)'; e.currentTarget.style.color = 'white' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--accent-primary)' }}
-                >
-                  🎬 Watch Video
-                </button>
-              )}
-            </>
-          )}
+          {/* Album art */}
+          <div style={{
+            width: '100%', aspectRatio: '1', borderRadius: '12px',
+            overflow: 'hidden', marginBottom: '16px', background: 'var(--bg-secondary)',
+          }}>
+            {currentTrack.track_image_url ? (
+              <img src={currentTrack.track_image_url} alt={currentTrack.title}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px' }}>🎵</div>
+            )}
+          </div>
 
           {/* Track info */}
-          <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '12px' }}>
             <div style={{
-              fontFamily: 'Playfair Display, serif',
-              fontSize: '18px', fontWeight: '600',
+              fontFamily: 'Playfair Display, serif', fontSize: '18px', fontWeight: '600',
               color: 'var(--text-primary)', marginBottom: '4px',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {currentTrack.title}
             </div>
             <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              {currentTrack.artist_name || 'R&B Beach Band'}
+              {currentTrack.artist_name || ''}
             </div>
           </div>
 
           {/* Progress bar */}
           <div style={{ marginBottom: '8px' }}>
-            <input
-              type="range"
-              min={0}
-              max={duration || 0}
-              value={progress}
+            <input type="range" min={0} max={duration || 0} value={progress}
               onChange={(e) => seek(parseFloat(e.target.value))}
-              style={{
-                width: '100%', height: '3px',
-                accentColor: 'var(--accent-primary)', cursor: 'pointer',
-              }}
-            />
-            <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px',
-            }}>
+              style={{ width: '100%', height: '3px', accentColor: 'var(--accent-primary)', cursor: 'pointer' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
               <span>{formatTime(progress)}</span>
               <span>{formatTime(duration)}</span>
             </div>
           </div>
 
+          {/* Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
+            <button onClick={playPrev} disabled={!hasPrev} style={btnStyle(!hasPrev)}>⏮</button>
+
+            <button onClick={togglePlay} style={{
+              width: '44px', height: '44px', borderRadius: '50%',
+              background: 'var(--accent-primary)', color: 'white',
+              border: 'none', cursor: 'pointer', fontSize: '16px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, transition: 'transform 0.1s ease',
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              {isPlaying ? '⏸' : '▶'}
+            </button>
+
+            <button onClick={playNext} disabled={!hasNext} style={btnStyle(!hasNext)}>⏭</button>
+          </div>
+
           {/* Volume */}
-          <div style={{
-            display: 'flex', alignItems: 'center',
-            gap: '8px', marginBottom: '16px',
-          }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>🔈</span>
-            <input
-              type="range"
-              min={0} max={1} step={0.01}
-              value={volume}
+            <input type="range" min={0} max={1} step={0.01} value={volume}
               onChange={(e) => changeVolume(parseFloat(e.target.value))}
-              style={{
-                flex: 1, height: '3px',
-                accentColor: 'var(--accent-gold)', cursor: 'pointer',
-              }}
-            />
+              style={{ flex: 1, height: '3px', accentColor: 'var(--accent-gold)', cursor: 'pointer' }} />
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>🔊</span>
           </div>
         </div>
       )}
 
       {/* Mini bar — always visible */}
-      <div style={{
-        display: 'flex', alignItems: 'center',
-        gap: '12px', padding: '12px 16px',
-      }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px' }}>
         {/* Thumbnail */}
         <div style={{
-          width: '40px', height: '40px',
-          borderRadius: '8px', overflow: 'hidden',
-          flexShrink: 0, background: 'var(--bg-secondary)',
+          width: '40px', height: '40px', borderRadius: '8px',
+          overflow: 'hidden', flexShrink: 0, background: 'var(--bg-secondary)',
         }}>
           {currentTrack.track_image_url ? (
-            <img
-              src={currentTrack.track_image_url}
-              alt={currentTrack.title}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
+            <img src={currentTrack.track_image_url} alt={currentTrack.title}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
-            <div style={{
-              width: '100%', height: '100%',
-              display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: '18px',
-            }}>🎵</div>
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🎵</div>
           )}
         </div>
 
         {/* Title */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontSize: '13px', fontWeight: '500',
-            color: 'var(--text-primary)',
+            fontSize: '13px', fontWeight: '500', color: 'var(--text-primary)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {currentTrack.title}
@@ -243,56 +161,48 @@ export default function FloatingPlayer() {
           )}
         </div>
 
+        {/* Mini controls */}
+        {!isExpanded && (
+          <>
+            <button onClick={playPrev} disabled={!hasPrev} style={btnStyle(!hasPrev)}>⏮</button>
+          </>
+        )}
+
         {/* Play/pause */}
-        <button
-          onClick={() => {
-  if (showVideo && videoRef.current) {
-    videoRef.current.pause()
-    videoRef.current.currentTime = 0
-    setShowVideo(false)
-  }
-  togglePlay()
-}}
-          style={{
-            width: '36px', height: '36px',
-            borderRadius: '50%', background: 'var(--accent-primary)',
-            color: 'white', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            fontSize: '14px', flexShrink: 0,
-            transition: 'transform 0.1s ease',
-          }}
-          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        <button onClick={togglePlay} style={{
+          width: '36px', height: '36px', borderRadius: '50%',
+          background: 'var(--accent-primary)', color: 'white',
+          border: 'none', cursor: 'pointer', fontSize: '13px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, transition: 'transform 0.1s ease',
+        }}
+        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
         >
           {isPlaying ? '⏸' : '▶'}
         </button>
 
+        {!isExpanded && (
+          <button onClick={playNext} disabled={!hasNext} style={btnStyle(!hasNext)}>⏭</button>
+        )}
+
         {/* Expand/collapse */}
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          style={{
-            width: '28px', height: '28px',
-            borderRadius: '50%', background: 'var(--bg-secondary)',
-            color: 'var(--text-muted)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            fontSize: '12px', flexShrink: 0,
-          }}
-        >
+        <button onClick={() => setIsExpanded(!isExpanded)} style={{
+          width: '28px', height: '28px', borderRadius: '50%',
+          background: 'var(--bg-secondary)', color: 'var(--text-muted)',
+          border: 'none', cursor: 'pointer', fontSize: '12px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
           {isExpanded ? '↓' : '↑'}
         </button>
       </div>
 
       {/* Progress bar mini */}
       {!isExpanded && (
-        <div style={{
-          height: '2px', background: 'var(--border)',
-          borderRadius: '0 0 16px 16px',
-        }}>
+        <div style={{ height: '2px', background: 'var(--border)', borderRadius: '0 0 16px 16px' }}>
           <div style={{
-            height: '100%',
-            width: `${progressPercent}%`,
-            background: 'var(--accent-primary)',
-            borderRadius: '0 0 16px 16px',
+            height: '100%', width: `${progressPercent}%`,
+            background: 'var(--accent-primary)', borderRadius: '0 0 16px 16px',
             transition: 'width 0.1s linear',
           }} />
         </div>
