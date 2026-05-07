@@ -47,7 +47,7 @@ export default function AdminUpload() {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null)
-  const [savedTracks, setSavedTracks] = useState([])
+  const [savedTracks, setSavedTracks] = useState<{ title: string; duration: string; hasLyrics: boolean; lyricsPreview: string }[]>([])
   const [artists, setArtists] = useState<any[]>([])
   const [albums, setAlbums] = useState<any[]>([])
   const [artistProfileVideoFile, setArtistProfileVideoFile] = useState(null)
