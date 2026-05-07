@@ -271,7 +271,7 @@ export default function AdminUpload() {
     btn: { padding: '12px 28px', borderRadius: '8px', background: 'var(--accent-primary)', color: 'white', fontSize: '15px', fontWeight: '500', border: 'none', cursor: 'pointer' },
     btnSecondary: { padding: '12px 28px', borderRadius: '8px', background: 'none', color: 'var(--text-secondary)', fontSize: '15px', border: '1px solid var(--border)', cursor: 'pointer', marginRight: '12px' },
     btnGold: { padding: '12px 28px', borderRadius: '8px', background: 'var(--accent-secondary)', color: 'white', fontSize: '15px', fontWeight: '500', border: 'none', cursor: 'pointer' },
-    toggleRow: { display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' },
+    toggleRow: { display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' as const },
     toggle: (active: boolean) => ({ padding: '6px 16px', borderRadius: '20px', fontSize: '13px', border: 'none', cursor: 'pointer', background: active ? 'var(--accent-primary)' : 'var(--bg-card)', color: active ? 'white' : 'var(--text-muted)' }),
     sectionTitle: { fontFamily: 'Playfair Display, serif', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px' },
     divider: { height: '1px', background: 'var(--border)', margin: '20px 0' },
