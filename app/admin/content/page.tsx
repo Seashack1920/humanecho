@@ -10,9 +10,9 @@ const supabase = createClient(
 )
 
 export default function AdminContent() {
-  const [artists, setArtists] = useState([])
-  const [albums, setAlbums] = useState([])
-  const [tracks, setTracks] = useState([])
+  const [artists, setArtists] = useState<any[]>([])
+const [albums, setAlbums] = useState<any[]>([])
+const [tracks, setTracks] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('artists')
 
