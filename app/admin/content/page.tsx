@@ -54,7 +54,7 @@ const [tracks, setTracks] = useState<any[]>([])
     navRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' },
   }
 
-  const statusBadge = (status) => {
+  const statusBadge = (status: string) => {
     const color = status === 'published' ? 'green' : status === 'private' ? 'blue' : 'gray'
     return <span style={s.badge(color)}>{status}</span>
   }
