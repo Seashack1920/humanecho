@@ -139,7 +139,7 @@ export default function AdminUpload() {
       setMessage({ type: 'success', text: `Artist "${data.name}" created!` })
       setStep(2)
     } catch (err) {
-      setMessage({ type: 'error', text: err.message })
+      setMessage({ type: "error", text: (err as Error).message })
     }
     setLoading(false)
   }
@@ -176,7 +176,7 @@ export default function AdminUpload() {
       setMessage({ type: 'success', text: `Album "${data.title}" created!` })
       setStep(3)
     } catch (err) {
-      setMessage({ type: 'error', text: err.message })
+      setMessage({ type: "error", text: (err as Error).message })
     }
     setLoading(false)
   }
@@ -248,7 +248,7 @@ export default function AdminUpload() {
         setTrackMusicVideoFile(null)
       }
     } catch (err) {
-      setMessage({ type: 'error', text: err.message })
+      setMessage({ type: "error", text: (err as Error).message })
     }
     setLoading(false)
   }
