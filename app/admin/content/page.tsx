@@ -32,9 +32,8 @@ const [tracks, setTracks] = useState<any[]>([])
   }, [])
 
   // Helper to get artist name by id
-  const artistName = (id) => artists.find(a => a.id === id)?.name || '—'
-  const albumTitle = (id) => id ? (albums.find(a => a.id === id)?.title || '—') : 'Single'
-
+  const artistName = (id: any) => artists.find((a: any) => a.id === id)?.name || '—'
+  const albumTitle = (id: any) => id ? (albums.find((a: any) => a.id === id)?.title || '—') : 'Single'
   const s = {
     page: { maxWidth: '1100px', margin: '0 auto', padding: '40px 24px', fontFamily: 'DM Sans, sans-serif' },
     h1: { fontFamily: 'Playfair Display, serif', fontSize: '32px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' },
