@@ -48,7 +48,7 @@ const [tracks, setTracks] = useState<any[]>([])
     table: { width: '100%', borderCollapse: 'collapse' as const },
     th: { textAlign: 'left' as const, fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '1px', textTransform: 'uppercase' as const, padding: '8px 12px', borderBottom: '1px solid var(--border)' },
     td: { padding: '12px 12px', fontSize: '13px', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', verticalAlign: 'middle' as const },
-    badge: (color) => ({ display: 'inline-block', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '500', background: color === 'green' ? 'rgba(43,180,100,0.15)' : color === 'blue' ? 'rgba(43,122,143,0.15)' : 'rgba(150,150,150,0.15)', color: color === 'green' ? '#2bb464' : color === 'blue' ? 'var(--accent-primary)' : 'var(--text-muted)' }),
+    badge: (color: string) => ({ display: 'inline-block', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '500', background: color === 'green' ? 'rgba(43,180,100,0.15)' : color === 'blue' ? 'rgba(43,122,143,0.15)' : 'rgba(150,150,150,0.15)', color: color === 'green' ? '#2bb464' : color === 'blue' ? 'var(--accent-primary)' : 'var(--text-muted)' }),
     link: { color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: '500' },
     thumb: { width: '36px', height: '36px', borderRadius: '6px', objectFit: 'cover' as const, background: 'var(--bg-secondary)', display: 'block' },
     navRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' },
