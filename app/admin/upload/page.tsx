@@ -112,7 +112,7 @@ export default function AdminUpload() {
     }
   }, [trackAudioFile])
 
-  const slugify = (str) => str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+  const slugify = (str: string) => str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 
   const handleArtistStep = async () => {
     if (artistMode === 'select') {
