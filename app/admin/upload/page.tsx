@@ -50,8 +50,7 @@ export default function AdminUpload() {
   const [savedTracks, setSavedTracks] = useState<{ title: string; duration: string; hasLyrics: boolean; lyricsPreview: string }[]>([])
   const [artists, setArtists] = useState<any[]>([])
   const [albums, setAlbums] = useState<any[]>([])
-  const [artistProfileVideoFile, setArtistProfileVideoFile] = useState<File | null>(null)
-  const [artistMode, setArtistMode] = useState('select')
+  const [artistProfileVideoFile, setArtistProfileVideoFile] = useState<File | null>(null)  const [artistMode, setArtistMode] = useState('select')
   const [selectedArtistId, setSelectedArtistId] = useState('')
   const [newArtist, setNewArtist] = useState({ name: '', bio: '', content_origin: '100% human' })
   const [artistPhotoFile, setArtistPhotoFile] = useState<File | null>(null)
@@ -614,12 +613,12 @@ export default function AdminUpload() {
                 <div><label style={s.label}>Copyright Owner</label><input style={s.input} value={track.copyright_owner} onChange={e => setTrack(t => ({ ...t, copyright_owner: e.target.value }))} placeholder="Human Echo Records" /></div>
               </div>
               <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                {[['sync_eligible', 'Sync Eligible'], ['stems_available', 'Stems Available'], ['instrumental_available', 'Instrumental Available'], ['explicit', 'Explicit Content']].map(([key, label]) => (
-                  <label key={key} style={s.checkbox}>
-                    <input type="checkbox" checked={track[key]} onChange={e => setTrack(t => ({ ...t, [key]: e.target.checked }))} />
-                    {label}
-                  </label>
-                ))}
+                {(['sync_eligible', 'stems_available', 'instrumental_available', 'explicit'] as const).map((key) => (
+  <label key={key} style={s.checkbox}>
+    <input type="checkbox" checked={track[key] as boolean} onChange={e => setTrack(t => ({ ...t, [key]: e.target.checked }))} />
+    {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+  </label>
+))}
               </div>
             </>
           )}
