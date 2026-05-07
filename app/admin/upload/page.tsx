@@ -259,7 +259,7 @@ export default function AdminUpload() {
     h1: { fontFamily: 'Playfair Display, serif', fontSize: '32px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px' },
     subtitle: { fontSize: '14px', color: 'var(--text-muted)', marginBottom: '40px' },
     steps: { display: 'flex', gap: '8px', marginBottom: '32px' },
-    stepBtn: (active, done) => ({ padding: '8px 20px', borderRadius: '20px', fontSize: '13px', fontWeight: '500', border: 'none', cursor: 'pointer', background: active ? 'var(--accent-primary)' : 'var(--bg-secondary)', color: active ? 'white' : done ? 'var(--accent-primary)' : 'var(--text-muted)' }),
+    stepBtn: (active: boolean, done: boolean) => ({ padding: '8px 20px', borderRadius: '20px', fontSize: '13px', fontWeight: '500', border: 'none', cursor: 'pointer', background: active ? 'var(--accent-primary)' : 'var(--bg-secondary)', color: active ? 'white' : done ? 'var(--accent-primary)' : 'var(--text-muted)' }),
     card: { background: 'var(--bg-secondary)', borderRadius: '16px', padding: '28px', marginBottom: '24px', border: '1px solid var(--border)' },
     label: { display: 'block', fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '6px' },
     input: { width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
