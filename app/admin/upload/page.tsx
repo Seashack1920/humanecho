@@ -24,7 +24,7 @@ async function uploadToCloudinary(file: File, folder: string, resourceType: stri
   return data.secure_url
 }
 
-async function readAudioDuration(file) {
+async function readAudioDuration(file: File) {
   return new Promise((resolve) => {
     try {
       const audio = new Audio()
