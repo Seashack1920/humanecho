@@ -21,7 +21,7 @@ async function uploadToCloudinary(file: File, folder: string, resourceType: stri
   )
   const data = await res.json()
   if (data.error) throw new Error(data.error.message)
-  return data.secure_url
+  return { url: data.secure_url as string, public_id: data.public_id as string }
 }
 
 async function readAudioDuration(file: File): Promise<string> {
@@ -624,13 +624,15 @@ export default function AdminUpload() {
     setLoading(true); setMessage(null)
     try {
       const folder = slugify(newArtist.name)
-      const photoUrl       = artistPhotoFile        ? await uploadToCloudinary(artistPhotoFile, folder, 'image') : ''
-      const messageUrl     = artistMessageFile      ? await uploadToCloudinary(artistMessageFile, folder, 'video') : ''
-      const profileVideoUrl = artistProfileVideoFile ? await uploadToCloudinary(artistProfileVideoFile, folder, 'video') : ''
+      const photo        = artistPhotoFile        ? await uploadToCloudinary(artistPhotoFile, folder, 'image') : null
+      const message      = artistMessageFile      ? await uploadToCloudinary(artistMessageFile, folder, 'video') : null
+      const profileVideo = artistProfileVideoFile ? await uploadToCloudinary(artistProfileVideoFile, folder, 'video') : null
       const { data, error } = await supabase.from('artists').insert({
         name: newArtist.name, bio: newArtist.bio,
-        photo_url: photoUrl, artist_message_url: messageUrl,
-        artist_profile_video_url: profileVideoUrl,
+        photo_url: photo?.url ?? '',
+        cloudinary_public_id: photo?.public_id ?? null,
+        artist_message_url: message?.url ?? '',
+        artist_profile_video_url: profileVideo?.url ?? '',
       }).select().single()
       if (error) throw error
       setSelectedArtistId(data.id)
@@ -652,13 +654,16 @@ export default function AdminUpload() {
     try {
       const artistName  = artists.find(a => a.id === selectedArtistId)?.name || 'unknown'
       const albumFolder = `${slugify(artistName)}/albums/${slugify(newAlbum.title)}`
-      const coverUrl    = albumCoverFile   ? await uploadToCloudinary(albumCoverFile, albumFolder, 'image') : ''
-      const messageUrl  = albumMessageFile ? await uploadToCloudinary(albumMessageFile, albumFolder, 'video') : ''
+      const cover   = albumCoverFile   ? await uploadToCloudinary(albumCoverFile, albumFolder, 'image') : null
+      const message = albumMessageFile ? await uploadToCloudinary(albumMessageFile, albumFolder, 'video') : null
       const { data, error } = await supabase.from('albums').insert({
         artist_id: selectedArtistId, title: newAlbum.title, description: newAlbum.description,
         price: newAlbum.price ? parseFloat(newAlbum.price) : null,
         album_type: newAlbum.album_type, content_origin: newAlbum.content_origin,
-        status: newAlbum.status, cover_url: coverUrl, artist_message_url: messageUrl,
+        status: newAlbum.status,
+        cover_url: cover?.url ?? '',
+        cloudinary_public_id: cover?.public_id ?? null,
+        artist_message_url: message?.url ?? '',
       }).select().single()
       if (error) throw error
       setSelectedAlbumId(data.id)
@@ -679,18 +684,19 @@ export default function AdminUpload() {
       const trackSlug  = `${String(track.track_number || '00').padStart(2, '0')}-${slugify(track.title)}`
       const trackFolder = `${slugify(artistName)}/albums/${slugify(albumTitle)}/${trackSlug}`
 
-      const audioUrl      = trackAudioFile      ? await uploadToCloudinary(trackAudioFile, trackFolder, 'video') : ''
-      const imageUrl      = trackImageFile      ? await uploadToCloudinary(trackImageFile, trackFolder, 'image') : ''
-      const messageUrl    = trackMessageFile    ? await uploadToCloudinary(trackMessageFile, trackFolder, 'video') : ''
-      const musicVideoUrl = trackMusicVideoFile ? await uploadToCloudinary(trackMusicVideoFile, trackFolder, 'video') : ''
+      const audio      = trackAudioFile      ? await uploadToCloudinary(trackAudioFile, trackFolder, 'video') : null
+      const image      = trackImageFile      ? await uploadToCloudinary(trackImageFile, trackFolder, 'image') : null
+      const message    = trackMessageFile    ? await uploadToCloudinary(trackMessageFile, trackFolder, 'video') : null
+      const musicVideo = trackMusicVideoFile ? await uploadToCloudinary(trackMusicVideoFile, trackFolder, 'video') : null
 
       const { data, error } = await supabase.from('tracks').insert({
         album_id: selectedAlbumId || null, artist_id: selectedArtistId,
         title: track.title, track_number: track.track_number ? parseInt(track.track_number) : null,
         track_type: track.track_type, duration: track.duration,
-        cloudinary_url: audioUrl, file_format: track.file_format,
-        track_image_url: imageUrl, music_video_url: musicVideoUrl,
-        artist_message_url: messageUrl, text_content: track.text_content,
+        cloudinary_url: audio?.url ?? '', cloudinary_public_id: audio?.public_id ?? null,
+        file_format: track.file_format,
+        track_image_url: image?.url ?? '', music_video_url: musicVideo?.url ?? '',
+        artist_message_url: message?.url ?? '', text_content: track.text_content,
         text_content_type: track.text_content_type,
         price: track.price ? parseFloat(track.price) : null,
         status: track.status, content_origin: track.content_origin,
