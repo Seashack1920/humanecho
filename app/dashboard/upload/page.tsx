@@ -11,18 +11,36 @@ const supabase = createClient(
 
 const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 
-async function uploadToCloudinary(file: File, folder: string, resourceType: string = 'auto') {
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('upload_preset', 'humanecho_upload')
-  formData.append('folder', folder)
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`,
-    { method: 'POST', body: formData }
-  )
-  const data = await res.json()
-  if (data.error) throw new Error(data.error.message)
-  return { url: data.secure_url as string, public_id: data.public_id as string }
+async function uploadToCloudinary(
+  file: File,
+  folder: string,
+  resourceType: string = 'auto',
+  onProgress?: (percent: number) => void
+) {
+  return new Promise<{ url: string; public_id: string }>((resolve, reject) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('upload_preset', 'humanecho_upload')
+    formData.append('folder', folder)
+
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`)
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100))
+      }
+    }
+
+    xhr.onload = () => {
+      const data = JSON.parse(xhr.responseText)
+      if (data.error) reject(new Error(data.error.message))
+      else resolve({ url: data.secure_url, public_id: data.public_id })
+    }
+
+    xhr.onerror = () => reject(new Error('Upload failed'))
+    xhr.send(formData)
+  })
 }
 
 async function readAudioDuration(file: File): Promise<string> {
@@ -41,7 +59,19 @@ async function readAudioDuration(file: File): Promise<string> {
     } catch { resolve('') }
   })
 }
-
+function ProgressBar({ label, percent }: { label: string; percent: number }) {
+  return (
+    <div style={{ padding: '16px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border)', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{label}</span>
+        <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--accent-primary)' }}>{percent}%</span>
+      </div>
+      <div style={{ height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${percent}%`, background: 'var(--accent-primary)', borderRadius: '3px', transition: 'width 0.2s ease' }} />
+      </div>
+    </div>
+  )
+}
 function GenrePicker({ genres, selected, onChange, max = 3 }: {
   genres: { id: string; name: string }[]
   selected: string[]
@@ -115,7 +145,8 @@ export default function ArtistUpload() {
   const [loading, setLoading]     = useState(false)
   const [initializing, setInitializing] = useState(true)
   const [message, setMessage]     = useState<{ type: string; text: string } | null>(null)
-
+  const [uploadProgress, setUploadProgress] = useState<{ label: string; percent: number } | null>(null)
+  
   // Artist (locked to current user)
   const [artist, setArtist]       = useState<{ id: string; name: string; photo_url?: string } | null>(null)
 
@@ -250,9 +281,9 @@ export default function ArtistUpload() {
       const albumTitle  = albums.find(a => a.id === selectedAlbumId)?.title || 'singles'
       const trackSlug   = `${String(track.track_number || '00').padStart(2, '0')}-${slugify(track.title)}`
       const trackFolder = `${slugify(artistName)}/albums/${slugify(albumTitle)}/${trackSlug}`
-
-      const audio = trackAudioFile ? await uploadToCloudinary(trackAudioFile, trackFolder, 'video') : null
-      const image = trackImageFile ? await uploadToCloudinary(trackImageFile, trackFolder, 'image') : null
+      const image = trackImageFile ? await uploadToCloudinary(trackImageFile, trackFolder, 'image', (p) => setUploadProgress({ label: `Uploading image: ${track.title}`, percent: p })) : null
+      const audio = trackAudioFile ? await uploadToCloudinary(trackAudioFile, trackFolder, 'video', (p) => setUploadProgress({ label: `Uploading audio: ${track.title}`, percent: p })) : null
+      
 
       const { data, error } = await supabase.from('tracks').insert({
         album_id: selectedAlbumId || null,
@@ -596,8 +627,9 @@ export default function ArtistUpload() {
               </>
             )}
 
-            <div style={s.divider} />
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' as const }}>
+            {uploadProgress && <ProgressBar label={uploadProgress.label} percent={uploadProgress.percent} />}
+<div style={s.divider} />
+<div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' as const }}>
               <button style={s.btnSecondary} onClick={() => setStep(2)}>← Back</button>
               <button style={s.btn} onClick={() => handleTrackSave(false)} disabled={loading}>
                 {loading ? 'Uploading...' : 'Save Track'}

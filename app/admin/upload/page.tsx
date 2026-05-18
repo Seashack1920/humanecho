@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
-
+import { usePlayer } from '@/context/PlayerContext'
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -10,18 +10,36 @@ const supabase = createClient(
 
 const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 
-async function uploadToCloudinary(file: File, folder: string, resourceType: string = 'auto') {
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('upload_preset', 'humanecho_upload')
-  formData.append('folder', folder)
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`,
-    { method: 'POST', body: formData }
-  )
-  const data = await res.json()
-  if (data.error) throw new Error(data.error.message)
-  return { url: data.secure_url as string, public_id: data.public_id as string }
+async function uploadToCloudinary(
+  file: File,
+  folder: string,
+  resourceType: string = 'auto',
+  onProgress?: (percent: number) => void
+) {
+  return new Promise<{ url: string; public_id: string }>((resolve, reject) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('upload_preset', 'humanecho_upload')
+    formData.append('folder', folder)
+
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`)
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100))
+      }
+    }
+
+    xhr.onload = () => {
+      const data = JSON.parse(xhr.responseText)
+      if (data.error) reject(new Error(data.error.message))
+      else resolve({ url: data.secure_url, public_id: data.public_id })
+    }
+
+    xhr.onerror = () => reject(new Error('Upload failed'))
+    xhr.send(formData)
+  })
 }
 
 async function readAudioDuration(file: File): Promise<string> {
@@ -89,7 +107,19 @@ const s = {
 }
 
 const originEmoji = (o?: string) => o === '100% human' ? '🧑' : o === 'human+ai' ? '🧑🤖' : o === 'ai generated' ? '🤖' : ''
-
+function ProgressBar({ label, percent }: { label: string; percent: number }) {
+  return (
+    <div style={{ padding: '16px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border)', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{label}</span>
+        <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--accent-primary)' }}>{percent}%</span>
+      </div>
+      <div style={{ height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${percent}%`, background: 'var(--accent-primary)', borderRadius: '3px', transition: 'width 0.2s ease' }} />
+      </div>
+    </div>
+  )
+}
 // ─── Manage Tab ──────────────────────────────────────────────────────────────
 
 function GenrePicker({ genres, selected, onChange, max = 3 }: {
@@ -141,6 +171,7 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null)
   const [genres, setGenres]   = useState<{id: string, name: string}[]>([])
   const [editingGenres, setEditingGenres] = useState<string[]>([])
+  const { playTrack, currentTrack, isPlaying } = usePlayer()
 
   // Edit state
   const [editingArtistId, setEditingArtistId] = useState<string | null>(null)
@@ -616,10 +647,16 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                       <div style={s.manageMeta}>{track.track_type} · {track.status} · {track.duration || 'no duration'} · {originEmoji(track.content_origin)}</div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                    <button style={s.btnEdit} onClick={async () => { setEditingTrackId(track.id); setEditTrack({}); const g = await loadContentGenres('track', track.id); setEditingGenres(g) }}>Edit</button>
-                    <button style={s.btnDanger} onClick={() => setConfirmDelete({ type: 'track', id: track.id, name: track.title })}>Delete</button>
-                  </div>
+<div style={{ display: 'flex', gap: '8px', flexShrink: 0, alignItems: 'center' }}>
+  <button
+    style={{ width: '32px', height: '32px', borderRadius: '50%', background: currentTrack?.id === track.id && isPlaying ? 'var(--accent-primary)' : 'var(--bg-card)', color: currentTrack?.id === track.id && isPlaying ? 'white' : 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+    onClick={() => playTrack(track)}
+  >
+    {currentTrack?.id === track.id && isPlaying ? '⏸' : '▶'}
+  </button>
+  <button style={s.btnEdit} onClick={async () => { setEditingTrackId(track.id); setEditTrack({}); const g = await loadContentGenres('track', track.id); setEditingGenres(g) }}>Edit</button>
+  <button style={s.btnDanger} onClick={() => setConfirmDelete({ type: 'track', id: track.id, name: track.title })}>Delete</button>
+</div>
                 </div>
               )}
             </div>
@@ -645,6 +682,7 @@ export default function AdminUpload() {
   const [step, setStep]         = useState(1)
   const [loading, setLoading]   = useState(false)
   const [message, setMessage]   = useState<{ type: string; text: string } | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<{ label: string; percent: number } | null>(null)
   const [savedTracks, setSavedTracks] = useState<{ title: string; duration: string; hasLyrics: boolean; lyricsPreview: string }[]>([])
   const [artists, setArtists]   = useState<Artist[]>([])
   const [albums, setAlbums]     = useState<any[]>([])
@@ -796,9 +834,9 @@ export default function AdminUpload() {
       const albumTitle = albums.find(a => a.id === selectedAlbumId)?.title  || 'singles'
       const trackSlug  = `${String(track.track_number || '00').padStart(2, '0')}-${slugify(track.title)}`
       const trackFolder = `${slugify(artistName)}/albums/${slugify(albumTitle)}/${trackSlug}`
-
-      const audio      = trackAudioFile      ? await uploadToCloudinary(trackAudioFile, trackFolder, 'video') : null
-      const image      = trackImageFile      ? await uploadToCloudinary(trackImageFile, trackFolder, 'image') : null
+      
+      const audio = trackAudioFile ? await uploadToCloudinary(trackAudioFile, trackFolder, 'video', (p) => setUploadProgress({ label: `Uploading audio: ${track.title}`, percent: p })) : null
+      const image = trackImageFile ? await uploadToCloudinary(trackImageFile, trackFolder, 'image', (p) => setUploadProgress({ label: `Uploading image: ${track.title}`, percent: p })) : null
       const message    = trackMessageFile    ? await uploadToCloudinary(trackMessageFile, trackFolder, 'video') : null
       const musicVideo = trackMusicVideoFile ? await uploadToCloudinary(trackMusicVideoFile, trackFolder, 'video') : null
 
@@ -841,8 +879,8 @@ if (genresToSave.length > 0) {
   )
 }
       setMessage({ type: 'success', text: `Track "${data.title}" saved successfully!` })
-
-      if (addAnother) {
+      setUploadProgress(null)
+if (addAnother) {
         const nextNum = String(parseInt(track.track_number || '0') + 1)
         setTrack({ ...emptyTrack, track_number: nextNum, content_origin: track.content_origin, status: track.status, price: track.price, publisher: track.publisher, copyright_owner: track.copyright_owner, copyright_year: track.copyright_year })
         setTrackAudioFile(null); setTrackImageFile(null); setTrackMessageFile(null); setTrackMusicVideoFile(null); setTrackGenres([])
@@ -1197,8 +1235,9 @@ if (genresToSave.length > 0) {
                 </>
               )}
 
-              <div style={s.divider} />
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+{uploadProgress && <ProgressBar label={uploadProgress.label} percent={uploadProgress.percent} />}
+<div style={s.divider} />
+<div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                 <button style={s.btnSecondary} onClick={() => setStep(2)}>← Back</button>
                 <button style={s.btn} onClick={() => handleTrackSave(false)} disabled={loading}>{loading ? 'Uploading...' : 'Save Track'}</button>
                 <button style={s.btnGold} onClick={() => handleTrackSave(true)} disabled={loading}>{loading ? 'Uploading...' : 'Save + Add Another'}</button>
