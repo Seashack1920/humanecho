@@ -92,6 +92,45 @@ const originEmoji = (o?: string) => o === '100% human' ? '🧑' : o === 'human+a
 
 // ─── Manage Tab ──────────────────────────────────────────────────────────────
 
+function GenrePicker({ genres, selected, onChange, max = 3 }: {
+  genres: {id: string, name: string}[]
+  selected: string[]
+  onChange: (ids: string[]) => void
+  max?: number
+}) {
+  const toggle = (id: string) => {
+    if (selected.includes(id)) {
+      onChange(selected.filter(g => g !== id))
+    } else {
+      if (selected.length >= max) return
+      onChange([...selected, id])
+    }
+  }
+  return (
+    <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }}>
+        {genres.map(g => {
+          const active = selected.includes(g.id)
+          return (
+            <button key={g.id} onClick={() => toggle(g.id)} style={{
+              padding: '6px 14px', borderRadius: '20px', fontSize: '13px',
+              border: active ? 'none' : '1px solid var(--border)',
+              background: active ? 'var(--accent-primary)' : 'var(--bg-card)',
+              color: active ? 'white' : 'var(--text-muted)',
+              cursor: selected.length >= max && !active ? 'not-allowed' : 'pointer',
+              opacity: selected.length >= max && !active ? 0.4 : 1,
+            }}>
+              {g.name}
+            </button>
+          )
+        })}
+      </div>
+      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+        {selected.length}/{max} selected
+      </div>
+    </div>
+  )
+}
 function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArtists: () => void }) {
   const [manageSection, setManageSection] = useState<'artists' | 'albums' | 'tracks'>('artists')
   const [selectedArtistId, setSelectedArtistId] = useState('')
@@ -100,6 +139,8 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
   const [tracks, setTracks]   = useState<Track[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null)
+  const [genres, setGenres]   = useState<{id: string, name: string}[]>([])
+  const [editingGenres, setEditingGenres] = useState<string[]>([])
 
   // Edit state
   const [editingArtistId, setEditingArtistId] = useState<string | null>(null)
@@ -114,10 +155,24 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
   const [editTrack, setEditTrack]           = useState<Partial<Track>>({})
   const [trackImageFile, setTrackImageFile] = useState<File | null>(null)
 
-  // Confirm delete
   const [confirmDelete, setConfirmDelete] = useState<{ type: string; id: string; name: string } | null>(null)
 
   const slugify = (str: string) => str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+
+  const loadContentGenres = async (contentType: string, contentId: string) => {
+    const { data } = await supabase
+      .from('content_genres')
+      .select('genre_id')
+      .eq('content_type', contentType)
+      .eq('content_id', contentId)
+    return data ? data.map(row => row.genre_id) : []
+  }
+
+  useEffect(() => {
+    supabase.from('genres').select('id, name').eq('content_type', 'music').order('name').then(({ data }) => {
+      if (data) setGenres(data)
+    })
+  }, [])
 
   // Load albums when artist selected
   useEffect(() => {
@@ -133,12 +188,11 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
   // Load tracks when album selected
   useEffect(() => {
     if (selectedAlbumId) {
-      supabase.from('tracks').select('*').eq('album_id', selectedAlbumId).order('track_number').then(({ data }) => {
+      supabase.from('tracks').select('*').eq('album_id', selectedAlbumId).order('track_number', { nullsFirst: false }).then(({ data }) => {
         if (data) setTracks(data)
       })
     } else if (selectedArtistId && manageSection === 'tracks') {
-      // Show all tracks for artist if no album selected
-      supabase.from('tracks').select('*').eq('artist_id', selectedArtistId).order('title').then(({ data }) => {
+      supabase.from('tracks').select('*').eq('artist_id', selectedArtistId).order('track_number', { nullsFirst: false }).then(({ data }) => {
         if (data) setTracks(data)
       })
     } else {
@@ -184,7 +238,7 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
       let updates: any = { ...editArtist }
       if (artistPhotoFile) {
         const artistName = artists.find(a => a.id === artistId)?.name || 'unknown'
-        updates.photo_url = await uploadToCloudinary(artistPhotoFile, slugify(artistName), 'image')
+        updates.photo_url = (await uploadToCloudinary(artistPhotoFile, slugify(artistName), 'image')).url
       }
       const { error } = await supabase.from('artists').update(updates).eq('id', artistId)
       if (error) throw error
@@ -206,13 +260,19 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
     try {
       let updates: any = { ...editAlbum }
       if (albumCoverFile) {
-        const artistName  = artists.find(a => a.id === selectedArtistId)?.name || 'unknown'
-        const albumTitle  = albums.find(a => a.id === albumId)?.title || 'unknown'
-        updates.cover_url = await uploadToCloudinary(albumCoverFile, `${slugify(artistName)}/albums/${slugify(albumTitle)}`, 'image')
+        const artistName = artists.find(a => a.id === selectedArtistId)?.name || 'unknown'
+        const albumTitle = albums.find(a => a.id === albumId)?.title || 'unknown'
+        updates.cover_url = (await uploadToCloudinary(albumCoverFile, `${slugify(artistName)}/albums/${slugify(albumTitle)}`, 'image')).url
       }
       if (updates.price !== undefined) updates.price = updates.price ? parseFloat(updates.price) : null
       const { error } = await supabase.from('albums').update(updates).eq('id', albumId)
       if (error) throw error
+      await supabase.from('content_genres').delete().eq('content_type', 'album').eq('content_id', albumId)
+      if (editingGenres.length > 0) {
+        await supabase.from('content_genres').insert(
+          editingGenres.map(genreId => ({ content_type: 'album', content_id: albumId, genre_id: genreId }))
+        )
+      }
       setAlbums(prev => prev.map(a => a.id === albumId ? { ...a, ...updates } : a))
       setEditingAlbumId(null)
       setAlbumCoverFile(null)
@@ -231,15 +291,21 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
     try {
       let updates: any = { ...editTrack }
       if (trackImageFile) {
-        const artistName   = artists.find(a => a.id === selectedArtistId)?.name || 'unknown'
-        const albumTitle   = albums.find(a => a.id === selectedAlbumId)?.title || 'singles'
-        const trackTitle   = tracks.find(t => t.id === trackId)?.title || 'unknown'
-        updates.track_image_url = await uploadToCloudinary(trackImageFile, `${slugify(artistName)}/albums/${slugify(albumTitle)}/${slugify(trackTitle)}`, 'image')
+        const artistName = artists.find(a => a.id === selectedArtistId)?.name || 'unknown'
+        const albumTitle = albums.find(a => a.id === selectedAlbumId)?.title || 'singles'
+        const trackTitle = tracks.find(t => t.id === trackId)?.title || 'unknown'
+        updates.track_image_url = (await uploadToCloudinary(trackImageFile, `${slugify(artistName)}/albums/${slugify(albumTitle)}/${slugify(trackTitle)}`, 'image')).url
       }
-      if (updates.price        !== undefined) updates.price        = updates.price        ? parseFloat(updates.price)        : null
-      if (updates.track_number !== undefined) updates.track_number = updates.track_number ? parseInt(updates.track_number)   : null
+      if (updates.price        !== undefined) updates.price        = updates.price        ? parseFloat(updates.price)      : null
+      if (updates.track_number !== undefined) updates.track_number = updates.track_number ? parseInt(updates.track_number) : null
       const { error } = await supabase.from('tracks').update(updates).eq('id', trackId)
       if (error) throw error
+      await supabase.from('content_genres').delete().eq('content_type', 'track').eq('content_id', trackId)
+      if (editingGenres.length > 0) {
+        await supabase.from('content_genres').insert(
+          editingGenres.map(genreId => ({ content_type: 'track', content_id: trackId, genre_id: genreId }))
+        )
+      }
       setTracks(prev => prev.map(t => t.id === trackId ? { ...t, ...updates } : t))
       setEditingTrackId(null)
       setTrackImageFile(null)
@@ -267,24 +333,20 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
 
       {msg}
 
-      {/* Confirm delete box */}
+      {/* Confirm delete */}
       {confirmDelete && (
-        <div style={s.confirmBox}>
+        <div style={{ background: 'rgba(220,60,60,0.08)', border: '1px solid rgba(220,60,60,0.3)', borderRadius: '8px', padding: '14px 16px', marginBottom: '8px', fontSize: '14px', color: '#dc3c3c' }}>
           <div style={{ marginBottom: '12px' }}>
             ⚠️ Delete {confirmDelete.type} <strong>"{confirmDelete.name}"</strong>? This cannot be undone.
-            {confirmDelete.type === 'artist' && ' This will not delete their albums or tracks automatically.'}
-            {confirmDelete.type === 'album'  && ' This will not delete the tracks inside it automatically.'}
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button style={{ ...s.btnDanger, fontWeight: '600' }} onClick={handleDelete} disabled={loading}>
-              {loading ? 'Deleting...' : 'Yes, delete'}
-            </button>
+            <button style={s.btnDanger} onClick={handleDelete} disabled={loading}>{loading ? 'Deleting...' : 'Yes, delete'}</button>
             <button style={s.btnCancel} onClick={() => setConfirmDelete(null)}>Cancel</button>
           </div>
         </div>
       )}
 
-      {/* ── ARTISTS ─────────────────────────────────────────────────── */}
+      {/* ── ARTISTS ─────────────────────────────────────────────── */}
       {manageSection === 'artists' && (
         <>
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{artists.length} artist{artists.length !== 1 ? 's' : ''} in database</div>
@@ -322,9 +384,15 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                 </div>
               ) : (
                 <div style={s.manageRow}>
-                  <div>
-                    <div style={s.manageLabel}>{artist.name}</div>
-                    <div style={s.manageMeta}>{originEmoji(artist.content_origin)} {artist.content_origin || 'no origin set'} {artist.bio ? `· ${artist.bio.substring(0, 50)}${artist.bio.length > 50 ? '…' : ''}` : ''}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {artist.photo_url
+                      ? <img src={artist.photo_url} alt={artist.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                      : <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>🎤</div>
+                    }
+                    <div>
+                      <div style={s.manageLabel}>{artist.name}</div>
+                      <div style={s.manageMeta}>{originEmoji(artist.content_origin)} {artist.content_origin || 'no origin set'}{artist.bio ? ` · ${artist.bio.substring(0, 50)}${artist.bio.length > 50 ? '…' : ''}` : ''}</div>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                     <button style={s.btnEdit} onClick={() => { setEditingArtistId(artist.id); setEditArtist({}) }}>Edit</button>
@@ -337,7 +405,7 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
         </>
       )}
 
-      {/* ── ALBUMS ──────────────────────────────────────────────────── */}
+      {/* ── ALBUMS ──────────────────────────────────────────────── */}
       {manageSection === 'albums' && (
         <>
           <div style={s.field}>
@@ -347,12 +415,8 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
               {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
-          {!selectedArtistId && (
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>Select an artist to see their albums.</div>
-          )}
-          {selectedArtistId && (
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{albums.length} album{albums.length !== 1 ? 's' : ''}</div>
-          )}
+          {!selectedArtistId && <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>Select an artist to see their albums.</div>}
+          {selectedArtistId && <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{albums.length} album{albums.length !== 1 ? 's' : ''}</div>}
           {albums.map(album => (
             <div key={album.id}>
               {editingAlbumId === album.id ? (
@@ -406,6 +470,10 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                     <input type="file" accept="image/*" style={s.fileInput} onChange={e => setAlbumCoverFile(e.target.files?.[0] || null)} />
                     {albumCoverFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumCoverFile.name}</div>}
                   </div>
+                  <div style={s.field}>
+                    <label style={s.label}>Genres (up to 3)</label>
+                    <GenrePicker genres={genres} selected={editingGenres} onChange={setEditingGenres} />
+                  </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button style={s.btnSave} onClick={() => handleSaveAlbum(album.id)} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
                     <button style={s.btnCancel} onClick={() => { setEditingAlbumId(null); setEditAlbum({}); setAlbumCoverFile(null) }}>Cancel</button>
@@ -413,12 +481,18 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                 </div>
               ) : (
                 <div style={s.manageRow}>
-                  <div>
-                    <div style={s.manageLabel}>{album.title}</div>
-                    <div style={s.manageMeta}>{album.album_type} · {album.status} · {originEmoji(album.content_origin)} {album.price ? `$${album.price}` : 'no price'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {album.cover_url
+                      ? <img src={album.cover_url} alt={album.title} style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }} />
+                      : <div style={{ width: '40px', height: '40px', borderRadius: '6px', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>🎵</div>
+                    }
+                    <div>
+                      <div style={s.manageLabel}>{album.title}</div>
+                      <div style={s.manageMeta}>{album.album_type} · {album.status} · {originEmoji(album.content_origin)} {album.price ? `$${album.price}` : 'no price'}</div>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                    <button style={s.btnEdit} onClick={() => { setEditingAlbumId(album.id); setEditAlbum({}) }}>Edit</button>
+                    <button style={s.btnEdit} onClick={async () => { setEditingAlbumId(album.id); setEditAlbum({}); const g = await loadContentGenres('album', album.id); setEditingGenres(g) }}>Edit</button>
                     <button style={s.btnDanger} onClick={() => setConfirmDelete({ type: 'album', id: album.id, name: album.title })}>Delete</button>
                   </div>
                 </div>
@@ -428,7 +502,7 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
         </>
       )}
 
-      {/* ── TRACKS ──────────────────────────────────────────────────── */}
+      {/* ── TRACKS ──────────────────────────────────────────────── */}
       {manageSection === 'tracks' && (
         <>
           <div style={s.field}>
@@ -447,12 +521,8 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
               </select>
             </div>
           )}
-          {!selectedArtistId && (
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>Select an artist to see tracks.</div>
-          )}
-          {selectedArtistId && (
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{tracks.length} track{tracks.length !== 1 ? 's' : ''}</div>
-          )}
+          {!selectedArtistId && <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>Select an artist to see tracks.</div>}
+          {selectedArtistId && <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{tracks.length} track{tracks.length !== 1 ? 's' : ''}</div>}
           {tracks.map(track => (
             <div key={track.id}>
               {editingTrackId === track.id ? (
@@ -516,6 +586,19 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                     <textarea style={{ ...s.textarea, minHeight: '100px' }} value={editTrack.text_content ?? track.text_content ?? ''} onChange={e => setEditTrack(p => ({ ...p, text_content: e.target.value }))} />
                     <div style={s.resizeHint}>↕ drag to resize</div>
                   </div>
+                  <div style={s.field}>
+                    <label style={s.label}>Genres (up to 3)</label>
+                    {editingGenres.length === 0 && (
+                      <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginBottom: '8px', cursor: 'pointer' }}
+                        onClick={async () => {
+                          const albumId = selectedAlbumId || track.album_id
+                          if (albumId) { const ag = await loadContentGenres('album', albumId); setEditingGenres(ag) }
+                        }}>
+                        ↑ Inherit from album
+                      </div>
+                    )}
+                    <GenrePicker genres={genres} selected={editingGenres} onChange={setEditingGenres} />
+                  </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button style={s.btnSave} onClick={() => handleSaveTrack(track.id)} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
                     <button style={s.btnCancel} onClick={() => { setEditingTrackId(null); setEditTrack({}); setTrackImageFile(null) }}>Cancel</button>
@@ -523,12 +606,18 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                 </div>
               ) : (
                 <div style={s.manageRow}>
-                  <div>
-                    <div style={s.manageLabel}>{track.track_number ? `${track.track_number}. ` : ''}{track.title}</div>
-                    <div style={s.manageMeta}>{track.track_type} · {track.status} · {track.duration || 'no duration'} · {originEmoji(track.content_origin)}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {track.track_image_url
+                      ? <img src={track.track_image_url} alt={track.title} style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }} />
+                      : <div style={{ width: '40px', height: '40px', borderRadius: '6px', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>🎵</div>
+                    }
+                    <div>
+                      <div style={s.manageLabel}>{track.track_number ? `${track.track_number}. ` : ''}{track.title}</div>
+                      <div style={s.manageMeta}>{track.track_type} · {track.status} · {track.duration || 'no duration'} · {originEmoji(track.content_origin)}</div>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                    <button style={s.btnEdit} onClick={() => { setEditingTrackId(track.id); setEditTrack({}) }}>Edit</button>
+                    <button style={s.btnEdit} onClick={async () => { setEditingTrackId(track.id); setEditTrack({}); const g = await loadContentGenres('track', track.id); setEditingGenres(g) }}>Edit</button>
                     <button style={s.btnDanger} onClick={() => setConfirmDelete({ type: 'track', id: track.id, name: track.title })}>Delete</button>
                   </div>
                 </div>
@@ -544,6 +633,14 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AdminUpload() {
+  useEffect(() => {
+  supabase.auth.getUser().then(({ data: { user } }) => {
+    if (!user) { window.location.href = '/login'; return }
+    supabase.from('profiles').select('role').eq('id', user.id).single().then(({ data }) => {
+      if (data?.role !== 'admin') window.location.href = '/dashboard/upload'
+    })
+  })
+}, [])
   const [mode, setMode]         = useState<'upload' | 'manage'>('upload')
   const [step, setStep]         = useState(1)
   const [loading, setLoading]   = useState(false)
@@ -551,7 +648,9 @@ export default function AdminUpload() {
   const [savedTracks, setSavedTracks] = useState<{ title: string; duration: string; hasLyrics: boolean; lyricsPreview: string }[]>([])
   const [artists, setArtists]   = useState<Artist[]>([])
   const [albums, setAlbums]     = useState<any[]>([])
-
+  const [genres, setGenres] = useState<{id: string, name: string}[]>([])
+  const [albumGenres, setAlbumGenres] = useState<string[]>([])
+  const [trackGenres, setTrackGenres] = useState<string[]>([])
   const [artistProfileVideoFile, setArtistProfileVideoFile] = useState<File | null>(null)
   const [artistMode, setArtistMode]           = useState('select')
   const [selectedArtistId, setSelectedArtistId] = useState('')
@@ -589,7 +688,12 @@ export default function AdminUpload() {
     })
   }
 
-  useEffect(() => { loadArtists() }, [])
+  useEffect(() => {
+  loadArtists()
+  supabase.from('genres').select('id, name').eq('content_type', 'music').order('name').then(({ data }) => {
+    if (data) setGenres(data)
+  })
+}, [])
 
   useEffect(() => {
     if (selectedArtistId) {
@@ -666,6 +770,15 @@ export default function AdminUpload() {
         artist_message_url: message?.url ?? '',
       }).select().single()
       if (error) throw error
+      if (albumGenres.length > 0) {
+  await supabase.from('content_genres').insert(
+    albumGenres.map(genreId => ({
+      content_type: 'album',
+      content_id: data.id,
+      genre_id: genreId,
+    }))
+  )
+}
       setSelectedAlbumId(data.id)
       setAlbums(prev => [...prev, { id: data.id, title: data.title }])
       setMessage({ type: 'success', text: `Album "${data.title}" created!` })
@@ -717,12 +830,22 @@ export default function AdminUpload() {
         title: data.title, duration: data.duration, hasLyrics: !!track.text_content,
         lyricsPreview: track.text_content ? track.text_content.substring(0, 80) + (track.text_content.length > 80 ? '...' : '') : '',
       }])
+      const genresToSave = trackGenres.length > 0 ? trackGenres : albumGenres
+if (genresToSave.length > 0) {
+  await supabase.from('content_genres').insert(
+    genresToSave.map(genreId => ({
+      content_type: 'track',
+      content_id: data.id,
+      genre_id: genreId,
+    }))
+  )
+}
       setMessage({ type: 'success', text: `Track "${data.title}" saved successfully!` })
 
       if (addAnother) {
         const nextNum = String(parseInt(track.track_number || '0') + 1)
         setTrack({ ...emptyTrack, track_number: nextNum, content_origin: track.content_origin, status: track.status, price: track.price, publisher: track.publisher, copyright_owner: track.copyright_owner, copyright_year: track.copyright_year })
-        setTrackAudioFile(null); setTrackImageFile(null); setTrackMessageFile(null); setTrackMusicVideoFile(null)
+        setTrackAudioFile(null); setTrackImageFile(null); setTrackMessageFile(null); setTrackMusicVideoFile(null); setTrackGenres([])
       }
     } catch (err) { setMessage({ type: 'error', text: (err as Error).message }) }
     setLoading(false)
@@ -908,6 +1031,10 @@ export default function AdminUpload() {
                   </div>
                 </>
               )}
+              <div style={s.field}>
+  <label style={s.label}>Genres (up to 3)</label>
+  <GenrePicker genres={genres} selected={albumGenres} onChange={setAlbumGenres} />
+</div>
               <button style={s.btnSecondary} onClick={() => setStep(1)}>← Back</button>
               <button style={s.btn} onClick={handleAlbumStep} disabled={loading}>{loading ? 'Saving...' : 'Continue →'}</button>
             </div>
@@ -995,7 +1122,16 @@ export default function AdminUpload() {
                   {trackImageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackImageFile.name}</div>}
                 </div>
               </div>
-
+<div style={s.field}>
+  <label style={s.label}>Genres (up to 3)</label>
+  {selectedAlbumId && albumGenres.length > 0 && trackGenres.length === 0 && (
+    <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginBottom: '8px', cursor: 'pointer' }}
+      onClick={() => setTrackGenres(albumGenres)}>
+      ↑ Inherit from album
+    </div>
+  )}
+  <GenrePicker genres={genres} selected={trackGenres} onChange={setTrackGenres} />
+</div>
               <div style={s.field}>
                 <label style={s.label}>{lyricsLabel} (optional)</label>
                 <textarea style={s.textarea} value={track.text_content} onChange={e => setTrack(t => ({ ...t, text_content: e.target.value }))} placeholder={lyricsPlaceholder} />
