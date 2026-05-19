@@ -121,7 +121,6 @@ function ProgressBar({ label, percent }: { label: string; percent: number }) {
   )
 }
 // ─── Manage Tab ──────────────────────────────────────────────────────────────
-
 function GenrePicker({ genres, selected, onChange, max = 3 }: {
   genres: {id: string, name: string}[]
   selected: string[]
@@ -129,12 +128,8 @@ function GenrePicker({ genres, selected, onChange, max = 3 }: {
   max?: number
 }) {
   const toggle = (id: string) => {
-    if (selected.includes(id)) {
-      onChange(selected.filter(g => g !== id))
-    } else {
-      if (selected.length >= max) return
-      onChange([...selected, id])
-    }
+    if (selected.includes(id)) onChange(selected.filter(g => g !== id))
+    else if (selected.length < max) onChange([...selected, id])
   }
   return (
     <div>
@@ -155,12 +150,11 @@ function GenrePicker({ genres, selected, onChange, max = 3 }: {
           )
         })}
       </div>
-      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-        {selected.length}/{max} selected
-      </div>
+      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{selected.length}/{max} selected</div>
     </div>
   )
 }
+
 function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArtists: () => void }) {
   const [manageSection, setManageSection] = useState<'artists' | 'albums' | 'tracks'>('artists')
   const [selectedArtistId, setSelectedArtistId] = useState('')
@@ -173,7 +167,6 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
   const [editingGenres, setEditingGenres] = useState<string[]>([])
   const { playTrack, currentTrack, isPlaying } = usePlayer()
 
-  // Edit state
   const [editingArtistId, setEditingArtistId] = useState<string | null>(null)
   const [editArtist, setEditArtist]           = useState<Partial<Artist>>({})
   const [artistPhotoFile, setArtistPhotoFile] = useState<File | null>(null)
@@ -205,7 +198,6 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
     })
   }, [])
 
-  // Load albums when artist selected
   useEffect(() => {
     if (selectedArtistId) {
       supabase.from('albums').select('*').eq('artist_id', selectedArtistId).order('title').then(({ data }) => {
@@ -216,7 +208,6 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
     }
   }, [selectedArtistId])
 
-  // Load tracks when album selected
   useEffect(() => {
     if (selectedAlbumId) {
       supabase.from('tracks').select('*').eq('album_id', selectedAlbumId).order('track_number', { nullsFirst: false }).then(({ data }) => {
@@ -236,8 +227,6 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
       {message.text}
     </div>
   )
-
-  // ── DELETE ─────────────────────────────────────────────────────────────────
 
   const handleDelete = async () => {
     if (!confirmDelete) return
@@ -260,8 +249,6 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
     setLoading(false)
   }
 
-  // ── SAVE ARTIST ────────────────────────────────────────────────────────────
-
   const handleSaveArtist = async (artistId: string) => {
     setLoading(true)
     setMessage(null)
@@ -282,8 +269,6 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
     }
     setLoading(false)
   }
-
-  // ── SAVE ALBUM ─────────────────────────────────────────────────────────────
 
   const handleSaveAlbum = async (albumId: string) => {
     setLoading(true)
@@ -313,8 +298,6 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
     }
     setLoading(false)
   }
-
-  // ── SAVE TRACK ─────────────────────────────────────────────────────────────
 
   const handleSaveTrack = async (trackId: string) => {
     setLoading(true)
@@ -347,13 +330,10 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
     setLoading(false)
   }
 
-  // ── RENDER ─────────────────────────────────────────────────────────────────
-
   return (
     <div style={s.card}>
       <div style={s.sectionTitle}>Manage Content</div>
 
-      {/* Section tabs */}
       <div style={s.toggleRow}>
         {(['artists', 'albums', 'tracks'] as const).map(sec => (
           <button key={sec} style={s.toggle(manageSection === sec)} onClick={() => setManageSection(sec)}>
@@ -364,7 +344,6 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
 
       {msg}
 
-      {/* Confirm delete */}
       {confirmDelete && (
         <div style={{ background: 'rgba(220,60,60,0.08)', border: '1px solid rgba(220,60,60,0.3)', borderRadius: '8px', padding: '14px 16px', marginBottom: '8px', fontSize: '14px', color: '#dc3c3c' }}>
           <div style={{ marginBottom: '12px' }}>
@@ -377,7 +356,7 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
         </div>
       )}
 
-      {/* ── ARTISTS ─────────────────────────────────────────────── */}
+      {/* ── ARTISTS ── */}
       {manageSection === 'artists' && (
         <>
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{artists.length} artist{artists.length !== 1 ? 's' : ''} in database</div>
@@ -403,7 +382,7 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                     </select>
                   </div>
                   <div style={s.field}>
-                    <label style={s.label}>Replace Photo (optional)</label>
+                    <label style={s.label}>Replace Photo — square, min 400×400px</label>
                     <input type="file" accept="image/*" style={s.fileInput} onChange={e => setArtistPhotoFile(e.target.files?.[0] || null)} />
                     {artistPhotoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistPhotoFile.name}</div>}
                     {artist.photo_url && !artistPhotoFile && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Current: {artist.photo_url.split('/').pop()}</div>}
@@ -436,7 +415,7 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
         </>
       )}
 
-      {/* ── ALBUMS ──────────────────────────────────────────────── */}
+      {/* ── ALBUMS ── */}
       {manageSection === 'albums' && (
         <>
           <div style={s.field}>
@@ -497,7 +476,7 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                     </div>
                   </div>
                   <div style={s.field}>
-                    <label style={s.label}>Replace Cover (optional)</label>
+                    <label style={s.label}>Replace Cover — square, min 800×800px</label>
                     <input type="file" accept="image/*" style={s.fileInput} onChange={e => setAlbumCoverFile(e.target.files?.[0] || null)} />
                     {albumCoverFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumCoverFile.name}</div>}
                   </div>
@@ -533,7 +512,7 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
         </>
       )}
 
-      {/* ── TRACKS ──────────────────────────────────────────────── */}
+      {/* ── TRACKS ── */}
       {manageSection === 'tracks' && (
         <>
           <div style={s.field}>
@@ -607,7 +586,7 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                       <input style={s.input} type="number" step="0.01" value={editTrack.price ?? track.price ?? ''} onChange={e => setEditTrack(p => ({ ...p, price: e.target.value as any }))} placeholder="1.29" />
                     </div>
                     <div>
-                      <label style={s.label}>Replace Track Image (optional)</label>
+                      <label style={s.label}>Replace Track Image — square, min 600×600px</label>
                       <input type="file" accept="image/*" style={s.fileInput} onChange={e => setTrackImageFile(e.target.files?.[0] || null)} />
                       {trackImageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackImageFile.name}</div>}
                     </div>
@@ -630,6 +609,13 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                     )}
                     <GenrePicker genres={genres} selected={editingGenres} onChange={setEditingGenres} />
                   </div>
+                  <div style={s.field}>
+                    <label style={s.label}>Album (reassign)</label>
+                    <select style={s.select} value={editTrack.album_id ?? track.album_id ?? ''} onChange={e => setEditTrack(p => ({ ...p, album_id: e.target.value || null }))}>
+                      <option value="">— standalone single —</option>
+                      {albums.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
+                    </select>
+                  </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button style={s.btnSave} onClick={() => handleSaveTrack(track.id)} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
                     <button style={s.btnCancel} onClick={() => { setEditingTrackId(null); setEditTrack({}); setTrackImageFile(null) }}>Cancel</button>
@@ -647,16 +633,16 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                       <div style={s.manageMeta}>{track.track_type} · {track.status} · {track.duration || 'no duration'} · {originEmoji(track.content_origin)}</div>
                     </div>
                   </div>
-<div style={{ display: 'flex', gap: '8px', flexShrink: 0, alignItems: 'center' }}>
-  <button
-    style={{ width: '32px', height: '32px', borderRadius: '50%', background: currentTrack?.id === track.id && isPlaying ? 'var(--accent-primary)' : 'var(--bg-card)', color: currentTrack?.id === track.id && isPlaying ? 'white' : 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-    onClick={() => playTrack(track)}
-  >
-    {currentTrack?.id === track.id && isPlaying ? '⏸' : '▶'}
-  </button>
-  <button style={s.btnEdit} onClick={async () => { setEditingTrackId(track.id); setEditTrack({}); const g = await loadContentGenres('track', track.id); setEditingGenres(g) }}>Edit</button>
-  <button style={s.btnDanger} onClick={() => setConfirmDelete({ type: 'track', id: track.id, name: track.title })}>Delete</button>
-</div>
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0, alignItems: 'center' }}>
+                    <button
+                      style={{ width: '32px', height: '32px', borderRadius: '50%', background: currentTrack?.id === track.id && isPlaying ? 'var(--accent-primary)' : 'var(--bg-card)', color: currentTrack?.id === track.id && isPlaying ? 'white' : 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                      onClick={() => playTrack(track)}
+                    >
+                      {currentTrack?.id === track.id && isPlaying ? '⏸' : '▶'}
+                    </button>
+                    <button style={s.btnEdit} onClick={async () => { setEditingTrackId(track.id); setEditTrack({}); const g = await loadContentGenres('track', track.id); setEditingGenres(g) }}>Edit</button>
+                    <button style={s.btnDanger} onClick={() => setConfirmDelete({ type: 'track', id: track.id, name: track.title })}>Delete</button>
+                  </div>
                 </div>
               )}
             </div>
@@ -668,7 +654,6 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-
 export default function AdminUpload() {
   useEffect(() => {
   supabase.auth.getUser().then(({ data: { user } }) => {
@@ -954,7 +939,7 @@ if (addAnother) {
                   </div>
                   <div style={s.row}>
                     <div>
-                      <label style={s.label}>Artist Photo</label>
+                      <label style={s.label}>Artist Photo <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— square, min 400×400px</span></label>
                       <input type="file" accept="image/*" style={s.fileInput} onChange={e => setArtistPhotoFile(e.target.files?.[0] || null)} />
                       {artistPhotoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistPhotoFile.name}</div>}
                     </div>
@@ -1039,7 +1024,7 @@ if (addAnother) {
                   </div>
                   <div style={s.row}>
                     <div>
-                      <label style={s.label}>Album Cover</label>
+                      <label style={s.label}>Album Cover <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— square, min 800×800px</span></label>
                       <input type="file" accept="image/*" style={s.fileInput} onChange={e => setAlbumCoverFile(e.target.files?.[0] || null)} />
                       {albumCoverFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumCoverFile.name}</div>}
                     </div>
@@ -1155,7 +1140,7 @@ if (addAnother) {
                   </select>
                 </div>
                 <div>
-                  <label style={s.label}>Track Image</label>
+                  <label style={s.label}>Track Image <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— square, min 600×600px</span></label>
                   <input type="file" accept="image/*" style={s.fileInput} onChange={e => setTrackImageFile(e.target.files?.[0] || null)} />
                   {trackImageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackImageFile.name}</div>}
                 </div>
