@@ -1,13 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 
@@ -181,23 +177,34 @@ export default function ArtistUpload() {
 
   const slugify = (str: string) => str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 
-  // Initialize — check auth and load artist
+// Initialize — check auth and load artist
   useEffect(() => {
     const init = async () => {
+      console.log('Upload page init started')
       const { data: { user } } = await supabase.auth.getUser()
+      console.log('User:', user?.email)
       if (!user) { router.push('/login'); return }
 
       const { data: profile } = await supabase
         .from('profiles').select('*').eq('id', user.id).single()
-
       if (!profile) { router.push('/login'); return }
 
-      // Admin can use this page too — but we pre-select nothing
       let artistId = profile.artist_id
 
-      // If admin with no artist_id, redirect to admin portal
       if (profile.role === 'admin' && !artistId) {
-        router.push('/admin/upload')
+        const params = new URLSearchParams(window.location.search)
+        const artistParam = params.get('artist')
+        if (artistParam) {
+          console.log('Fetching artist:', artistParam)
+          const { data: artistData, error: artistError } = await supabase
+            .from('artists').select('id, name, photo_url').eq('id', artistParam).single()
+          console.log('Artist result:', artistData, artistError)
+          if (artistData) { setArtist(artistData); artistId = artistData.id }
+          const { data: albumsData } = await supabase
+            .from('albums').select('id, title').eq('artist_id', artistParam).order('title')
+          if (albumsData) setAlbums(albumsData)
+        }
+        setInitializing(false)
         return
       }
 
@@ -205,7 +212,6 @@ export default function ArtistUpload() {
         const { data: artistData } = await supabase
           .from('artists').select('id, name, photo_url').eq('id', artistId).single()
         if (artistData) setArtist(artistData)
-
         const { data: albumsData } = await supabase
           .from('albums').select('id, title').eq('artist_id', artistId).order('title')
         if (albumsData) setAlbums(albumsData)
@@ -215,23 +221,17 @@ export default function ArtistUpload() {
         .from('genres').select('id, name').eq('content_type', 'music').order('name')
       if (genresData) setGenres(genresData)
 
+      const params = new URLSearchParams(window.location.search)
+      const mode = params.get('mode')
+      if (mode === 'album') setStep(2)
+      else if (mode === 'track') setStep(3)
+      else if (mode === 'single') { setAlbumMode('single'); setStep(3) }
+      else setStep(1)
+
       setInitializing(false)
     }
     init()
-  }, [])
-
-  useEffect(() => {
-    if (trackAudioFile) {
-      readAudioDuration(trackAudioFile).then((dur: string) => {
-        const ext = (trackAudioFile.name.split('.').pop() || 'flac').toLowerCase()
-        setTrack(t => ({
-          ...t,
-          duration: dur || t.duration,
-          file_format: ext,
-          title: t.title || trackAudioFile.name.replace(/\.[^/.]+$/, '').replace(/^\d+[-\s]+/, '').replace(/[-_]/g, ' ').trim(),
-        }))
-      })
-    }
+ 
   }, [trackAudioFile])
 
   const saveGenres = async (contentType: string, contentId: string, genreIds: string[]) => {
@@ -346,7 +346,20 @@ export default function ArtistUpload() {
       </div>
     )
   }
-
+  if (!artist) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
+        <div style={{ textAlign: 'center' as const, color: 'var(--text-muted)', fontSize: '14px' }}>
+          <div style={{ fontSize: '32px', marginBottom: '16px' }}>🎵</div>
+          <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', color: 'var(--text-primary)', marginBottom: '8px' }}>No artist selected</div>
+          <div style={{ marginBottom: '24px' }}>Select an artist from the dashboard first.</div>
+          <button style={{ padding: '10px 24px', borderRadius: '8px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '14px' }} onClick={() => router.push('/dashboard')}>
+            ← Back to Dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
       <div style={s.page}>

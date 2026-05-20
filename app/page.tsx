@@ -1,14 +1,10 @@
 'use client'
 
+import { supabase } from '@/lib/supabase'
 import { useState, useEffect, useRef } from 'react'
-import { createClient } from '@supabase/supabase-js'
 import { usePlayer } from '@/context/PlayerContext'
 import { useRouter } from 'next/navigation'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 type Track    = { id: string; title: string; duration: string | null; cloudinary_url: string | null; track_image_url: string | null; content_origin: string | null; track_type: string | null; artist_id: string | null }
 type Album    = { id: string; title: string; cover_url: string | null; artist_id: string | null }

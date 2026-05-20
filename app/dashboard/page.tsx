@@ -1,14 +1,10 @@
 'use client'
 
+import { supabase } from '@/lib/supabase'
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import { usePlayer } from '@/context/PlayerContext'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -278,7 +274,7 @@ export default function Dashboard() {
 
   const isAdmin = profile?.role === 'admin'
   const greetingName = isAdmin ? (profile?.full_name?.split(' ')[0] || 'Les') : (artist?.name || 'Artist')
-  const uploadPath = isAdmin ? '/admin/upload' : '/dashboard/upload'
+  const uploadPath = '/dashboard/upload'
 
   const msg = message && (
     <div style={{ padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', background: message.type === 'success' ? 'rgba(43,122,143,0.1)' : 'rgba(220,60,60,0.1)', border: `1px solid ${message.type === 'success' ? 'var(--accent-primary)' : '#dc3c3c'}`, color: message.type === 'success' ? 'var(--accent-primary)' : '#dc3c3c', fontSize: '14px' }}>
@@ -336,7 +332,11 @@ export default function Dashboard() {
                 {artist.bio && <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>{artist.bio.substring(0, 120)}{artist.bio.length > 120 ? '…' : ''}</div>}
               </div>
               <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                <button style={s.btn} onClick={() => router.push(uploadPath)}>+ Upload</button>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' as const }}>
+            <button style={s.btn} onClick={() => router.push(`${uploadPath}?mode=album&artist=${artist?.id || adminViewArtistId}`)}>+ New Album</button>
+<button style={s.btn} onClick={() => router.push(`${uploadPath}?mode=track&artist=${artist?.id || adminViewArtistId}`)}>+ Add Track</button>
+<button style={s.btn} onClick={() => router.push(`${uploadPath}?mode=single&artist=${artist?.id || adminViewArtistId}`)}>+ New Single</button>
+            </div>
                 {isAdmin && <button style={s.btnSecondary} onClick={() => router.push('/admin/upload')}>Admin Portal</button>}
               </div>
             </div>
