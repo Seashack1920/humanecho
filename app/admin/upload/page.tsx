@@ -59,7 +59,7 @@ async function readAudioDuration(file: File): Promise<string> {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type Artist = { id: string; name: string; bio?: string; photo_url?: string; content_origin?: string }
+type Artist = { id: string; name: string; bio?: string; photo_url?: string; content_origin?: string; creator_type?: string[]; creator_label?: string }
 type Album  = { id: string; artist_id: string; title: string; description?: string; status?: string; cover_url?: string; album_type?: string; content_origin?: string; price?: number }
 type Track  = { id: string; album_id?: string; artist_id: string; title: string; track_number?: number; track_type?: string; duration?: string; status?: string; content_origin?: string; price?: number; text_content?: string; cloudinary_url?: string; track_image_url?: string }
 
@@ -370,6 +370,27 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                     <textarea style={{ ...s.textarea, minHeight: '80px' }} value={editArtist.bio ?? artist.bio ?? ''} onChange={e => setEditArtist(p => ({ ...p, bio: e.target.value }))} />
                   </div>
                   <div style={s.field}>
+  <label style={s.label}>Creator Type</label>
+  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' as const, marginTop: '4px' }}>
+    {(['music', 'book', 'film', 'story'] as const).map(type => {
+      const current = editArtist.creator_type ?? artist.creator_type ?? ['music']
+      return (
+        <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={current.includes(type)}
+            onChange={e => {
+              const updated = e.target.checked ? [...current, type] : current.filter((t: string) => t !== type)
+              setEditArtist(p => ({ ...p, creator_type: updated }))
+            }}
+          />
+          {type === 'music' ? '🎵 Music' : type === 'book' ? '📚 Book' : type === 'film' ? '🎬 Film' : '📖 Story'}
+        </label>
+      )
+    })}
+  </div>
+</div>
+<div style={s.field}>
                     <label style={s.label}>Content Origin</label>
                     <select style={s.select} value={editArtist.content_origin ?? artist.content_origin ?? '100% human'} onChange={e => setEditArtist(p => ({ ...p, content_origin: e.target.value }))}>
                       <option value="100% human">🧑 100% Human</option>
