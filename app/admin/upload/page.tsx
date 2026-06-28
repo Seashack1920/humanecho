@@ -189,6 +189,15 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
 
   const [confirmDelete, setConfirmDelete] = useState<{ type: string; id: string; name: string } | null>(null)
 
+  const [artistSearch, setArtistSearch] = useState('')
+
+  // Track search / filter / bulk selection
+  const [trackSearch, setTrackSearch] = useState('')
+  const [trackStatusFilter, setTrackStatusFilter] = useState<'all' | 'draft' | 'private' | 'published'>('all')
+  const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set())
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
+
   const slugify = (str: string) => str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 
   const loadContentGenres = async (contentType: string, contentId: string) => {
@@ -354,6 +363,53 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
     setLoading(false)
   }
 
+  // ── Track filtering + bulk actions ──
+  const filteredTracks = tracks.filter(t => {
+    if (trackStatusFilter !== 'all' && (t.status || 'draft') !== trackStatusFilter) return false
+    if (trackSearch.trim() && !(t.title || '').toLowerCase().includes(trackSearch.trim().toLowerCase())) return false
+    return true
+  })
+
+  const toggleTrackSelect = (id: string) =>
+    setSelectedTrackIds(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+
+  const handleBulkStatus = async (status: string) => {
+    const ids = [...selectedTrackIds]
+    if (ids.length === 0) return
+    setBulkBusy(true); setMessage(null)
+    try {
+      const { error } = await supabase.from('tracks').update({ status }).in('id', ids)
+      if (error) throw error
+      setTracks(prev => prev.map(t => ids.includes(t.id) ? { ...t, status } : t))
+      setSelectedTrackIds(new Set())
+      setMessage({ type: 'success', text: `${ids.length} track${ids.length !== 1 ? 's' : ''} set to ${status}.` })
+    } catch (err) {
+      setMessage({ type: 'error', text: (err as Error).message })
+    }
+    setBulkBusy(false)
+  }
+
+  const handleBulkDelete = async () => {
+    const ids = [...selectedTrackIds]
+    if (ids.length === 0) return
+    setBulkBusy(true); setMessage(null)
+    try {
+      const { error } = await supabase.from('tracks').delete().in('id', ids)
+      if (error) throw error
+      setTracks(prev => prev.filter(t => !ids.includes(t.id)))
+      setSelectedTrackIds(new Set())
+      setBulkDeleteConfirm(false)
+      setMessage({ type: 'success', text: `${ids.length} track${ids.length !== 1 ? 's' : ''} deleted.` })
+    } catch (err) {
+      setMessage({ type: 'error', text: (err as Error).message })
+    }
+    setBulkBusy(false)
+  }
+
   return (
     <div style={s.card}>
       <div style={s.sectionTitle}>Manage Content</div>
@@ -383,8 +439,16 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
       {/* ── ARTISTS ── */}
       {manageSection === 'artists' && (
         <>
-          <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{artists.length} artist{artists.length !== 1 ? 's' : ''} in database</div>
-          {artists.map(artist => (
+          <input
+            style={{ ...s.input, marginBottom: '12px' }}
+            placeholder="Search artists by name…"
+            value={artistSearch}
+            onChange={e => setArtistSearch(e.target.value)}
+          />
+          <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+            {(() => { const n = artists.filter(a => (a.name || '').toLowerCase().includes(artistSearch.trim().toLowerCase())).length; return n === artists.length ? `${artists.length}` : `${n} of ${artists.length}` })()} artist{artists.length !== 1 ? 's' : ''} in database
+          </div>
+          {artists.filter(a => (a.name || '').toLowerCase().includes(artistSearch.trim().toLowerCase())).map(artist => (
             <div key={artist.id}>
               {editingArtistId === artist.id ? (
                 <div style={s.editCard}>
@@ -617,7 +681,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
         <>
           <div style={s.field}>
             <label style={s.label}>Artist</label>
-            <select style={s.select} value={selectedArtistId} onChange={e => { setSelectedArtistId(e.target.value); setSelectedAlbumId('') }}>
+            <select style={s.select} value={selectedArtistId} onChange={e => { setSelectedArtistId(e.target.value); setSelectedAlbumId(''); setSelectedTrackIds(new Set()) }}>
               <option value="">— select artist —</option>
               {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
@@ -625,15 +689,76 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
           {selectedArtistId && (
             <div style={s.field}>
               <label style={s.label}>Album (optional — leave blank to see all tracks for artist)</label>
-              <select style={s.select} value={selectedAlbumId} onChange={e => setSelectedAlbumId(e.target.value)}>
+              <select style={s.select} value={selectedAlbumId} onChange={e => { setSelectedAlbumId(e.target.value); setSelectedTrackIds(new Set()) }}>
                 <option value="">— all albums —</option>
                 {albums.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
               </select>
             </div>
           )}
           {!selectedArtistId && <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>Select an artist to see tracks.</div>}
-          {selectedArtistId && <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{tracks.length} track{tracks.length !== 1 ? 's' : ''}</div>}
-          {tracks.map(track => (
+
+          {/* Search + status filter */}
+          {selectedArtistId && tracks.length > 0 && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '12px' }}>
+              <input
+                style={{ ...s.input, flex: '1 1 180px', minWidth: '140px' }}
+                placeholder="Search tracks by title…"
+                value={trackSearch}
+                onChange={e => setTrackSearch(e.target.value)}
+              />
+              {(['all', 'published', 'private', 'draft'] as const).map(st => (
+                <button key={st} onClick={() => setTrackStatusFilter(st)}
+                  style={{
+                    padding: '7px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', textTransform: 'capitalize',
+                    border: `1px solid ${trackStatusFilter === st ? 'var(--accent-primary)' : 'var(--border)'}`,
+                    background: trackStatusFilter === st ? 'var(--accent-primary)' : 'transparent',
+                    color: trackStatusFilter === st ? '#fff' : 'var(--text-secondary)',
+                  }}>
+                  {st}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Bulk action bar */}
+          {selectedTrackIds.size > 0 && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '12px', padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', marginRight: '4px' }}>{selectedTrackIds.size} selected</span>
+              <button style={s.btnSave} disabled={bulkBusy} onClick={() => handleBulkStatus('published')}>Publish</button>
+              <button style={s.btnEdit} disabled={bulkBusy} onClick={() => handleBulkStatus('draft')}>Unpublish</button>
+              <button style={s.btnDanger} disabled={bulkBusy} onClick={() => setBulkDeleteConfirm(true)}>Delete</button>
+              <button style={s.btnCancel} disabled={bulkBusy} onClick={() => setSelectedTrackIds(new Set())}>Clear</button>
+            </div>
+          )}
+          {bulkDeleteConfirm && (
+            <div style={{ background: 'rgba(220,60,60,0.08)', border: '1px solid rgba(220,60,60,0.3)', borderRadius: '8px', padding: '14px 16px', marginBottom: '8px', fontSize: '14px', color: '#dc3c3c' }}>
+              <div style={{ marginBottom: '12px' }}>⚠️ Delete {selectedTrackIds.size} selected track{selectedTrackIds.size !== 1 ? 's' : ''}? This cannot be undone.</div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button style={s.btnDanger} onClick={handleBulkDelete} disabled={bulkBusy}>{bulkBusy ? 'Deleting…' : 'Yes, delete'}</button>
+                <button style={s.btnCancel} onClick={() => setBulkDeleteConfirm(false)}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {selectedArtistId && (
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+              {filteredTracks.length === tracks.length ? `${tracks.length}` : `${filteredTracks.length} of ${tracks.length}`} track{tracks.length !== 1 ? 's' : ''}
+            </div>
+          )}
+          {selectedArtistId && filteredTracks.length > 0 && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px', cursor: 'pointer' }}>
+              <input type="checkbox"
+                checked={filteredTracks.every(t => selectedTrackIds.has(t.id))}
+                onChange={e => setSelectedTrackIds(prev => {
+                  const n = new Set(prev)
+                  if (e.target.checked) filteredTracks.forEach(t => n.add(t.id))
+                  else filteredTracks.forEach(t => n.delete(t.id))
+                  return n
+                })} />
+              Select all {filteredTracks.length} shown
+            </label>
+          )}
+          {filteredTracks.map(track => (
             <div key={track.id}>
               {editingTrackId === track.id ? (
                 <div style={s.editCard}>
@@ -724,6 +849,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
               ) : (
                 <div style={s.manageRow}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <input type="checkbox" checked={selectedTrackIds.has(track.id)} onChange={() => toggleTrackSelect(track.id)} style={{ width: '16px', height: '16px', flexShrink: 0, cursor: 'pointer' }} />
                     {track.track_image_url
                       ? <img src={track.track_image_url} alt={track.title} style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }} />
                       : <div style={{ width: '40px', height: '40px', borderRadius: '6px', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>🎵</div>
