@@ -262,27 +262,27 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
     setMessage(null)
     try {
       let updates: any = { ...editArtist }
+      const artistName = artists.find(a => a.id === artistId)?.name || 'unknown'
+      // Each media file uploads independently — editing one (e.g. just the hero
+      // video) must not require also replacing the photo.
       if (artistPhotoFile) {
-        const artistName = artists.find(a => a.id === artistId)?.name || 'unknown'
         updates.photo_url = (await uploadToCloudinary(artistPhotoFile, slugify(artistName), 'image')).url
-        if (artistIntroFile) {
-          const res = await uploadToCloudinary(artistIntroFile, slugify(artistName), 'video')
-          updates.artist_profile_video_url = res.url
-        }
-        if (heroVideoFile) {
-          const res = await uploadToCloudinary(heroVideoFile, `${slugify(artistName)}/hero`, 'video')
-          updates.hero_video_url = res.url
-        }
-if (heroVideoFile) {
-  const res = await uploadToCloudinary(heroVideoFile, `${slugify(artistName)}/hero`, 'video')
-  updates.hero_video_url = res.url
-}
+      }
+      if (artistIntroFile) {
+        const res = await uploadToCloudinary(artistIntroFile, slugify(artistName), 'video')
+        updates.artist_profile_video_url = res.url
+      }
+      if (heroVideoFile) {
+        const res = await uploadToCloudinary(heroVideoFile, `${slugify(artistName)}/hero`, 'video')
+        updates.hero_video_url = res.url
       }
       const { error } = await supabase.from('artists').update(updates).eq('id', artistId)
       if (error) throw error
       refreshArtists()
       setEditingArtistId(null)
       setArtistPhotoFile(null)
+      setArtistIntroFile(null)
+      setHeroVideoFile(null)
       setMessage({ type: 'success', text: 'Artist updated.' })
     } catch (err) {
       setMessage({ type: 'error', text: (err as Error).message })
