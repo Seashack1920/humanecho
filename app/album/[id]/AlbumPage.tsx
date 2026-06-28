@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { usePlayer } from '@/context/PlayerContext'
 import LikeButton from '@/components/LikeButton'
+import BuyButton from '@/components/BuyButton'
 
 type Album = {
   id: string
@@ -15,6 +16,7 @@ type Album = {
   release_date: string | null
   album_type: string | null
   artist_id: string
+  price: number | null
 }
 
 type Track = {
@@ -28,6 +30,7 @@ type Track = {
   track_type: string | null
   text_content: string | null
   text_content_type: string | null
+  price: number | null
 }
 
 type Artist = {
@@ -45,12 +48,13 @@ const ORIGIN_EMOJI: Record<string, string> = {
   'ai generated': '🤖',
 }
 
-function TrackRow({ track, index, isPlaying, isCurrent, onPlay }: {
+function TrackRow({ track, index, isPlaying, isCurrent, onPlay, owned }: {
   track: Track
   index: number
   isPlaying: boolean
   isCurrent: boolean
   onPlay: () => void
+  owned: boolean
 }) {
   const [hovered, setHovered]   = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -92,9 +96,10 @@ function TrackRow({ track, index, isPlaying, isCurrent, onPlay }: {
           </div>
         </div>
 
-        {/* Like + duration */}
+        {/* Like + duration + buy */}
         <LikeButton contentType="track" contentId={track.id} size="md" />
         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0, minWidth: '36px', textAlign: 'right' }}>{track.duration || '—'}</div>
+        <BuyButton itemType="track" itemId={track.id} price={track.price} owned={owned} style={{ padding: '5px 12px', fontSize: '12px', flexShrink: 0 }} />
       </div>
 
       {/* Expanded lyrics/text */}
@@ -121,6 +126,8 @@ export default function AlbumPage({ id }: { id: string }) {
   const [notFound, setNotFound] = useState(false)
   const [isOwner, setIsOwner]   = useState(false)
   const [isAdmin, setIsAdmin]   = useState(false)
+  const [albumOwned, setAlbumOwned]       = useState(false)
+  const [ownedTrackIds, setOwnedTrackIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const load = async () => {
@@ -142,7 +149,7 @@ export default function AlbumPage({ id }: { id: string }) {
         { data: filmsData },
         { data: albumsData },
       ] = await Promise.all([
-        supabase.from('tracks').select('id, title, track_number, duration, cloudinary_url, track_image_url, content_origin, track_type, text_content, text_content_type')
+        supabase.from('tracks').select('id, title, track_number, duration, cloudinary_url, track_image_url, content_origin, track_type, text_content, text_content_type, price')
           .eq('album_id', id).eq('status', 'published').order('track_number'),
         supabase.from('artists').select('id, name, photo_url, creator_label').eq('id', albumData.artist_id).single(),
         supabase.from('tracks').select('id').eq('artist_id', albumData.artist_id).eq('status', 'published').is('album_id', null),
@@ -162,6 +169,17 @@ export default function AlbumPage({ id }: { id: string }) {
         const { data: profile } = await supabase.from('profiles').select('role, artist_id').eq('id', user.id).single()
         if (profile?.role === 'admin') { setIsOwner(true); setIsAdmin(true) }
         else if (profile?.artist_id === albumData.artist_id) setIsOwner(true)
+
+        // What does this buyer already own? (album purchase grants every track)
+        const { data: purchases } = await supabase
+          .from('purchases')
+          .select('item_type, item_id')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+        if (purchases) {
+          setAlbumOwned(purchases.some(p => p.item_type === 'album' && p.item_id === id))
+          setOwnedTrackIds(new Set(purchases.filter(p => p.item_type === 'track').map(p => p.item_id)))
+        }
       }
     }
     load()
@@ -272,11 +290,19 @@ export default function AlbumPage({ id }: { id: string }) {
         )}
 
         {tracks.length > 0 && (
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '24px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
             <button onClick={() => currentTrack?.id === tracks[0]?.id ? togglePlay() : playTrack(tracks[0] as any, tracks as any, 0)}
               style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 28px', borderRadius: '50px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: '600' }}>
               ▶ Play Album
             </button>
+            <BuyButton
+              itemType="album"
+              itemId={album.id}
+              price={album.price}
+              owned={albumOwned}
+              label={`Buy album · $${Number(album.price).toFixed(2)}`}
+              style={{ padding: '12px 28px', fontSize: '15px' }}
+            />
           </div>
         )}
 
@@ -288,6 +314,7 @@ export default function AlbumPage({ id }: { id: string }) {
               index={index}
               isCurrent={currentTrack?.id === track.id}
               isPlaying={isPlaying}
+              owned={albumOwned || ownedTrackIds.has(track.id)}
               onPlay={() => currentTrack?.id === track.id ? togglePlay() : playTrack(track as any, tracks as any, tracks.findIndex(t => t.id === track.id))}
             />
           ))}

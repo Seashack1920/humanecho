@@ -130,7 +130,26 @@ export async function POST(req: NextRequest) {
         const userId  = session.metadata?.supabase_user_id
         if (!userId) break
 
-        // Save customer ID if not already saved
+        // One-time track/album purchase (destination charge with 85/15 split).
+        // Recorded here so the buyer gains ownership + download access.
+        if (session.mode === 'payment' && session.metadata?.kind === 'purchase') {
+          const md = session.metadata
+          const { error: purchaseErr } = await supabase.from('purchases').upsert({
+            user_id:           userId,
+            item_type:         md.item_type,
+            item_id:           md.item_id,
+            artist_id:         md.artist_id,
+            amount:            (session.amount_total || 0) / 100,
+            stripe_payment_id: session.payment_intent as string,
+            status:            'completed',
+          }, { onConflict: 'stripe_payment_id', ignoreDuplicates: true })
+
+          if (purchaseErr) console.error('PURCHASE INSERT FAILED:', purchaseErr)
+          else console.log(`Purchase recorded: ${md.item_type} ${md.item_id} for user ${userId}`)
+          break
+        }
+
+        // Subscription checkout: save the Stripe customer ID for the portal.
         if (session.customer) {
           await supabase.from('profiles').update({
             stripe_customer_id: session.customer as string,
