@@ -1401,6 +1401,27 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
         </button>
       </div>
 
+      {/* Persistent context — reminds you which artist/album you're uploading to */}
+      {mode === 'upload' && step > 1 && (() => {
+        const aName = artists.find(a => a.id === selectedArtistId)?.name
+          || (artistMode === 'new' ? newArtist.name : '') || 'Unknown artist'
+        const albName = selectedAlbumId
+          ? albums.find(a => a.id === selectedAlbumId)?.title
+          : (step === 3
+              ? (albumMode === 'new' ? (newAlbum.title || 'New album') : albumMode === 'single' ? 'Standalone single' : null)
+              : null)
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '10px 14px', marginBottom: '16px', borderRadius: '10px', background: 'rgba(43,122,143,0.08)', border: '1px solid var(--accent-primary)', fontSize: '14px' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Working on</span>
+            <strong style={{ color: 'var(--accent-primary)' }}>🎤 {aName}</strong>
+            {albName && <>
+              <span style={{ color: 'var(--text-muted)' }}>›</span>
+              <strong style={{ color: 'var(--text-secondary)' }}>💿 {albName}</strong>
+            </>}
+          </div>
+        )
+      })()}
+
       {mode === 'manage' && (
         <ManageTab artists={artists} refreshArtists={loadArtists} />
       )}
