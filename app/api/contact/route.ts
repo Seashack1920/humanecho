@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+const resend = new Resend((process.env.RESEND_API_KEY || 're_placeholder'))
 
 // ─── EDIT THESE TWO ADDRESSES ────────────────────────────────────────────────
 // FROM: must be on your verified domain (e.g. hello@humanecho.com)
