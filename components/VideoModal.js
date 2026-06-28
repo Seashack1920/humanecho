@@ -98,5 +98,3 @@ export default function VideoModal({ videoUrl, artistName, thumbUrl, onClose, la
     </div>
   )
 }
-mkdir -p app/artist/\[id\]
-mkdir -p app/artist/\[id\]

@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-export default function ConnectRefresh() {
+function ConnectRefreshInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const artistId = searchParams.get('artist')
@@ -68,5 +68,13 @@ export default function ConnectRefresh() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ConnectRefresh() {
+  return (
+    <Suspense fallback={null}>
+      <ConnectRefreshInner />
+    </Suspense>
   )
 }

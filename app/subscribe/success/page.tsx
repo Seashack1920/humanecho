@@ -1,13 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function SubscribeSuccessPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const sessionId = searchParams.get('session_id')
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
 

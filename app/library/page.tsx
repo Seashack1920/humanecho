@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 type LibItem = {
@@ -18,12 +18,16 @@ type LibItem = {
 
 export default function LibraryPage() {
   const router = useRouter()
-  const params = useSearchParams()
-  const justPurchased = params.get('purchase') === 'success'
-
+  const [justPurchased, setJustPurchased] = useState(false)
   const [items, setItems]     = useState<LibItem[]>([])
   const [loading, setLoading] = useState(true)
   const [signedOut, setSignedOut] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('purchase') === 'success') {
+      setJustPurchased(true)
+    }
+  }, [])
 
   useEffect(() => {
     const load = async () => {
