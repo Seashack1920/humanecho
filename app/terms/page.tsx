@@ -1,0 +1,16 @@
+export default function TermsPage() {
+  return (
+    <div style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 48px 120px', fontFamily: 'DM Sans, sans-serif' }}>
+      <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent-primary)', marginBottom: '10px', fontWeight: '600' }}>Legal</div>
+      <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '48px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '16px' }}>Terms of Use</h1>
+      <p style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '48px' }}>Last updated: {new Date().getFullYear()}</p>
+      <div style={{ padding: '40px', borderRadius: '16px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', textAlign: 'center' as const }}>
+        <div style={{ fontSize: '32px', marginBottom: '16px' }}>📋</div>
+        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', color: 'var(--text-primary)', marginBottom: '8px' }}>Coming Soon</div>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.7' }}>
+          Our Terms of Use are being prepared and will be published here before launch. They will cover usage rights, artist agreements, content standards, and platform policies.
+        </p>
+      </div>
+    </div>
+  )
+}

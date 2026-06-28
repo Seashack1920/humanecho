@@ -55,6 +55,7 @@ async function readAudioDuration(file: File): Promise<string> {
     } catch { resolve('') }
   })
 }
+
 function ProgressBar({ label, percent }: { label: string; percent: number }) {
   return (
     <div style={{ padding: '16px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border)', marginBottom: '16px' }}>
@@ -68,6 +69,7 @@ function ProgressBar({ label, percent }: { label: string; percent: number }) {
     </div>
   )
 }
+
 function GenrePicker({ genres, selected, onChange, max = 3 }: {
   genres: { id: string; name: string }[]
   selected: string[]
@@ -98,6 +100,49 @@ function GenrePicker({ genres, selected, onChange, max = 3 }: {
         })}
       </div>
       <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{selected.length}/{max} selected</div>
+    </div>
+  )
+}
+
+// ─── Mood + Coach Tag Pickers ─────────────────────────────────────────────────
+
+const MOOD_TAGS = ['workout', 'victory', 'romance', 'focus', 'sleep', 'spiritual', 'party', 'chill', 'motivation', 'reflection']
+const COACH_CATEGORIES = ['gym', 'victory', 'romance', 'workplace', 'sleep', 'spiritual', 'party', 'road', 'mental-health', 'housekeeping']
+
+function TagPicker({ label, tags, selected, onChange, accentColor = 'var(--accent-primary)', max }: {
+  label: string
+  tags: string[]
+  selected: string[]
+  onChange: (tags: string[]) => void
+  accentColor?: string
+  max?: number
+}) {
+  const toggle = (tag: string) => {
+    if (selected.includes(tag)) { onChange(selected.filter(t => t !== tag)); return }
+    if (max && selected.length >= max) return
+    onChange([...selected, tag])
+  }
+  return (
+    <div style={{ marginBottom: '16px' }}>
+      <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '8px' }}>{label}</label>
+      <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '6px' }}>
+        {tags.map(tag => {
+          const active = selected.includes(tag)
+          return (
+            <button key={tag} type="button" onClick={() => toggle(tag)} style={{
+              padding: '4px 12px', borderRadius: '20px', fontSize: '12px',
+              border: `1px solid ${active ? accentColor : 'var(--border)'}`,
+              background: active ? accentColor : 'none',
+              color: active ? 'white' : 'var(--text-muted)',
+              cursor: (!active && max && selected.length >= max) ? 'not-allowed' : 'pointer',
+              opacity: (!active && max && selected.length >= max) ? 0.4 : 1,
+              transition: 'all 0.15s',
+            }}>
+              {tag}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -143,23 +188,17 @@ export default function ArtistUpload() {
   const [message, setMessage]     = useState<{ type: string; text: string } | null>(null)
   const [uploadProgress, setUploadProgress] = useState<{ label: string; percent: number } | null>(null)
   
-  // Artist (locked to current user)
   const [artist, setArtist]       = useState<{ id: string; name: string; photo_url?: string } | null>(null)
-
-  // Albums
   const [albums, setAlbums]       = useState<{ id: string; title: string }[]>([])
   const [albumMode, setAlbumMode] = useState('select')
   const [selectedAlbumId, setSelectedAlbumId] = useState('')
   const [newAlbum, setNewAlbum]   = useState({ title: '', description: '', price: '', album_type: 'music', content_origin: '100% human', status: 'draft' })
   const [albumCoverFile, setAlbumCoverFile] = useState<File | null>(null)
   const [albumGenres, setAlbumGenres] = useState<string[]>([])
-
-  // Genres
   const [genres, setGenres]       = useState<{ id: string; name: string }[]>([])
-
-  // Tracks
   const [savedTracks, setSavedTracks] = useState<{ title: string; duration: string }[]>([])
   const [trackGenres, setTrackGenres] = useState<string[]>([])
+
   const emptyTrack = {
     title: '', track_number: '', duration: '', track_type: 'song',
     price: '', status: 'draft', content_origin: '100% human',
@@ -169,20 +208,23 @@ export default function ArtistUpload() {
     copyright_year: String(new Date().getFullYear()), copyright_owner: '',
     cover_welcome: false, music_video_welcome: false,
     sync_eligible: false, explicit: false,
+    mood_tags: [] as string[],
+    coach_categories: [] as string[],
   }
+
   const [track, setTrack]         = useState(emptyTrack)
   const [trackAudioFile, setTrackAudioFile] = useState<File | null>(null)
   const [trackImageFile, setTrackImageFile] = useState<File | null>(null)
+  const [trackSongStoryFile, setTrackSongStoryFile] = useState<File | null>(null)
+const [trackMusicVideoFile, setTrackMusicVideoFile] = useState<File | null>(null) 
   const [showPublishing, setShowPublishing] = useState(false)
+  const [savedTrackInfo, setSavedTrackInfo] = useState<{ title: string; duration: string } | null>(null)
 
   const slugify = (str: string) => str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 
-// Initialize — check auth and load artist
   useEffect(() => {
     const init = async () => {
-      console.log('Upload page init started')
       const { data: { user } } = await supabase.auth.getUser()
-      console.log('User:', user?.email)
       if (!user) { router.push('/login'); return }
 
       const { data: profile } = await supabase
@@ -195,15 +237,16 @@ export default function ArtistUpload() {
         const params = new URLSearchParams(window.location.search)
         const artistParam = params.get('artist')
         if (artistParam) {
-          console.log('Fetching artist:', artistParam)
-          const { data: artistData, error: artistError } = await supabase
+          const { data: artistData } = await supabase
             .from('artists').select('id, name, photo_url').eq('id', artistParam).single()
-          console.log('Artist result:', artistData, artistError)
           if (artistData) { setArtist(artistData); artistId = artistData.id }
           const { data: albumsData } = await supabase
             .from('albums').select('id, title').eq('artist_id', artistParam).order('title')
           if (albumsData) setAlbums(albumsData)
         }
+        const { data: genresData } = await supabase
+          .from('genres').select('id, name').eq('content_type', 'music').order('name')
+        if (genresData) setGenres(genresData)
         setInitializing(false)
         return
       }
@@ -231,8 +274,7 @@ export default function ArtistUpload() {
       setInitializing(false)
     }
     init()
- 
-  }, [trackAudioFile])
+  }, [])
 
   const saveGenres = async (contentType: string, contentId: string, genreIds: string[]) => {
     if (genreIds.length === 0) return
@@ -276,14 +318,30 @@ export default function ArtistUpload() {
     if (!track.title)          return setMessage({ type: 'error', text: 'Track title is required' })
     if (!track.content_origin) return setMessage({ type: 'error', text: 'Content origin is required' })
     setLoading(true); setMessage(null)
+
+    const progressTimeout = setTimeout(() => setUploadProgress(null), 5000)
+
     try {
       const artistName  = artist?.name || 'unknown'
       const albumTitle  = albums.find(a => a.id === selectedAlbumId)?.title || 'singles'
       const trackSlug   = `${String(track.track_number || '00').padStart(2, '0')}-${slugify(track.title)}`
       const trackFolder = `${slugify(artistName)}/albums/${slugify(albumTitle)}/${trackSlug}`
-      const image = trackImageFile ? await uploadToCloudinary(trackImageFile, trackFolder, 'image', (p) => setUploadProgress({ label: `Uploading image: ${track.title}`, percent: p })) : null
-      const audio = trackAudioFile ? await uploadToCloudinary(trackAudioFile, trackFolder, 'video', (p) => setUploadProgress({ label: `Uploading audio: ${track.title}`, percent: p })) : null
-      
+
+      const image = trackImageFile
+        ? await uploadToCloudinary(trackImageFile, trackFolder, 'image', (p) => setUploadProgress({ label: `Uploading image: ${track.title}`, percent: p }))
+        : null
+
+      const audio = trackAudioFile
+        ? await uploadToCloudinary(trackAudioFile, trackFolder, 'video', (p) => setUploadProgress({ label: `Uploading audio: ${track.title}`, percent: p }))
+        : null
+const songStory = trackSongStoryFile
+        ? await uploadToCloudinary(trackSongStoryFile, trackFolder, 'video', (p) => setUploadProgress({ label: `Uploading Song Story: ${track.title}`, percent: p }))
+        : null
+
+      const musicVideo = trackMusicVideoFile
+        ? await uploadToCloudinary(trackMusicVideoFile, trackFolder, 'video', (p) => setUploadProgress({ label: `Uploading Music Video: ${track.title}`, percent: p }))
+        : null
+      setUploadProgress({ label: 'Saving track...', percent: 100 })
 
       const { data, error } = await supabase.from('tracks').insert({
         album_id: selectedAlbumId || null,
@@ -312,21 +370,32 @@ export default function ArtistUpload() {
         music_video_welcome: track.music_video_welcome,
         sync_eligible: track.sync_eligible,
         explicit: track.explicit,
+        artist_message_url: songStory?.url ?? null,
+        music_video_url: musicVideo?.url ?? null,
+        mood_tags: track.mood_tags.length > 0 ? track.mood_tags : null,
+        coach_categories: track.coach_categories.length > 0 ? track.coach_categories : null,
       }).select().single()
-      if (error) throw error
+
+      clearTimeout(progressTimeout)
+      setUploadProgress(null)
+
+      if (error) {
+        setMessage({ type: 'error', text: `Track saved to Cloudinary but database error: ${error.message}` })
+        setLoading(false)
+        return
+      }
 
       const genresToSave = trackGenres.length > 0 ? trackGenres : albumGenres
       await saveGenres('track', data.id, genresToSave)
 
       setSavedTracks(prev => [...prev, { title: data.title, duration: data.duration || '' }])
-      setMessage({ type: 'success', text: `Track "${data.title}" saved!` })
-
-      if (addAnother) {
-        const nextNum = String(parseInt(track.track_number || '0') + 1)
-        setTrack({ ...emptyTrack, track_number: nextNum, content_origin: track.content_origin, status: track.status, price: track.price, publisher: track.publisher, copyright_owner: track.copyright_owner, copyright_year: track.copyright_year })
-        setTrackAudioFile(null); setTrackImageFile(null); setTrackGenres([])
-      }
-    } catch (err) { setMessage({ type: 'error', text: (err as Error).message }) }
+      setSavedTrackInfo({ title: data.title, duration: data.duration || '' })
+      setMessage(null)
+    } catch (err) {
+      clearTimeout(progressTimeout)
+      setUploadProgress(null)
+      setMessage({ type: 'error', text: (err as Error).message })
+    }
     setLoading(false)
   }
 
@@ -346,6 +415,7 @@ export default function ArtistUpload() {
       </div>
     )
   }
+
   if (!artist) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
@@ -360,6 +430,7 @@ export default function ArtistUpload() {
       </div>
     )
   }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
       <div style={s.page}>
@@ -371,7 +442,6 @@ export default function ArtistUpload() {
           <button style={s.backBtn} onClick={() => router.push('/dashboard')}>← Dashboard</button>
         </div>
 
-        {/* Step indicators */}
         <div style={s.steps}>
           {['Album', 'Track'].map((label, i) => (
             <button key={label} style={s.stepBtn(step === i + 2, step > i + 2)} onClick={() => step > i + 2 && setStep(i + 2)}>
@@ -382,7 +452,6 @@ export default function ArtistUpload() {
 
         {msg}
 
-        {/* Artist info card — always visible, locked */}
         {artist && (
           <div style={s.artistCard}>
             {artist.photo_url && (
@@ -584,7 +653,7 @@ export default function ArtistUpload() {
               <div style={s.resizeHint}>↕ drag to resize</div>
             </div>
 
-            {/* Cover & music video permissions */}
+            {/* Permissions */}
             <div style={{ ...s.infoBox, marginTop: '8px' }}>
               Let fans know if you welcome covers or music videos of this track.
             </div>
@@ -603,6 +672,46 @@ export default function ArtistUpload() {
               </label>
             </div>
 
+            {/* ── MOOD TAGS ── */}
+            {/* Media Videos */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: '12px' }}>Media Videos (optional)</div>
+              <div style={s.field}>
+                <label style={s.label}>Song Story <span style={{ fontWeight: '400', textTransform: 'none' as const, letterSpacing: 0, color: 'var(--text-muted)' }}>— tell the story behind this track with a video up to :30, any ratio</span></label>
+                <input type="file" accept="video/*" style={s.fileInput} onChange={e => setTrackSongStoryFile(e.target.files?.[0] || null)} />
+                {trackSongStoryFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackSongStoryFile.name}</div>}
+              </div>
+              <div style={s.field}>
+                <label style={s.label}>Music Video <span style={{ fontWeight: '400', textTransform: 'none' as const, letterSpacing: 0, color: 'var(--text-muted)' }}>— official music video, 16:9 recommended</span></label>
+                <input type="file" accept="video/*" style={s.fileInput} onChange={e => setTrackMusicVideoFile(e.target.files?.[0] || null)} />
+                {trackMusicVideoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackMusicVideoFile.name}</div>}
+              </div>
+            </div>
+
+            <div style={s.divider} />
+            <div style={s.divider} />
+            <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Playlist Tags
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px', fontStyle: 'italic' }}>
+  Both sections are optional — skip them if you're unsure. You can always update tags later.
+</div>
+<TagPicker
+  label="Mood Tags — how does this track feel? (optional · up to 3)"
+  tags={MOOD_TAGS}
+  selected={track.mood_tags}
+  onChange={tags => tags.length <= 3 && setTrack(t => ({ ...t, mood_tags: tags }))}
+  accentColor="var(--accent-primary)"
+  max={3}
+/>
+<TagPicker
+  label="Escape Coach Categories — which lifestyle playlists fit this track? (optional · up to 2)"
+  tags={COACH_CATEGORIES}
+  selected={track.coach_categories}
+  onChange={cats => cats.length <= 2 && setTrack(t => ({ ...t, coach_categories: cats }))}
+  accentColor="var(--accent-secondary)"
+  max={2}
+/>
             <div style={s.divider} />
 
             <button onClick={() => setShowPublishing(!showPublishing)} style={{ padding: '8px 16px', borderRadius: '8px', background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '13px', cursor: 'pointer', marginBottom: '16px' }}>
@@ -641,20 +750,47 @@ export default function ArtistUpload() {
             )}
 
             {uploadProgress && <ProgressBar label={uploadProgress.label} percent={uploadProgress.percent} />}
-<div style={s.divider} />
-<div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' as const }}>
-              <button style={s.btnSecondary} onClick={() => setStep(2)}>← Back</button>
-              <button style={s.btn} onClick={() => handleTrackSave(false)} disabled={loading}>
-                {loading ? 'Uploading...' : 'Save Track'}
-              </button>
-              <button style={s.btnGold} onClick={() => handleTrackSave(true)} disabled={loading}>
-                {loading ? 'Uploading...' : 'Save + Add Another'}
-              </button>
-            </div>
+            <div style={s.divider} />
+
+            {savedTrackInfo ? (
+              <div>
+                <div style={{ padding: '16px 20px', borderRadius: '10px', background: 'rgba(43,122,143,0.1)', border: '1px solid var(--accent-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ fontSize: '20px' }}>✓</div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--accent-primary)' }}>
+                      "{savedTrackInfo.title}" saved{savedTrackInfo.duration ? ` — ${savedTrackInfo.duration}` : ''}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Track saved successfully to your profile
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' as const }}>
+                  <button
+                    style={s.btnGold}
+                    onClick={() => {
+                      const nextNum = String(parseInt(track.track_number || '0') + 1)
+                      setTrack({ ...emptyTrack, track_number: nextNum, content_origin: track.content_origin, status: track.status, price: track.price, publisher: track.publisher, copyright_owner: track.copyright_owner, copyright_year: track.copyright_year })
+                      setTrackAudioFile(null); setTrackImageFile(null); setTrackGenres([]); setTrackSongStoryFile(null); setTrackMusicVideoFile(null)
+                      setSavedTrackInfo(null)
+                    }}
+                  >
+                    + Add another track
+                  </button>
+                  <button style={s.btnSecondary} onClick={() => setStep(2)}>← Back to albums</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' as const }}>
+                <button style={s.btnSecondary} onClick={() => setStep(2)}>← Back</button>
+                <button style={s.btn} onClick={() => handleTrackSave(false)} disabled={loading}>
+                  {loading ? 'Uploading...' : 'Save Track'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Initial state — show album step */}
         {step === 1 && (
           <div style={s.card}>
             <div style={s.sectionTitle}>Let's get started</div>

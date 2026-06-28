@@ -1,7 +1,6 @@
 'use client'
-
 import { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react'
-
+import { supabase } from '@/lib/supabase'
 const PlayerContext = createContext(null)
 
 export function PlayerProvider({ children }) {
@@ -15,21 +14,23 @@ export function PlayerProvider({ children }) {
   const [queueIndex, setQueueIndex] = useState(-1)
   const audioRef = useRef(null)
 
-  // Play a specific track — optionally set a queue
+  // Refs for stale-closure-safe queue access
+  const queueRef      = useRef([])
+  const queueIndexRef = useRef(-1)
+  const playNextRef   = useRef(null)
+
   const playTrack = useCallback((track, trackQueue = null, startIndex = null) => {
     if (!audioRef.current) return
-
+    const safeTrack = typeof track === 'string' ? JSON.parse(track) : track
+    const safeQueue = trackQueue ? trackQueue.map(t => typeof t === 'string' ? JSON.parse(t) : t) : null
+    track = safeTrack
+    trackQueue = safeQueue
     const audio = audioRef.current
 
     // If same track — toggle play/pause
     if (currentTrack?.id === track.id && !trackQueue) {
-      if (isPlaying) {
-        audio.pause()
-        setIsPlaying(false)
-      } else {
-        audio.play()
-        setIsPlaying(true)
-      }
+      if (isPlaying) { audio.pause(); setIsPlaying(false) }
+      else { audio.play(); setIsPlaying(true) }
       return
     }
 
@@ -37,15 +38,47 @@ export function PlayerProvider({ children }) {
     if (trackQueue) {
       setQueueState(trackQueue)
       const idx = startIndex !== null ? startIndex : trackQueue.findIndex(t => t.id === track.id)
-      setQueueIndex(idx >= 0 ? idx : 0)
+      const resolvedIdx = idx >= 0 ? idx : 0
+      setQueueIndex(resolvedIdx)
+      queueRef.current = trackQueue
+      queueIndexRef.current = resolvedIdx
     } else if (queue.length > 0) {
-      // Update index within existing queue
       const idx = queue.findIndex(t => t.id === track.id)
-      if (idx >= 0) setQueueIndex(idx)
+      if (idx >= 0) {
+        setQueueIndex(idx)
+        queueIndexRef.current = idx
+      }
     }
 
-    // Play the track
-    setCurrentTrack(track)
+    // If track is part of an album and no queue provided, fetch album tracklist
+    if (track.album_id && !trackQueue) {
+      supabase.from('tracks')
+        .select('id, title, duration, cloudinary_url, track_image_url, content_origin, track_type, album_id, artist_id')
+        .eq('album_id', track.album_id)
+        .eq('status', 'published')
+        .order('track_number')
+        .then(({ data }) => {
+          if (data && data.length > 1) {
+            const idx = data.findIndex(t => t.id === track.id)
+            const resolvedIdx = idx >= 0 ? idx : 0
+            setQueueState(data)
+            setQueueIndex(resolvedIdx)
+            queueRef.current = data
+            queueIndexRef.current = resolvedIdx
+          }
+        })
+    }
+
+    // Play the track — fetch artist name if missing
+    const trackToPlay = typeof track === 'string' ? JSON.parse(track) : { ...track }
+    if (trackToPlay.artist_id && !trackToPlay.artist_name) {
+      const capturedTrack = { ...trackToPlay }
+      supabase.from('artists').select('name').eq('id', capturedTrack.artist_id).single()
+        .then(({ data }) => {
+          if (data) setCurrentTrack(prev => prev?.id === capturedTrack.id ? { ...capturedTrack, artist_name: data.name } : prev)
+        })
+    }
+    setCurrentTrack(trackToPlay)
     audio.src = track.cloudinary_url
     audio.play().catch(() => {})
     setIsPlaying(true)
@@ -56,14 +89,19 @@ export function PlayerProvider({ children }) {
   const setQueue = useCallback((tracks, startIndex = 0) => {
     setQueueState(tracks)
     setQueueIndex(startIndex)
+    queueRef.current = tracks
+    queueIndexRef.current = startIndex
   }, [])
 
-  // Play next track in queue
+  // Play next track in queue — uses refs to avoid stale closure
   const playNext = useCallback(() => {
-    if (queue.length === 0) return
-    const nextIndex = queueIndex + 1
-    if (nextIndex < queue.length) {
-      const nextTrack = queue[nextIndex]
+    const currentQueue = queueRef.current
+    const currentIndex = queueIndexRef.current
+    if (currentQueue.length === 0) return
+    const nextIndex = currentIndex + 1
+    if (nextIndex < currentQueue.length) {
+      const nextTrack = currentQueue[nextIndex]
+      queueIndexRef.current = nextIndex
       setQueueIndex(nextIndex)
       setCurrentTrack(nextTrack)
       if (audioRef.current) {
@@ -72,22 +110,23 @@ export function PlayerProvider({ children }) {
         setIsPlaying(true)
       }
     } else {
-      // End of queue
       setIsPlaying(false)
     }
-  }, [queue, queueIndex])
+  }, [])
 
   // Play previous track in queue
   const playPrev = useCallback(() => {
-    if (queue.length === 0) return
-    // If more than 3 seconds in — restart current track
+    const currentQueue = queueRef.current
+    const currentIndex = queueIndexRef.current
+    if (currentQueue.length === 0) return
     if (audioRef.current && audioRef.current.currentTime > 3) {
       audioRef.current.currentTime = 0
       return
     }
-    const prevIndex = queueIndex - 1
+    const prevIndex = currentIndex - 1
     if (prevIndex >= 0) {
-      const prevTrack = queue[prevIndex]
+      const prevTrack = currentQueue[prevIndex]
+      queueIndexRef.current = prevIndex
       setQueueIndex(prevIndex)
       setCurrentTrack(prevTrack)
       if (audioRef.current) {
@@ -96,19 +135,28 @@ export function PlayerProvider({ children }) {
         setIsPlaying(true)
       }
     }
-  }, [queue, queueIndex])
+  }, [])
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current
     if (!audio || !currentTrack) return
-    if (isPlaying) {
-      audio.pause()
-      setIsPlaying(false)
-    } else {
-      audio.play().catch(() => {})
-      setIsPlaying(true)
-    }
+    if (isPlaying) { audio.pause(); setIsPlaying(false) }
+    else { audio.play().catch(() => {}); setIsPlaying(true) }
   }, [currentTrack, isPlaying])
+
+  const stop = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+    }
+    setIsPlaying(false)
+    setCurrentTrack(null)
+    setIsExpanded(false)
+    setQueueState([])
+    setQueueIndex(-1)
+    queueRef.current = []
+    queueIndexRef.current = -1
+  }, [])
 
   const seek = useCallback((time) => {
     if (audioRef.current) {
@@ -129,38 +177,35 @@ export function PlayerProvider({ children }) {
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
+  // Keep playNextRef current
+  playNextRef.current = playNext
+
   // Set up audio element and event listeners
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio()
       audioRef.current.volume = volume
     }
-
     const audio = audioRef.current
-
     const updateProgress = () => {
       setProgress(audio.currentTime)
       setDuration(audio.duration || 0)
     }
-
     const handleEnded = () => {
-      // Auto-play next track in queue
-      playNext()
+      if (playNextRef.current) playNextRef.current()
     }
-
     audio.addEventListener('timeupdate', updateProgress)
     audio.addEventListener('ended', handleEnded)
     audio.addEventListener('loadedmetadata', updateProgress)
-
     return () => {
       audio.removeEventListener('timeupdate', updateProgress)
       audio.removeEventListener('ended', handleEnded)
       audio.removeEventListener('loadedmetadata', updateProgress)
     }
-  }, [playNext])
+  }, []) // Empty deps — runs once, uses refs for fresh values
 
-  const hasNext = queue.length > 0 && queueIndex < queue.length - 1
-  const hasPrev = queue.length > 0 && queueIndex > 0
+  const hasNext = queueRef.current.length > 0 && queueIndexRef.current < queueRef.current.length - 1
+  const hasPrev = queueRef.current.length > 0 && queueIndexRef.current > 0
 
   return (
     <PlayerContext.Provider value={{
@@ -183,6 +228,7 @@ export function PlayerProvider({ children }) {
       seek,
       changeVolume,
       formatTime,
+      stop,
     }}>
       {children}
     </PlayerContext.Provider>

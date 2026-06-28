@@ -71,14 +71,14 @@ export default function VideoModal({ videoUrl, artistName, thumbUrl, onClose, la
         </div>
 
         {/* Video */}
-        <div style={{ position: 'relative', background: '#000', aspectRatio: '16/9' }}>
+     <div style={{ background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <video
             ref={videoRef}
             src={videoUrl}
             poster={thumbUrl || undefined}
             controls
             autoPlay
-            style={{ width: '100%', height: '100%', display: 'block' }}
+            style={{ width: '100%', maxHeight: '60vh', display: 'block' }}
           />
         </div>
 
@@ -98,3 +98,5 @@ export default function VideoModal({ videoUrl, artistName, thumbUrl, onClose, la
     </div>
   )
 }
+mkdir -p app/artist/\[id\]
+mkdir -p app/artist/\[id\]

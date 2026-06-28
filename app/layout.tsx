@@ -1,7 +1,9 @@
 import './globals.css'
 import { PlayerProvider } from '@/context/PlayerContext'
+import { BrowsingMusicProvider } from '@/context/BrowsingMusicContext'
 import FloatingPlayer from '@/components/FloatingPlayer'
 import Header from '@/components/Header'
+import Footer from '@/components/Footer'
 
 export const metadata = {
   title: 'Human Echo',
@@ -13,11 +15,14 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <PlayerProvider>
-          <Header />
-          <main style={{ paddingTop: '70px', paddingBottom: '100px' }}>
-            {children}
-          </main>
-          <FloatingPlayer />
+          <BrowsingMusicProvider>
+            <Header />
+            <main style={{ paddingTop: '70px', paddingBottom: '100px' }}>
+              {children}
+            </main>
+            <Footer />
+            <FloatingPlayer />
+          </BrowsingMusicProvider>
         </PlayerProvider>
       </body>
     </html>

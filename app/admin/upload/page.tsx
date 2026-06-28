@@ -59,8 +59,8 @@ async function readAudioDuration(file: File): Promise<string> {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type Artist = { id: string; name: string; bio?: string; photo_url?: string; content_origin?: string; creator_type?: string[]; creator_label?: string }
-type Album  = { id: string; artist_id: string; title: string; description?: string; status?: string; cover_url?: string; album_type?: string; content_origin?: string; price?: number }
+type Artist = { id: string; name: string; bio?: string; photo_url?: string; content_origin?: string; creator_type?: string[]; creator_label?: string; artist_profile_video_url?: string; hero_video_url?: string }
+type Album  = { id: string; artist_id: string; title: string; description?: string; status?: string; cover_url?: string; hero_image_url?: string; album_type?: string; content_origin?: string; price?: number }
 type Track  = { id: string; album_id?: string; artist_id: string; title: string; track_number?: number; track_type?: string; duration?: string; status?: string; content_origin?: string; price?: number; text_content?: string; cloudinary_url?: string; track_image_url?: string }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -94,7 +94,6 @@ const s = {
   checkbox:     { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--text-secondary)', cursor: 'pointer' },
   resizeHint:   { textAlign: 'right' as const, fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', marginBottom: '8px' },
   savedTrack:   { padding: '12px 16px', borderRadius: '8px', background: 'var(--bg-card)', border: '1px solid var(--accent-primary)', marginBottom: '8px' },
-  // Manage tab styles
   manageRow:    { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border)', marginBottom: '8px' },
   manageLabel:  { fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' },
   manageMeta:   { fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' },
@@ -102,7 +101,16 @@ const s = {
   confirmBox:   { background: 'rgba(220,60,60,0.08)', border: '1px solid rgba(220,60,60,0.3)', borderRadius: '8px', padding: '14px 16px', marginBottom: '8px', fontSize: '14px', color: '#dc3c3c' },
 }
 
+// FIX: helper to format creator_type array as readable pills for the manage row
+const CREATOR_TYPE_LABELS: Record<string, string> = {
+  music: '🎵 Music',
+  book:  '📚 Book',
+  film:  '🎬 Film',
+  story: '📖 Story',
+}
+
 const originEmoji = (o?: string) => o === '100% human' ? '🧑' : o === 'human+ai' ? '🧑🤖' : o === 'ai generated' ? '🤖' : ''
+
 function ProgressBar({ label, percent }: { label: string; percent: number }) {
   return (
     <div style={{ padding: '16px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border)', marginBottom: '16px' }}>
@@ -116,7 +124,7 @@ function ProgressBar({ label, percent }: { label: string; percent: number }) {
     </div>
   )
 }
-// ─── Manage Tab ──────────────────────────────────────────────────────────────
+
 function GenrePicker({ genres, selected, onChange, max = 3 }: {
   genres: {id: string, name: string}[]
   selected: string[]
@@ -151,6 +159,8 @@ function GenrePicker({ genres, selected, onChange, max = 3 }: {
   )
 }
 
+// ─── Manage Tab ──────────────────────────────────────────────────────────────
+
 function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArtists: () => void }) {
   const [manageSection, setManageSection] = useState<'artists' | 'albums' | 'tracks'>('artists')
   const [selectedArtistId, setSelectedArtistId] = useState('')
@@ -166,11 +176,13 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
   const [editingArtistId, setEditingArtistId] = useState<string | null>(null)
   const [editArtist, setEditArtist]           = useState<Partial<Artist>>({})
   const [artistPhotoFile, setArtistPhotoFile] = useState<File | null>(null)
+const [artistIntroFile, setArtistIntroFile] = useState<File | null>(null)
+const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
 
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null)
   const [editAlbum, setEditAlbum]           = useState<Partial<Album>>({})
   const [albumCoverFile, setAlbumCoverFile] = useState<File | null>(null)
-
+  const [albumHeroFile, setAlbumHeroFile] = useState<File | null>(null)
   const [editingTrackId, setEditingTrackId] = useState<string | null>(null)
   const [editTrack, setEditTrack]           = useState<Partial<Track>>({})
   const [trackImageFile, setTrackImageFile] = useState<File | null>(null)
@@ -253,6 +265,18 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
       if (artistPhotoFile) {
         const artistName = artists.find(a => a.id === artistId)?.name || 'unknown'
         updates.photo_url = (await uploadToCloudinary(artistPhotoFile, slugify(artistName), 'image')).url
+        if (artistIntroFile) {
+          const res = await uploadToCloudinary(artistIntroFile, slugify(artistName), 'video')
+          updates.artist_profile_video_url = res.url
+        }
+        if (heroVideoFile) {
+          const res = await uploadToCloudinary(heroVideoFile, `${slugify(artistName)}/hero`, 'video')
+          updates.hero_video_url = res.url
+        }
+if (heroVideoFile) {
+  const res = await uploadToCloudinary(heroVideoFile, `${slugify(artistName)}/hero`, 'video')
+  updates.hero_video_url = res.url
+}
       }
       const { error } = await supabase.from('artists').update(updates).eq('id', artistId)
       if (error) throw error
@@ -271,10 +295,14 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
     setMessage(null)
     try {
       let updates: any = { ...editAlbum }
+      const artistName = artists.find(a => a.id === selectedArtistId)?.name || 'unknown'
+      const albumTitle = albums.find(a => a.id === albumId)?.title || 'unknown'
       if (albumCoverFile) {
-        const artistName = artists.find(a => a.id === selectedArtistId)?.name || 'unknown'
-        const albumTitle = albums.find(a => a.id === albumId)?.title || 'unknown'
         updates.cover_url = (await uploadToCloudinary(albumCoverFile, `${slugify(artistName)}/albums/${slugify(albumTitle)}`, 'image')).url
+      }
+      if (albumHeroFile) {
+        updates.hero_image_url = (await uploadToCloudinary(albumHeroFile, `${slugify(artistName)}/albums/${slugify(albumTitle)}/hero`, 'image')).url
+        setAlbumHeroFile(null)
       }
       if (updates.price !== undefined) updates.price = updates.price ? parseFloat(updates.price) : null
       const { error } = await supabase.from('albums').update(updates).eq('id', albumId)
@@ -369,28 +397,44 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                     <label style={s.label}>Bio</label>
                     <textarea style={{ ...s.textarea, minHeight: '80px' }} value={editArtist.bio ?? artist.bio ?? ''} onChange={e => setEditArtist(p => ({ ...p, bio: e.target.value }))} />
                   </div>
+
+                  {/* FIX: Creator Type checkboxes */}
                   <div style={s.field}>
-  <label style={s.label}>Creator Type</label>
-  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' as const, marginTop: '4px' }}>
-    {(['music', 'book', 'film', 'story'] as const).map(type => {
-      const current = editArtist.creator_type ?? artist.creator_type ?? ['music']
-      return (
-        <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-          <input
-            type="checkbox"
-            checked={current.includes(type)}
-            onChange={e => {
-              const updated = e.target.checked ? [...current, type] : current.filter((t: string) => t !== type)
-              setEditArtist(p => ({ ...p, creator_type: updated }))
-            }}
-          />
-          {type === 'music' ? '🎵 Music' : type === 'book' ? '📚 Book' : type === 'film' ? '🎬 Film' : '📖 Story'}
-        </label>
-      )
-    })}
-  </div>
-</div>
-<div style={s.field}>
+                    <label style={s.label}>Creator Type</label>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' as const, marginTop: '4px' }}>
+                      {(['music', 'book', 'film', 'story'] as const).map(type => {
+                        const current = editArtist.creator_type ?? artist.creator_type ?? ['music']
+                        return (
+                          <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={current.includes(type)}
+                              onChange={e => {
+                                const updated = e.target.checked
+                                  ? [...current, type]
+                                  : current.filter((t: string) => t !== type)
+                                setEditArtist(p => ({ ...p, creator_type: updated }))
+                              }}
+                            />
+                            {CREATOR_TYPE_LABELS[type]}
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* FIX: Creator Label — was missing entirely */}
+                  <div style={s.field}>
+                    <label style={s.label}>Creator Label <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— shown on artist card & profile</span></label>
+                    <input
+                      style={s.input}
+                      value={editArtist.creator_label ?? artist.creator_label ?? ''}
+                      onChange={e => setEditArtist(p => ({ ...p, creator_label: e.target.value }))}
+                      placeholder='e.g. "Singer-Songwriter", "R&B Band", "Fiction Author"'
+                    />
+                  </div>
+
+                  <div style={s.field}>
                     <label style={s.label}>Content Origin</label>
                     <select style={s.select} value={editArtist.content_origin ?? artist.content_origin ?? '100% human'} onChange={e => setEditArtist(p => ({ ...p, content_origin: e.target.value }))}>
                       <option value="100% human">🧑 100% Human</option>
@@ -404,12 +448,39 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                     {artistPhotoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistPhotoFile.name}</div>}
                     {artist.photo_url && !artistPhotoFile && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Current: {artist.photo_url.split('/').pop()}</div>}
                   </div>
+               <div style={s.field}>
+                    <label style={s.label}>Artist Introduction <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— up to :30, any aspect ratio</span></label>
+                    <input type="file" accept="video/*" style={s.fileInput} onChange={e => setArtistIntroFile(e.target.files?.[0] || null)} />
+                    {artistIntroFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistIntroFile.name}</div>}
+                    {artist.artist_profile_video_url && !artistIntroFile && (
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Current: {artist.artist_profile_video_url.split('/').pop()}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={s.field}>
+                    <label style={s.label}>Hero Background Video <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— 16:9, up to :30, loops muted on artist page</span></label>
+                    <input type="file" accept="video/*" style={s.fileInput} onChange={e => setHeroVideoFile(e.target.files?.[0] || null)} />
+                    {heroVideoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {heroVideoFile.name}</div>}
+                    {artist.hero_video_url && !heroVideoFile && (
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Current: {artist.hero_video_url.split('/').pop()}
+                        <button onClick={() => setEditArtist(p => ({ ...p, hero_video_url: null }))} style={{ marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#dc3c3c' }}>Remove (use default)</button>
+                      </div>
+                    )}
+                    {!artist.hero_video_url && !heroVideoFile && (
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontStyle: 'italic' }}>None set — a platform default will play on this artist's page</div>
+                    )}
+                  </div>
+
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button style={s.btnSave} onClick={() => handleSaveArtist(artist.id)} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
-                    <button style={s.btnCancel} onClick={() => { setEditingArtistId(null); setEditArtist({}); setArtistPhotoFile(null) }}>Cancel</button>
+                    <button style={s.btnCancel} onClick={() => { setEditingArtistId(null); setEditArtist({}); setArtistPhotoFile(null); setArtistIntroFile(null); setHeroVideoFile(null) }}>Cancel</button>
                   </div>
                 </div>
               ) : (
+                // FIX: manage row now shows creator_label and creator_type
                 <div style={s.manageRow}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     {artist.photo_url
@@ -418,7 +489,13 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                     }
                     <div>
                       <div style={s.manageLabel}>{artist.name}</div>
-                      <div style={s.manageMeta}>{originEmoji(artist.content_origin)} {artist.content_origin || 'no origin set'}{artist.bio ? ` · ${artist.bio.substring(0, 50)}${artist.bio.length > 50 ? '…' : ''}` : ''}</div>
+                      <div style={s.manageMeta}>
+                        {originEmoji(artist.content_origin)} {artist.content_origin || 'no origin'}
+                        {artist.creator_label ? ` · ${artist.creator_label}` : ' · no label set'}
+                        {artist.creator_type?.length
+                          ? ` · ${artist.creator_type.map(t => CREATOR_TYPE_LABELS[t] || t).join(', ')}`
+                          : ' · no type set'}
+                      </div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
@@ -498,12 +575,18 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
                     {albumCoverFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumCoverFile.name}</div>}
                   </div>
                   <div style={s.field}>
+                    <label style={s.label}>Hero Image <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— wide landscape, shown as album page background</span></label>
+                    <input type="file" accept="image/*" style={s.fileInput} onChange={e => setAlbumHeroFile(e.target.files?.[0] || null)} />
+                    {albumHeroFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumHeroFile.name}</div>}
+                    {album.hero_image_url && !albumHeroFile && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Current hero set · <a href={album.hero_image_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a></div>}
+                  </div>
+                  <div style={s.field}>
                     <label style={s.label}>Genres (up to 3)</label>
                     <GenrePicker genres={genres} selected={editingGenres} onChange={setEditingGenres} />
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button style={s.btnSave} onClick={() => handleSaveAlbum(album.id)} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
-                    <button style={s.btnCancel} onClick={() => { setEditingAlbumId(null); setEditAlbum({}); setAlbumCoverFile(null) }}>Cancel</button>
+                    <button style={s.btnCancel} onClick={() => { setEditingAlbumId(null); setEditAlbum({}); setAlbumCoverFile(null); setAlbumHeroFile(null) }}>Cancel</button>
                   </div>
                 </div>
               ) : (
@@ -673,13 +756,14 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function AdminUpload() {
   useEffect(() => {
-  supabase.auth.getUser().then(({ data: { user } }) => {
-    if (!user) { window.location.href = '/login'; return }
-    supabase.from('profiles').select('role').eq('id', user.id).single().then(({ data }) => {
-      if (data?.role !== 'admin') window.location.href = '/dashboard/upload'
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { window.location.href = '/login'; return }
+      supabase.from('profiles').select('role').eq('id', user.id).single().then(({ data }) => {
+        if (data?.role !== 'admin') window.location.href = '/dashboard/upload'
+      })
     })
-  })
-}, [])
+  }, [])
+
   const [mode, setMode]         = useState<'upload' | 'manage'>('upload')
   const [step, setStep]         = useState(1)
   const [loading, setLoading]   = useState(false)
@@ -688,20 +772,22 @@ export default function AdminUpload() {
   const [savedTracks, setSavedTracks] = useState<{ title: string; duration: string; hasLyrics: boolean; lyricsPreview: string }[]>([])
   const [artists, setArtists]   = useState<Artist[]>([])
   const [albums, setAlbums]     = useState<any[]>([])
-  const [genres, setGenres] = useState<{id: string, name: string}[]>([])
+  const [genres, setGenres]     = useState<{id: string, name: string}[]>([])
   const [albumGenres, setAlbumGenres] = useState<string[]>([])
   const [trackGenres, setTrackGenres] = useState<string[]>([])
   const [artistProfileVideoFile, setArtistProfileVideoFile] = useState<File | null>(null)
-  const [artistMode, setArtistMode]           = useState('select')
+  const [artistMode, setArtistMode]             = useState('select')
   const [selectedArtistId, setSelectedArtistId] = useState('')
-  const [newArtist, setNewArtist]             = useState({ name: '', bio: '', content_origin: '100% human' })
-  const [artistPhotoFile, setArtistPhotoFile] = useState<File | null>(null)
+  const [newArtist, setNewArtist]               = useState({ name: '', bio: '', content_origin: '100% human' })
+  const [artistPhotoFile, setArtistPhotoFile]   = useState<File | null>(null)
+  const [artistIntroFile, setArtistIntroFile] = useState<File | null>(null)
+const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
   const [artistMessageFile, setArtistMessageFile] = useState<File | null>(null)
 
-  const [albumMode, setAlbumMode]             = useState('select')
-  const [selectedAlbumId, setSelectedAlbumId] = useState('')
-  const [newAlbum, setNewAlbum]               = useState({ title: '', description: '', price: '', album_type: 'music', content_origin: '100% human', status: 'draft' })
-  const [albumCoverFile, setAlbumCoverFile]   = useState<File | null>(null)
+  const [albumMode, setAlbumMode]               = useState('select')
+  const [selectedAlbumId, setSelectedAlbumId]   = useState('')
+  const [newAlbum, setNewAlbum]                 = useState({ title: '', description: '', price: '', album_type: 'music', content_origin: '100% human', status: 'draft' })
+  const [albumCoverFile, setAlbumCoverFile]     = useState<File | null>(null)
   const [albumMessageFile, setAlbumMessageFile] = useState<File | null>(null)
 
   const emptyTrack = {
@@ -715,25 +801,29 @@ export default function AdminUpload() {
     sync_eligible: false, stems_available: false,
     instrumental_available: false, explicit: false,
   }
-  const [track, setTrack]                     = useState(emptyTrack)
-  const [trackAudioFile, setTrackAudioFile]   = useState<File | null>(null)
-  const [trackImageFile, setTrackImageFile]   = useState<File | null>(null)
-  const [trackMessageFile, setTrackMessageFile] = useState<File | null>(null)
+  const [track, setTrack]                           = useState(emptyTrack)
+  const [trackAudioFile, setTrackAudioFile]         = useState<File | null>(null)
+  const [trackImageFile, setTrackImageFile]         = useState<File | null>(null)
+  const [trackMessageFile, setTrackMessageFile]     = useState<File | null>(null)
   const [trackMusicVideoFile, setTrackMusicVideoFile] = useState<File | null>(null)
-  const [showPublishing, setShowPublishing]   = useState(false)
+  const [showPublishing, setShowPublishing]         = useState(false)
+  const [savedTrackInfo, setSavedTrackInfo]         = useState<{ title: string; duration: string } | null>(null)
 
+  // FIX: select creator_type and creator_label so ManageTab has them
   const loadArtists = () => {
-    supabase.from('artists').select('id, name, bio, photo_url, content_origin').order('name').then(({ data }) => {
-      if (data) setArtists(data)
-    })
+    supabase
+      .from('artists')
+      .select('id, name, bio, photo_url, content_origin, creator_type, creator_label, artist_profile_video_url, hero_video_url')
+      .order('name')
+      .then(({ data }) => { if (data) setArtists(data) })
   }
 
   useEffect(() => {
-  loadArtists()
-  supabase.from('genres').select('id, name').eq('content_type', 'music').order('name').then(({ data }) => {
-    if (data) setGenres(data)
-  })
-}, [])
+    loadArtists()
+    supabase.from('genres').select('id, name').eq('content_type', 'music').order('name').then(({ data }) => {
+      if (data) setGenres(data)
+    })
+  }, [])
 
   useEffect(() => {
     if (selectedArtistId) {
@@ -811,14 +901,10 @@ export default function AdminUpload() {
       }).select().single()
       if (error) throw error
       if (albumGenres.length > 0) {
-  await supabase.from('content_genres').insert(
-    albumGenres.map(genreId => ({
-      content_type: 'album',
-      content_id: data.id,
-      genre_id: genreId,
-    }))
-  )
-}
+        await supabase.from('content_genres').insert(
+          albumGenres.map(genreId => ({ content_type: 'album', content_id: data.id, genre_id: genreId }))
+        )
+      }
       setSelectedAlbumId(data.id)
       setAlbums(prev => [...prev, { id: data.id, title: data.title }])
       setMessage({ type: 'success', text: `Album "${data.title}" created!` })
@@ -831,16 +917,21 @@ export default function AdminUpload() {
     if (!track.title)          return setMessage({ type: 'error', text: 'Track title is required' })
     if (!track.content_origin) return setMessage({ type: 'error', text: 'Content origin is required' })
     setLoading(true); setMessage(null)
+
+    const progressTimeout = setTimeout(() => setUploadProgress(null), 5000)
+
     try {
       const artistName = artists.find(a => a.id === selectedArtistId)?.name || 'unknown'
       const albumTitle = albums.find(a => a.id === selectedAlbumId)?.title  || 'singles'
       const trackSlug  = `${String(track.track_number || '00').padStart(2, '0')}-${slugify(track.title)}`
       const trackFolder = `${slugify(artistName)}/albums/${slugify(albumTitle)}/${trackSlug}`
-      
-      const audio = trackAudioFile ? await uploadToCloudinary(trackAudioFile, trackFolder, 'video', (p) => setUploadProgress({ label: `Uploading audio: ${track.title}`, percent: p })) : null
-      const image = trackImageFile ? await uploadToCloudinary(trackImageFile, trackFolder, 'image', (p) => setUploadProgress({ label: `Uploading image: ${track.title}`, percent: p })) : null
+
+      const audio      = trackAudioFile      ? await uploadToCloudinary(trackAudioFile, trackFolder, 'video', (p) => setUploadProgress({ label: `Uploading audio: ${track.title}`, percent: p })) : null
+      const image      = trackImageFile      ? await uploadToCloudinary(trackImageFile, trackFolder, 'image', (p) => setUploadProgress({ label: `Uploading image: ${track.title}`, percent: p })) : null
       const message    = trackMessageFile    ? await uploadToCloudinary(trackMessageFile, trackFolder, 'video') : null
       const musicVideo = trackMusicVideoFile ? await uploadToCloudinary(trackMusicVideoFile, trackFolder, 'video') : null
+
+      setUploadProgress({ label: 'Saving track...', percent: 100 })
 
       const { data, error } = await supabase.from('tracks').insert({
         album_id: selectedAlbumId || null, artist_id: selectedArtistId,
@@ -864,30 +955,35 @@ export default function AdminUpload() {
         sync_eligible: track.sync_eligible, stems_available: track.stems_available,
         instrumental_available: track.instrumental_available, explicit: track.explicit,
       }).select().single()
-      if (error) throw error
+
+      clearTimeout(progressTimeout)
+      setUploadProgress(null)
+
+      if (error) {
+        setMessage({ type: 'error', text: `Track saved to Cloudinary but database error: ${error.message}` })
+        setLoading(false)
+        return
+      }
 
       setSavedTracks(prev => [...prev, {
         title: data.title, duration: data.duration, hasLyrics: !!track.text_content,
         lyricsPreview: track.text_content ? track.text_content.substring(0, 80) + (track.text_content.length > 80 ? '...' : '') : '',
       }])
+
       const genresToSave = trackGenres.length > 0 ? trackGenres : albumGenres
-if (genresToSave.length > 0) {
-  await supabase.from('content_genres').insert(
-    genresToSave.map(genreId => ({
-      content_type: 'track',
-      content_id: data.id,
-      genre_id: genreId,
-    }))
-  )
-}
-      setMessage({ type: 'success', text: `Track "${data.title}" saved successfully!` })
-      setUploadProgress(null)
-if (addAnother) {
-        const nextNum = String(parseInt(track.track_number || '0') + 1)
-        setTrack({ ...emptyTrack, track_number: nextNum, content_origin: track.content_origin, status: track.status, price: track.price, publisher: track.publisher, copyright_owner: track.copyright_owner, copyright_year: track.copyright_year })
-        setTrackAudioFile(null); setTrackImageFile(null); setTrackMessageFile(null); setTrackMusicVideoFile(null); setTrackGenres([])
+      if (genresToSave.length > 0) {
+        await supabase.from('content_genres').insert(
+          genresToSave.map(genreId => ({ content_type: 'track', content_id: data.id, genre_id: genreId }))
+        )
       }
-    } catch (err) { setMessage({ type: 'error', text: (err as Error).message }) }
+
+      setSavedTrackInfo({ title: data.title, duration: data.duration || '' })
+      setMessage(null)
+    } catch (err) {
+      clearTimeout(progressTimeout)
+      setUploadProgress(null)
+      setMessage({ type: 'error', text: (err as Error).message })
+    }
     setLoading(false)
   }
 
@@ -905,7 +1001,6 @@ if (addAnother) {
       <h1 style={s.h1}>Upload Portal</h1>
       <p style={s.subtitle}>Private admin upload — Human Echo</p>
 
-      {/* Top nav: Upload steps + Manage tab */}
       <div style={s.steps}>
         {mode === 'upload' && ['Artist', 'Album', 'Track'].map((label, i) => (
           <button key={label} style={s.stepBtn(step === i + 1, step > i + 1)} onClick={() => step > i + 1 && setStep(i + 1)}>
@@ -961,7 +1056,7 @@ if (addAnother) {
                       {artistPhotoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistPhotoFile.name}</div>}
                     </div>
                     <div>
-                      <label style={s.label}>Artist Message Video (optional)</label>
+                      <label style={s.label}>Song Story (optional)</label>
                       <input type="file" accept="video/*" style={s.fileInput} onChange={e => setArtistMessageFile(e.target.files?.[0] || null)} />
                       {artistMessageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistMessageFile.name}</div>}
                     </div>
@@ -996,7 +1091,6 @@ if (addAnother) {
                 <button style={s.toggle(albumMode === 'new')} onClick={() => setAlbumMode('new')}>Add new album</button>
                 <button style={s.toggle(albumMode === 'single')} onClick={() => setAlbumMode('single')}>Standalone single</button>
               </div>
-
               {albumMode === 'single' && (
                 <div style={{ padding: '16px', borderRadius: '8px', background: 'var(--bg-card)', border: '1px solid var(--border)', marginBottom: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
                   This track will be saved as a standalone single — not attached to any album.
@@ -1046,7 +1140,7 @@ if (addAnother) {
                       {albumCoverFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumCoverFile.name}</div>}
                     </div>
                     <div>
-                      <label style={s.label}>Artist Message Video (optional)</label>
+                      <label style={s.label}>Song Story (optional)</label>
                       <input type="file" accept="video/*" style={s.fileInput} onChange={e => setAlbumMessageFile(e.target.files?.[0] || null)} />
                       {albumMessageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumMessageFile.name}</div>}
                     </div>
@@ -1072,9 +1166,9 @@ if (addAnother) {
                 </>
               )}
               <div style={s.field}>
-  <label style={s.label}>Genres (up to 3)</label>
-  <GenrePicker genres={genres} selected={albumGenres} onChange={setAlbumGenres} />
-</div>
+                <label style={s.label}>Genres (up to 3)</label>
+                <GenrePicker genres={genres} selected={albumGenres} onChange={setAlbumGenres} />
+              </div>
               <button style={s.btnSecondary} onClick={() => setStep(1)}>← Back</button>
               <button style={s.btn} onClick={handleAlbumStep} disabled={loading}>{loading ? 'Saving...' : 'Continue →'}</button>
             </div>
@@ -1105,7 +1199,6 @@ if (addAnother) {
                 <input type="file" accept=".flac,.wav,.mp3,audio/*" style={s.fileInput} onChange={e => setTrackAudioFile(e.target.files?.[0] || null)} />
                 {trackAudioFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackAudioFile.name}</div>}
               </div>
-
               <div style={s.row}>
                 <div>
                   <label style={s.label}>Track Title *</label>
@@ -1116,7 +1209,6 @@ if (addAnother) {
                   <input style={s.input} type="number" value={track.track_number} onChange={e => setTrack(t => ({ ...t, track_number: e.target.value }))} placeholder="1" />
                 </div>
               </div>
-
               <div style={s.row}>
                 <div>
                   <label style={s.label}>Duration (auto-detected)</label>
@@ -1127,7 +1219,6 @@ if (addAnother) {
                   <input style={s.input} type="number" step="0.01" value={track.price} onChange={e => setTrack(t => ({ ...t, price: e.target.value }))} placeholder="1.29" />
                 </div>
               </div>
-
               <div style={s.row}>
                 <div>
                   <label style={s.label}>Track Type</label>
@@ -1146,7 +1237,6 @@ if (addAnother) {
                   </select>
                 </div>
               </div>
-
               <div style={s.row}>
                 <div>
                   <label style={s.label}>Status</label>
@@ -1162,22 +1252,21 @@ if (addAnother) {
                   {trackImageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackImageFile.name}</div>}
                 </div>
               </div>
-<div style={s.field}>
-  <label style={s.label}>Genres (up to 3)</label>
-  {selectedAlbumId && albumGenres.length > 0 && trackGenres.length === 0 && (
-    <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginBottom: '8px', cursor: 'pointer' }}
-      onClick={() => setTrackGenres(albumGenres)}>
-      ↑ Inherit from album
-    </div>
-  )}
-  <GenrePicker genres={genres} selected={trackGenres} onChange={setTrackGenres} />
-</div>
+              <div style={s.field}>
+                <label style={s.label}>Genres (up to 3)</label>
+                {selectedAlbumId && albumGenres.length > 0 && trackGenres.length === 0 && (
+                  <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginBottom: '8px', cursor: 'pointer' }}
+                    onClick={() => setTrackGenres(albumGenres)}>
+                    ↑ Inherit from album
+                  </div>
+                )}
+                <GenrePicker genres={genres} selected={trackGenres} onChange={setTrackGenres} />
+              </div>
               <div style={s.field}>
                 <label style={s.label}>{lyricsLabel} (optional)</label>
                 <textarea style={s.textarea} value={track.text_content} onChange={e => setTrack(t => ({ ...t, text_content: e.target.value }))} placeholder={lyricsPlaceholder} />
                 <div style={s.resizeHint}>↕ drag to resize</div>
               </div>
-
               <div style={s.row}>
                 <div>
                   <label style={s.label}>Music Video (optional)</label>
@@ -1185,17 +1274,15 @@ if (addAnother) {
                   {trackMusicVideoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackMusicVideoFile.name}</div>}
                 </div>
                 <div>
-                  <label style={s.label}>Artist Message Video (optional)</label>
+                  <label style={s.label}>Song Story (optional)</label>
                   <input type="file" accept="video/*" style={s.fileInput} onChange={e => setTrackMessageFile(e.target.files?.[0] || null)} />
                   {trackMessageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackMessageFile.name}</div>}
                 </div>
               </div>
-
               <div style={s.divider} />
               <button onClick={() => setShowPublishing(!showPublishing)} style={{ ...s.btnSecondary, marginBottom: '16px', fontSize: '13px' }}>
                 {showPublishing ? '▲ Hide' : '▼ Show'} Publishing Details
               </button>
-
               {showPublishing && (
                 <>
                   <div style={s.row}>
@@ -1236,14 +1323,46 @@ if (addAnother) {
                   </div>
                 </>
               )}
+              {uploadProgress && <ProgressBar label={uploadProgress.label} percent={uploadProgress.percent} />}
+              <div style={s.divider} />
 
-{uploadProgress && <ProgressBar label={uploadProgress.label} percent={uploadProgress.percent} />}
-<div style={s.divider} />
-<div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                <button style={s.btnSecondary} onClick={() => setStep(2)}>← Back</button>
-                <button style={s.btn} onClick={() => handleTrackSave(false)} disabled={loading}>{loading ? 'Uploading...' : 'Save Track'}</button>
-                <button style={s.btnGold} onClick={() => handleTrackSave(true)} disabled={loading}>{loading ? 'Uploading...' : 'Save + Add Another'}</button>
-              </div>
+              {savedTrackInfo ? (
+                // ── SUCCESS STATE ────────────────────────────────────────────
+                <div>
+                  <div style={{ padding: '16px 20px', borderRadius: '10px', background: 'rgba(43,122,143,0.1)', border: '1px solid var(--accent-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ fontSize: '20px' }}>✓</div>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--accent-primary)' }}>
+                        "{savedTrackInfo.title}" saved{savedTrackInfo.duration ? ` — ${savedTrackInfo.duration}` : ''}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        Track saved successfully
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button
+                      style={s.btnGold}
+                      onClick={() => {
+                        const nextNum = String(parseInt(track.track_number || '0') + 1)
+                        setTrack({ ...emptyTrack, track_number: nextNum, content_origin: track.content_origin, status: track.status, price: track.price, publisher: track.publisher, copyright_owner: track.copyright_owner, copyright_year: track.copyright_year })
+                        setTrackAudioFile(null); setTrackImageFile(null); setTrackMessageFile(null); setTrackMusicVideoFile(null); setTrackGenres([])
+                        setSavedTrackInfo(null)
+                      }}
+                    >
+                      + Add another track
+                    </button>
+                    <button style={s.btnSecondary} onClick={() => setStep(2)}>← Back to albums</button>
+                    <button style={s.btn} onClick={() => window.location.href = '/dashboard'}>Go to dashboard</button>
+                  </div>
+                </div>
+              ) : (
+                // ── SAVE BUTTONS ─────────────────────────────────────────────
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <button style={s.btnSecondary} onClick={() => setStep(2)}>← Back</button>
+                  <button style={s.btn} onClick={() => handleTrackSave(false)} disabled={loading}>{loading ? 'Uploading...' : 'Save Track'}</button>
+                </div>
+              )}
             </div>
           )}
         </>
