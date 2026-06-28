@@ -127,15 +127,14 @@ export async function POST(req: NextRequest) {
       // ── Checkout completed ────────────────────────────────────────────────────
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        const userId  = session.metadata?.supabase_user_id
-        if (!userId) break
+        const md = session.metadata || {}
 
         // One-time track/album purchase (destination charge with 85/15 split).
         // Recorded here so the buyer gains ownership + download access.
-        if (session.mode === 'payment' && session.metadata?.kind === 'purchase') {
-          const md = session.metadata
+        if (session.mode === 'payment' && md.kind === 'purchase') {
+          if (!md.supabase_user_id) { console.error('Purchase missing user id'); break }
           const { error: purchaseErr } = await supabase.from('purchases').upsert({
-            user_id:           userId,
+            user_id:           md.supabase_user_id,
             item_type:         md.item_type,
             item_id:           md.item_id,
             artist_id:         md.artist_id,
@@ -145,15 +144,33 @@ export async function POST(req: NextRequest) {
           }, { onConflict: 'stripe_payment_id', ignoreDuplicates: true })
 
           if (purchaseErr) console.error('PURCHASE INSERT FAILED:', purchaseErr)
-          else console.log(`Purchase recorded: ${md.item_type} ${md.item_id} for user ${userId}`)
+          else console.log(`Purchase recorded: ${md.item_type} ${md.item_id} for user ${md.supabase_user_id}`)
+          break
+        }
+
+        // Tip (free-content support): 100% to the artist, no platform fee.
+        // Tips may be anonymous, so user id is optional here.
+        if (session.mode === 'payment' && md.kind === 'tip') {
+          const { error: tipErr } = await supabase.from('tips').upsert({
+            user_id:           md.supabase_user_id || null,
+            artist_id:         md.artist_id,
+            item_type:         md.item_type || null,
+            item_id:           md.item_id || null,
+            amount:            (session.amount_total || 0) / 100,
+            stripe_payment_id: session.payment_intent as string,
+            status:            'completed',
+          }, { onConflict: 'stripe_payment_id', ignoreDuplicates: true })
+
+          if (tipErr) console.error('TIP INSERT FAILED:', tipErr)
+          else console.log(`Tip recorded: $${(session.amount_total || 0) / 100} to artist ${md.artist_id}`)
           break
         }
 
         // Subscription checkout: save the Stripe customer ID for the portal.
-        if (session.customer) {
+        if (md.supabase_user_id && session.customer) {
           await supabase.from('profiles').update({
             stripe_customer_id: session.customer as string,
-          }).eq('id', userId)
+          }).eq('id', md.supabase_user_id)
         }
         break
       }

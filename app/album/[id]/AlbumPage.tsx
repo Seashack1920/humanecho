@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { usePlayer } from '@/context/PlayerContext'
 import LikeButton from '@/components/LikeButton'
 import BuyButton from '@/components/BuyButton'
+import TipButton from '@/components/TipButton'
 
 type Album = {
   id: string
@@ -38,6 +39,7 @@ type Artist = {
   name: string
   photo_url: string | null
   creator_label: string | null
+  stripe_onboarded: boolean | null
 }
 
 type NavSection = { key: string; label: string }
@@ -48,13 +50,14 @@ const ORIGIN_EMOJI: Record<string, string> = {
   'ai generated': '🤖',
 }
 
-function TrackRow({ track, index, isPlaying, isCurrent, onPlay, owned }: {
+function TrackRow({ track, index, isPlaying, isCurrent, onPlay, owned, sellable }: {
   track: Track
   index: number
   isPlaying: boolean
   isCurrent: boolean
   onPlay: () => void
   owned: boolean
+  sellable: boolean
 }) {
   const [hovered, setHovered]   = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -99,7 +102,7 @@ function TrackRow({ track, index, isPlaying, isCurrent, onPlay, owned }: {
         {/* Like + duration + buy */}
         <LikeButton contentType="track" contentId={track.id} size="md" />
         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0, minWidth: '36px', textAlign: 'right' }}>{track.duration || '—'}</div>
-        <BuyButton itemType="track" itemId={track.id} price={track.price} owned={owned} style={{ padding: '5px 12px', fontSize: '12px', flexShrink: 0 }} />
+        {sellable && <BuyButton itemType="track" itemId={track.id} price={track.price} owned={owned} style={{ padding: '5px 12px', fontSize: '12px', flexShrink: 0 }} />}
       </div>
 
       {/* Expanded lyrics/text */}
@@ -151,7 +154,7 @@ export default function AlbumPage({ id }: { id: string }) {
       ] = await Promise.all([
         supabase.from('tracks').select('id, title, track_number, duration, cloudinary_url, track_image_url, content_origin, track_type, text_content, text_content_type, price')
           .eq('album_id', id).eq('status', 'published').order('track_number'),
-        supabase.from('artists').select('id, name, photo_url, creator_label').eq('id', albumData.artist_id).single(),
+        supabase.from('artists').select('id, name, photo_url, creator_label, stripe_onboarded').eq('id', albumData.artist_id).single(),
         supabase.from('tracks').select('id').eq('artist_id', albumData.artist_id).eq('status', 'published').is('album_id', null),
         supabase.from('stories').select('id').eq('artist_id', albumData.artist_id).eq('status', 'published'),
         supabase.from('films').select('id').eq('artist_id', albumData.artist_id).eq('status', 'published'),
@@ -295,14 +298,25 @@ export default function AlbumPage({ id }: { id: string }) {
               style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 28px', borderRadius: '50px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: '600' }}>
               ▶ Play Album
             </button>
-            <BuyButton
-              itemType="album"
-              itemId={album.id}
-              price={album.price}
-              owned={albumOwned}
-              label={`Buy album · $${Number(album.price).toFixed(2)}`}
-              style={{ padding: '12px 28px', fontSize: '15px' }}
-            />
+            {artist?.stripe_onboarded && (
+              <BuyButton
+                itemType="album"
+                itemId={album.id}
+                price={album.price}
+                owned={albumOwned}
+                label={`Buy album · $${Number(album.price).toFixed(2)}`}
+                style={{ padding: '12px 28px', fontSize: '15px' }}
+              />
+            )}
+            {artist?.stripe_onboarded && (
+              <TipButton
+                artistId={album.artist_id}
+                artistName={artist.name}
+                itemType="album"
+                itemId={album.id}
+                style={{ padding: '12px 24px', fontSize: '15px' }}
+              />
+            )}
           </div>
         )}
 
@@ -315,6 +329,7 @@ export default function AlbumPage({ id }: { id: string }) {
               isCurrent={currentTrack?.id === track.id}
               isPlaying={isPlaying}
               owned={albumOwned || ownedTrackIds.has(track.id)}
+              sellable={!!artist?.stripe_onboarded}
               onPlay={() => currentTrack?.id === track.id ? togglePlay() : playTrack(track as any, tracks as any, tracks.findIndex(t => t.id === track.id))}
             />
           ))}
