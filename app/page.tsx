@@ -204,20 +204,29 @@ export default function HomePage() {
         if (exec) setExecutive(exec as Executive)
 
         console.log('[HE] arrivals: querying tracks')
-        const arrivalsRes: any = await withTimeout(
-          supabase
-            .from('tracks')
-            .select('id, title, duration, cloudinary_url, track_image_url, content_origin, track_type, artist_id, album_id, music_video_url, cover_welcome')
-            .eq('status', 'published')
-            .order('created_at', { ascending: false })
-            .limit(8),
+        const arrivalFields = 'id, title, duration, cloudinary_url, track_image_url, content_origin, track_type, artist_id, album_id, music_video_url, cover_welcome'
+        // Curate-or-auto: admin-featured tracks take priority (in their order);
+        // if none are featured, fall back to the newest published tracks.
+        const featRes: any = await withTimeout(
+          supabase.from('tracks').select(arrivalFields + ', featured_order')
+            .eq('status', 'published').eq('is_featured', true)
+            .order('featured_order', { ascending: true, nullsFirst: false }).limit(12),
           5000, { data: null }
         )
-        const arrivals = arrivalsRes?.data
-        console.log('[HE] arrivals: tracks returned', arrivals ? arrivals.length : 'null')
+        let arrivals: any[] | null = (featRes?.data && featRes.data.length > 0) ? featRes.data : null
+        let dedupeArrivals = false
+        if (!arrivals) {
+          const autoRes: any = await withTimeout(
+            supabase.from('tracks').select(arrivalFields)
+              .eq('status', 'published').order('created_at', { ascending: false }).limit(8),
+            5000, { data: null }
+          )
+          arrivals = autoRes?.data
+          dedupeArrivals = true
+        }
+        console.log('[HE] arrivals: tracks returned', arrivals ? arrivals.length : 'null', 'featured:', !dedupeArrivals)
 
         if (arrivals) {
-          console.log('[HE] arrivals: enriching artist names')
           const enriched = await Promise.all(arrivals.map(async (t: any) => {
             const res: any = await withTimeout(
               supabase.from('artists').select('name').eq('id', t.artist_id).maybeSingle(),
@@ -225,15 +234,17 @@ export default function HomePage() {
             )
             return { ...t, artist_name: res?.data?.name || '' }
           }))
-          console.log('[HE] arrivals: enrichment done')
-          // Deduplicate — one track per artist
-          const seen = new Set<string>()
-          const deduped = enriched.filter(t => {
-            if (seen.has(t.artist_id)) return false
-            seen.add(t.artist_id)
-            return true
-          })
-          setNewArrivals(deduped)
+          // Curated picks shown exactly as featured; auto fallback deduped one-per-artist.
+          let finalArrivals = enriched
+          if (dedupeArrivals) {
+            const seen = new Set<string>()
+            finalArrivals = enriched.filter(t => {
+              if (seen.has(t.artist_id)) return false
+              seen.add(t.artist_id)
+              return true
+            })
+          }
+          setNewArrivals(finalArrivals)
 
           const trackIds = arrivals.map((t: any) => t.id)
           const glRes: any = await withTimeout(

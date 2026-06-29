@@ -281,7 +281,7 @@ export default function MusicPage() {
         { data: genresData },
       ] = await Promise.all([
         supabase.from('artists').select('id, name, photo_url, bio, creator_label, is_featured, hero_video_url').eq('is_featured', true).order('featured_order'),
-        supabase.from('tracks').select('id, title, duration, cloudinary_url, track_image_url, track_type, content_origin, album_id, artist_id, mood_tags').eq('status', 'published').order('created_at', { ascending: false }),
+        supabase.from('tracks').select('id, title, duration, cloudinary_url, track_image_url, track_type, content_origin, album_id, artist_id, mood_tags, is_featured, featured_order').eq('status', 'published').order('created_at', { ascending: false }),
         supabase.from('albums').select('id, title, cover_url, release_date, album_type, artist_id').eq('status', 'published').order('release_date', { ascending: false }),
         supabase.from('escape_coaches').select('id, name, category, tagline, avatar_url').eq('is_active', true).order('display_order'),
         supabase.from('genres').select('id, name').eq('content_type', 'music').order('name'),
@@ -328,8 +328,14 @@ export default function MusicPage() {
         })
       }
 
-      // New Arrivals — newest track per artist (any type)
-      const newArrivalsDeduped = dedupeByArtist(normTracks).slice(0, 6)
+      // New Arrivals — curate-or-auto: admin-featured tracks (in their order) take
+      // priority; if none are featured, fall back to newest-per-artist.
+      const featuredArrivals = normTracks
+        .filter((t: any) => t.is_featured)
+        .sort((a: any, b: any) => (a.featured_order ?? 999) - (b.featured_order ?? 999))
+      const newArrivalsDeduped = featuredArrivals.length > 0
+        ? featuredArrivals.slice(0, 12)
+        : dedupeByArtist(normTracks).slice(0, 6)
 
       // Hot Albums — newest album per artist
       const hotAlbumsDeduped = dedupeByArtist(normAlbums).slice(0, 6)
