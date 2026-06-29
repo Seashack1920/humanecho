@@ -33,6 +33,7 @@ type Artist = {
   id: string
   name: string
   photo_url: string | null
+  stripe_onboarded: boolean | null
 }
 
 type ProfileBlock = {
@@ -139,6 +140,13 @@ export default function CinemaProfileDetailPage({ id }: { id: string }) {
   const [tipAmount, setTipAmount]     = useState(5)
   const [tipping, setTipping]         = useState(false)
   const [tipped, setTipped]           = useState(false)
+  const [tipError, setTipError]       = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tip') === 'thanks') {
+      setTipped(true)
+    }
+  }, [])
 
   useEffect(() => {
     stopPlayer()
@@ -165,7 +173,7 @@ export default function CinemaProfileDetailPage({ id }: { id: string }) {
 
       if (profileData.artist_id) {
         promises.push(
-          supabase.from('artists').select('id, name, photo_url').eq('id', profileData.artist_id).single()
+          supabase.from('artists').select('id, name, photo_url, stripe_onboarded').eq('id', profileData.artist_id).single()
             .then(({ data }) => { if (data) setArtist(data) })
         )
       }
@@ -182,11 +190,25 @@ export default function CinemaProfileDetailPage({ id }: { id: string }) {
   }, [id])
 
   const handleTip = async () => {
-    // TODO: wire to Stripe
-    setTipping(true)
-    await new Promise(r => setTimeout(r, 1000))
-    setTipping(false)
-    setTipped(true)
+    if (!artist) return
+    setTipping(true); setTipError(null)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const res = await fetch('/api/stripe/tip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          artistId: artist.id, itemType: 'cinema_profile', itemId: profile?.id, amount: tipAmount,
+          userId: user?.id, email: user?.email, returnUrl: window.location.href,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data.error || 'Could not start tip')
+      window.location.href = data.url
+    } catch (e) {
+      setTipError((e as Error).message)
+      setTipping(false)
+    }
   }
 
   if (loading) return (
@@ -346,7 +368,7 @@ export default function CinemaProfileDetailPage({ id }: { id: string }) {
         )}
 
         {/* ── TIP ── */}
-        {artist && (
+        {artist?.stripe_onboarded && (
           <section style={{ marginBottom: '56px' }}>
             <div style={{ background: 'var(--bg-secondary)', borderRadius: '20px', padding: '28px', border: '1px solid var(--border)', display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: '200px' }}>
@@ -373,6 +395,7 @@ export default function CinemaProfileDetailPage({ id }: { id: string }) {
                     style={{ padding: '10px 24px', borderRadius: '20px', fontSize: '14px', fontWeight: '600', border: 'none', cursor: 'pointer', background: 'var(--accent-primary)', color: 'white' }}>
                     {tipping ? 'Processing...' : `Tip $${tipAmount}`}
                   </button>
+                  {tipError && <div style={{ width: '100%', fontSize: '13px', color: '#dc3c3c', marginTop: '8px' }}>{tipError}</div>}
                 </div>
               )}
             </div>

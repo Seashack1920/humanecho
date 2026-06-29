@@ -32,7 +32,7 @@ type Story = {
 
 type Narrator = { id: string; name: string; tagline: string | null; avatar_url: string | null; voice_style: string | null; eleven_labs_voice_id: string | null; voice_sample_url: string | null }
 type BgTrack  = { id: string; title: string; cloudinary_url: string; mood: string | null; loop_enabled: boolean; description: string | null }
-type Artist   = { id: string; name: string; photo_url: string | null }
+type Artist   = { id: string; name: string; photo_url: string | null; stripe_onboarded: boolean | null }
 
 const THEMES: Record<string, { bg: string; text: string; muted: string; border: string; label: string }> = {
   light: { bg: '#ffffff',  text: '#1a1a1a',  muted: '#666666', border: '#e5e5e5', label: 'Light'  },
@@ -183,6 +183,13 @@ export default function StoryPage({ id }: { id: string }) {
 
   const [tipAmount, setTipAmount] = useState('')
   const [tipSent, setTipSent]     = useState(false)
+  const [tipError, setTipError]   = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tip') === 'thanks') {
+      setTipSent(true)
+    }
+  }, [])
 
   const stopBgMusic = useCallback(() => {
     if (bgAudioRef.current) {
@@ -232,7 +239,7 @@ export default function StoryPage({ id }: { id: string }) {
 
       if (storyData.artist_id) {
         const { data: artistData } = await supabase
-          .from('artists').select('id, name, photo_url').eq('id', storyData.artist_id).single()
+          .from('artists').select('id, name, photo_url, stripe_onboarded').eq('id', storyData.artist_id).single()
         if (artistData) setArtist(artistData)
       }
 
@@ -354,8 +361,24 @@ export default function StoryPage({ id }: { id: string }) {
   const savePreference = (key: string, value: string) => localStorage.setItem(key, value)
 
   const handleTip = async () => {
-    if (!tipAmount || !story) return
-    setTipSent(true)
+    if (!tipAmount || !story || !artist) return
+    setTipError(null)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const res = await fetch('/api/stripe/tip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          artistId: artist.id, itemType: 'story', itemId: story.id, amount: Number(tipAmount),
+          userId: user?.id, email: user?.email, returnUrl: window.location.href,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data.error || 'Could not start tip')
+      window.location.href = data.url
+    } catch (e) {
+      setTipError((e as Error).message)
+    }
   }
 
   const currentTheme = THEMES[theme] || THEMES.light
@@ -567,7 +590,7 @@ export default function StoryPage({ id }: { id: string }) {
           <div style={{ color: currentTheme.muted, fontSize: `${fontSize}px`, fontStyle: 'italic' }}>Story content coming soon.</div>
         )}
 
-        {story.tip_enabled && (
+        {story.tip_enabled && artist?.stripe_onboarded && (
           <div style={{ marginTop: '64px', padding: '32px', borderRadius: '16px', background: theme === 'light' ? '#f8f8f8' : `rgba(255,255,255,0.04)`, border: `1px solid ${currentTheme.border}`, textAlign: 'center', fontFamily: 'DM Sans, sans-serif' }}>
             <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', fontWeight: '700', color: currentTheme.text, marginBottom: '8px' }}>Enjoyed the story?</div>
             <div style={{ fontSize: '14px', color: currentTheme.muted, marginBottom: '24px' }}>This story is free. A tip goes directly to the author.</div>
@@ -589,6 +612,7 @@ export default function StoryPage({ id }: { id: string }) {
                   style={{ padding: '10px 28px', borderRadius: '20px', background: tipAmount ? 'var(--accent-primary)' : 'var(--border)', color: 'white', fontSize: '14px', fontWeight: '600', border: 'none', cursor: tipAmount ? 'pointer' : 'not-allowed', opacity: tipAmount ? 1 : 0.5 }}>
                   Send tip {tipAmount ? `$${tipAmount}` : ''}
                 </button>
+                {tipError && <div style={{ marginTop: '12px', fontSize: '13px', color: '#dc3c3c' }}>{tipError}</div>}
               </div>
             )}
           </div>
