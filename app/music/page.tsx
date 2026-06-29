@@ -67,7 +67,15 @@ function FeaturedHero({ artists, onPlayArtist }: {
   const [current, setCurrent]     = useState(0)
   const [paused, setPaused]       = useState(false)
   const [animating, setAnimating] = useState(false)
+  const [isMobile, setIsMobile]   = useState(false)
   const intervalRef               = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   const goTo = useCallback((index: number) => {
     setAnimating(true)
@@ -93,13 +101,13 @@ function FeaturedHero({ artists, onPlayArtist }: {
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%)' }} />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '200px', background: 'linear-gradient(to top, var(--bg-primary), transparent)' }} />
 
-      <div style={{ position: 'relative', zIndex: 10, height: '100%', display: 'flex', alignItems: 'center', padding: '80px 64px 60px', gap: '48px', opacity: animating ? 0 : 1, transition: 'opacity 0.3s' }}>
+      <div style={{ position: 'relative', zIndex: 10, height: '100%', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', textAlign: isMobile ? 'center' : 'left', padding: isMobile ? '70px 22px 64px' : '80px 64px 60px', gap: isMobile ? '20px' : '48px', opacity: animating ? 0 : 1, transition: 'opacity 0.3s' }}>
         {artist.photo_url && (
           <div style={{ flexShrink: 0, cursor: 'pointer' }} onClick={() => router.push(`/artist/${artist.id}`)}>
-            <img src={artist.photo_url} alt={artist.name} style={{ width: '180px', height: '180px', borderRadius: '50%', objectFit: 'cover', border: '3px solid rgba(255,255,255,0.3)', boxShadow: '0 16px 48px rgba(0,0,0,0.6)' }} />
+            <img src={artist.photo_url} alt={artist.name} style={{ width: isMobile ? '116px' : '180px', height: isMobile ? '116px' : '180px', borderRadius: '50%', objectFit: 'cover', border: '3px solid rgba(255,255,255,0.3)', boxShadow: '0 16px 48px rgba(0,0,0,0.6)' }} />
           </div>
         )}
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0, maxWidth: '100%' }}>
           {artist.creator_label && (
             <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent-primary)', marginBottom: '10px', fontWeight: '600' }}>
               {artist.creator_label} · Featured
@@ -109,11 +117,11 @@ function FeaturedHero({ artists, onPlayArtist }: {
             {artist.name}
           </h2>
           {artist.bio && (
-            <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.65)', lineHeight: '1.6', maxWidth: '480px', marginBottom: '28px' }}>
+            <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.65)', lineHeight: '1.6', maxWidth: '480px', marginBottom: '28px', marginLeft: isMobile ? 'auto' : undefined, marginRight: isMobile ? 'auto' : undefined }}>
               {artist.bio.slice(0, 140)}{artist.bio.length > 140 ? '…' : ''}
             </p>
           )}
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: isMobile ? 'center' : 'flex-start' }}>
             <button onClick={() => router.push(`/artist/${artist.id}`)} style={{ padding: '12px 28px', borderRadius: '50px', background: 'white', color: '#0a0a0b', fontSize: '14px', fontWeight: '600', border: 'none', cursor: 'pointer' }}>View Artist</button>
             <button onClick={() => onPlayArtist(artist)} style={{ padding: '12px 28px', borderRadius: '20px', background: 'rgba(255,255,255,0.15)', color: 'white', fontSize: '14px', fontWeight: '500', border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer', backdropFilter: 'blur(10px)' }}>▶ Play</button>
           </div>
@@ -122,8 +130,8 @@ function FeaturedHero({ artists, onPlayArtist }: {
 
       {artists.length > 1 && (
         <>
-          <button onClick={prev} style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>‹</button>
-          <button onClick={next} style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>›</button>
+          <button onClick={prev} style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', fontSize: '18px', cursor: 'pointer', display: isMobile ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>‹</button>
+          <button onClick={next} style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', fontSize: '18px', cursor: 'pointer', display: isMobile ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>›</button>
           <div style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '8px', zIndex: 20 }}>
             {artists.map((_, i) => (
               <button key={i} onClick={() => goTo(i)} style={{ width: i === current ? '24px' : '8px', height: '8px', borderRadius: '4px', background: i === current ? 'white' : 'rgba(255,255,255,0.4)', border: 'none', cursor: 'pointer', transition: 'all 0.3s', padding: 0 }} />
