@@ -16,6 +16,7 @@ type Issue = {
   subtitle: string | null
   logline: string | null
   cover_image_url: string | null
+  hero_video_url: string | null
   theme: string
   status: string
   published_at: string | null
@@ -840,6 +841,7 @@ function IssueForm({ issue, onSave, onCancel }: {
     theme:           issue?.theme || 'midnight',
     status:          issue?.status || 'draft',
     cover_image_url: issue?.cover_image_url || '',
+    hero_video_url:  issue?.hero_video_url || '',
   })
 
   const handleTitleChange = (title: string) => {
@@ -861,6 +863,7 @@ function IssueForm({ issue, onSave, onCancel }: {
         theme:           form.theme,
         status:          form.status,
         cover_image_url: form.cover_image_url || null,
+        hero_video_url:  form.hero_video_url || null,
         updated_at:      new Date().toISOString(),
       }
       if (form.status === 'published' && !issue?.published_at) {
@@ -936,6 +939,10 @@ function IssueForm({ issue, onSave, onCancel }: {
       <div style={s.row}>
         <div>
           <ImageUploader label="Cover Image" value={form.cover_image_url} onChange={url => setForm(f => ({ ...f, cover_image_url: url }))} folder="escapes/covers" />
+          <div style={{ marginTop: '12px' }}>
+            <label style={s.label}>Hero Video <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>— optional; upload a short clip that loops silently behind the hero (overrides the cover)</span></label>
+            <VideoUploader value={form.hero_video_url} onChange={url => setForm(f => ({ ...f, hero_video_url: url }))} embedUrl="" onEmbedChange={() => {}} />
+          </div>
         </div>
         <div>
           <label style={s.label}>Issue Theme</label>

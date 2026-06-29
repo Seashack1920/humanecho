@@ -25,6 +25,7 @@ type Film = {
   video_url: string | null
   trailer_url: string | null
   poster_url: string | null
+  hero_video_url: string | null
   filmmaker_message_url: string | null
   artist_id: string | null
   content_origin: string
@@ -243,6 +244,7 @@ function FilmForm({ film, artists, onSave, onCancel }: {
     video_url:      film?.video_url || '',
     trailer_url:    film?.trailer_url || '',
     poster_url:     film?.poster_url || '',
+    hero_video_url: film?.hero_video_url || '',
     filmmaker_message_url: film?.filmmaker_message_url || '',
     artist_id:      film?.artist_id || '',
     content_origin: film?.content_origin || '100% human',
@@ -273,6 +275,7 @@ function FilmForm({ film, artists, onSave, onCancel }: {
         trailer_url:     form.trailer_url || null,
         filmmaker_message_url: form.filmmaker_message_url || null,
         poster_url:      form.poster_url || null,
+        hero_video_url:  form.hero_video_url || null,
         artist_id:       form.artist_id || null,
         content_origin:  form.content_origin,
         status:          form.status,
@@ -408,6 +411,10 @@ function FilmForm({ film, artists, onSave, onCancel }: {
       </div>
       <div style={s.field}>
         <VideoInput label="Filmmaker Message" value={form.filmmaker_message_url} onChange={url => setForm(f => ({ ...f, filmmaker_message_url: url }))} folder="cinema/messages" />
+      </div>
+
+      <div style={s.field}>
+        <VideoInput label="Hero Video (optional — loops silently behind the Cinema hero; overrides the poster)" value={form.hero_video_url} onChange={url => setForm(f => ({ ...f, hero_video_url: url }))} folder="cinema/hero" />
       </div>
 
       <div style={s.field}>

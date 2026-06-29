@@ -60,7 +60,7 @@ async function readAudioDuration(file: File): Promise<string> {
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Artist = { id: string; name: string; bio?: string; photo_url?: string; content_origin?: string; creator_type?: string[]; creator_label?: string; artist_profile_video_url?: string; hero_video_url?: string }
-type Album  = { id: string; artist_id: string; title: string; description?: string; status?: string; cover_url?: string; hero_image_url?: string; album_type?: string; content_origin?: string; price?: number }
+type Album  = { id: string; artist_id: string; title: string; description?: string; status?: string; cover_url?: string; hero_image_url?: string; hero_video_url?: string; album_type?: string; content_origin?: string; price?: number }
 type Track  = { id: string; album_id?: string; artist_id: string; title: string; track_number?: number; track_type?: string; duration?: string; status?: string; content_origin?: string; price?: number; text_content?: string; cloudinary_url?: string; track_image_url?: string }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -183,6 +183,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
   const [editAlbum, setEditAlbum]           = useState<Partial<Album>>({})
   const [albumCoverFile, setAlbumCoverFile] = useState<File | null>(null)
   const [albumHeroFile, setAlbumHeroFile] = useState<File | null>(null)
+  const [albumHeroVideoFile, setAlbumHeroVideoFile] = useState<File | null>(null)
   const [editingTrackId, setEditingTrackId] = useState<string | null>(null)
   const [editTrack, setEditTrack]           = useState<Partial<Track>>({})
   const [trackImageFile, setTrackImageFile] = useState<File | null>(null)
@@ -312,6 +313,10 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
       if (albumHeroFile) {
         updates.hero_image_url = (await uploadToCloudinary(albumHeroFile, `${slugify(artistName)}/albums/${slugify(albumTitle)}/hero`, 'image')).url
         setAlbumHeroFile(null)
+      }
+      if (albumHeroVideoFile) {
+        updates.hero_video_url = (await uploadToCloudinary(albumHeroVideoFile, `${slugify(artistName)}/albums/${slugify(albumTitle)}/hero`, 'video')).url
+        setAlbumHeroVideoFile(null)
       }
       if (updates.price !== undefined) updates.price = updates.price ? parseFloat(updates.price) : null
       const { error } = await supabase.from('albums').update(updates).eq('id', albumId)
@@ -645,12 +650,18 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     {album.hero_image_url && !albumHeroFile && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Current hero set · <a href={album.hero_image_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a></div>}
                   </div>
                   <div style={s.field}>
+                    <label style={s.label}>Hero Video <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional; loops silently behind the homepage hero (overrides the image)</span></label>
+                    <input type="file" accept="video/*" style={s.fileInput} onChange={e => setAlbumHeroVideoFile(e.target.files?.[0] || null)} />
+                    {albumHeroVideoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumHeroVideoFile.name}</div>}
+                    {album.hero_video_url && !albumHeroVideoFile && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Current video set · <a href={album.hero_video_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a> · <button onClick={() => setEditAlbum(p => ({ ...p, hero_video_url: null }))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#dc3c3c', padding: 0 }}>remove</button></div>}
+                  </div>
+                  <div style={s.field}>
                     <label style={s.label}>Genres (up to 3)</label>
                     <GenrePicker genres={genres} selected={editingGenres} onChange={setEditingGenres} />
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button style={s.btnSave} onClick={() => handleSaveAlbum(album.id)} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
-                    <button style={s.btnCancel} onClick={() => { setEditingAlbumId(null); setEditAlbum({}); setAlbumCoverFile(null); setAlbumHeroFile(null) }}>Cancel</button>
+                    <button style={s.btnCancel} onClick={() => { setEditingAlbumId(null); setEditAlbum({}); setAlbumCoverFile(null); setAlbumHeroFile(null); setAlbumHeroVideoFile(null) }}>Cancel</button>
                   </div>
                 </div>
               ) : (

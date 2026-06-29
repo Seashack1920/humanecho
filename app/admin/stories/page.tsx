@@ -589,6 +589,7 @@ function StoryForm({ artists: initialArtists, narrators, bgTracks, story, onSave
   const [message, setMessage]         = useState<{ type: string; text: string } | null>(null)
   const [savedDone, setSavedDone]     = useState(false)
   const [coverFile, setCoverFile]     = useState<File | null>(null)
+  const [heroVideoFile, setHeroVideoFile] = useState<File | null>(null)
   const [artists, setArtists]         = useState<Artist[]>(initialArtists)
   const [showNewAuthor, setShowNewAuthor]       = useState(false)
   const [showFindReplace, setShowFindReplace]   = useState(false)
@@ -668,6 +669,17 @@ function StoryForm({ artists: initialArtists, narrators, bgTracks, story, onSave
     return data.secure_url
   }
 
+  const uploadHeroVideo = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('upload_preset', 'humanecho_upload')
+    formData.append('folder', 'stories/hero')
+    const res  = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`, { method: 'POST', body: formData })
+    const data = await res.json()
+    if (data.error) throw new Error(data.error.message)
+    return data.secure_url
+  }
+
   const handleSave = async () => {
     if (!form.title)       return setMessage({ type: 'error', text: 'Title is required' })
     if (!editorHasContent) return setMessage({ type: 'error', text: 'Story content is required' })
@@ -675,6 +687,8 @@ function StoryForm({ artists: initialArtists, narrators, bgTracks, story, onSave
     try {
       let cover_image_url = undefined
       if (coverFile) cover_image_url = await uploadCover(coverFile)
+      let hero_video_url = undefined
+      if (heroVideoFile) hero_video_url = await uploadHeroVideo(heroVideoFile)
       const payload: any = {
         title: form.title, logline: form.logline || null, story_type: form.story_type,
         content_origin: form.content_origin, status: form.status, explicit: form.explicit,
@@ -687,6 +701,7 @@ function StoryForm({ artists: initialArtists, narrators, bgTracks, story, onSave
         content_warnings: form.content_warnings ? form.content_warnings.split(',').map((s: string) => s.trim()).filter(Boolean) : null,
       }
       if (cover_image_url) payload.cover_image_url = cover_image_url
+      if (hero_video_url) payload.hero_video_url = hero_video_url
       let error
       if (story?.id) {
         ;({ error } = await supabase.from('stories').update(payload).eq('id', story.id))
@@ -809,6 +824,11 @@ function StoryForm({ artists: initialArtists, narrators, bgTracks, story, onSave
           <label style={s.label}>Cover Image</label>
           <input type="file" style={s.fileInput} onChange={e => setCoverFile(e.target.files?.[0] || null)} />
           {coverFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {coverFile.name}</div>}
+          <div style={{ marginTop: '12px' }}>
+            <label style={s.label}>Hero Video <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>— optional; loops silently behind the Stories hero (overrides the cover)</span></label>
+            <input type="file" accept="video/*" style={s.fileInput} onChange={e => setHeroVideoFile(e.target.files?.[0] || null)} />
+            {heroVideoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {heroVideoFile.name}</div>}
+          </div>
         </div>
         <div>
           <label style={s.label}>Default Reading Theme</label>
