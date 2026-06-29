@@ -28,34 +28,43 @@ export async function POST(req: NextRequest) {
       // ── Subscription created or updated ──────────────────────────────────────
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription
-        const userId = subscription.metadata.supabase_user_id
+        const sub0 = event.data.object as Stripe.Subscription
+        const userId = sub0.metadata.supabase_user_id
         if (!userId) break
 
-        const status       = subscription.status // active, past_due, canceled, etc.
-        const priceId      = subscription.items.data[0]?.price.id
-        const plan         = priceId === process.env.STRIPE_ANNUAL_PRICE_ID ? 'annual' : 'monthly'
-        const item = subscription.items.data[0]
+        // Re-fetch the subscription so we act on Stripe's CURRENT status, not a
+        // (possibly stale / out-of-order) event payload. This is what prevents an
+        // 'incomplete' event from clobbering an already-active member.
+        let subscription = sub0
+        try { subscription = await stripe.subscriptions.retrieve(sub0.id) } catch {}
+
+        const status  = subscription.status // active, trialing, incomplete, past_due, canceled...
+        const priceId = subscription.items.data[0]?.price.id
+        const plan    = priceId === process.env.STRIPE_ANNUAL_PRICE_ID ? 'annual' : 'monthly'
+        const item    = subscription.items.data[0]
         const periodEndUnix = (item as any)?.current_period_end ?? (subscription as any).current_period_end
         const periodEnd = periodEndUnix ? new Date(periodEndUnix * 1000).toISOString() : null
-        const isActive     = status === 'active' || status === 'trialing'
 
-       const { error: updateError } = await supabase.from('profiles').update({
-          subscription_status:    status,
-          subscription_plan:      plan,
-          subscription_id:        subscription.id,
+        const isActive         = status === 'active' || status === 'trialing'
+        const terminalInactive = status === 'canceled' || status === 'unpaid' || status === 'incomplete_expired'
+
+        const updates: any = {
+          subscription_status:     status,
+          subscription_plan:       plan,
+          subscription_id:         subscription.id,
           subscription_period_end: periodEnd,
-          is_subscriber:          isActive,
-          updated_at:             new Date().toISOString(),
-        }).eq('id', userId)
-
-        if (updateError) {
-          console.error('PROFILE UPDATE FAILED:', updateError)
-        } else {
-          console.log('Profile updated OK for', userId)
+          updated_at:              new Date().toISOString(),
         }
+        // Only flip access on definitive states. Transient states ('incomplete',
+        // 'past_due') must NOT downgrade an active member — they resolve via a
+        // later event or the invoice.payment_succeeded backstop below.
+        if (isActive) updates.is_subscriber = true
+        else if (terminalInactive) updates.is_subscriber = false
 
-        console.log(`Subscription ${event.type} for user ${userId}: ${plan} ${status}`)
+        const { error: updateError } = await supabase.from('profiles').update(updates).eq('id', userId)
+
+        if (updateError) console.error('PROFILE UPDATE FAILED:', updateError)
+        else console.log(`Subscription ${event.type} for ${userId}: ${plan} ${status} (is_subscriber=${updates.is_subscriber ?? 'unchanged'})`)
         break
       }
 
@@ -91,7 +100,7 @@ export async function POST(req: NextRequest) {
 
         if (profile) {
           // Record the payment
-        await supabase.from('payments').upsert({
+          await supabase.from('payments').upsert({
             user_id:        profile.id,
             stripe_invoice_id: invoice.id,
             amount:         (invoice.amount_paid || 0) / 100,
@@ -100,6 +109,16 @@ export async function POST(req: NextRequest) {
             payment_type:   'subscription',
             created_at:     new Date().toISOString(),
           }, { onConflict: 'stripe_invoice_id', ignoreDuplicates: true })
+
+          // Backstop: a paid subscription invoice means the member IS active,
+          // regardless of the order subscription events arrived in.
+          if ((invoice as any).subscription) {
+            await supabase.from('profiles').update({
+              is_subscriber:       true,
+              subscription_status: 'active',
+              updated_at:          new Date().toISOString(),
+            }).eq('id', profile.id)
+          }
         }
         break
       }
