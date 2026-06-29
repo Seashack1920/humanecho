@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useBrowsingMusic } from '@/context/BrowsingMusicContext'
 import { usePlayer } from '@/context/PlayerContext'
 import BrowsingMusicBar from '@/components/BrowsingMusicBar'
+import HeroMedia from '@/components/HeroMedia'
 
 type Issue = {
   id: string
@@ -15,6 +16,7 @@ type Issue = {
   subtitle: string | null
   logline: string | null
   cover_image_url: string | null
+  hero_video_url: string | null
   theme: string
   status: string
   published_at: string | null
@@ -56,7 +58,7 @@ export default function EscapesPage() {
       // Load published issues
       const { data: publishedData } = await supabase
         .from('issues')
-        .select('id, issue_number, slug, title, subtitle, logline, cover_image_url, theme, status, published_at')
+        .select('id, issue_number, slug, title, subtitle, logline, cover_image_url, hero_video_url, theme, status, published_at')
         .eq('status', 'published')
         .order('issue_number', { ascending: false })
 
@@ -71,7 +73,7 @@ export default function EscapesPage() {
         if (profile?.role === 'admin') {
           const { data: draftData } = await supabase
             .from('issues')
-            .select('id, issue_number, slug, title, subtitle, logline, cover_image_url, theme, status, published_at')
+            .select('id, issue_number, slug, title, subtitle, logline, cover_image_url, hero_video_url, theme, status, published_at')
             .in('status', ['draft', 'private'])
             .order('issue_number', { ascending: false })
           setDraftIssues(draftData || [])
@@ -113,13 +115,12 @@ export default function EscapesPage() {
           marginTop: '-70px', paddingTop: '70px',
           cursor: 'pointer',
         }} onClick={() => router.push(`/escapes/${latestIssue.slug}`)}>
-          {latestIssue.cover_image_url ? (
-            <div style={{
-              position: 'absolute', inset: 0,
-              backgroundImage: `url(${latestIssue.cover_image_url})`,
-              backgroundSize: 'cover', backgroundPosition: 'center',
-              filter: 'brightness(0.5)',
-            }} />
+          {(latestIssue.cover_image_url || latestIssue.hero_video_url) ? (
+            <HeroMedia
+              imageUrl={latestIssue.cover_image_url}
+              videoUrl={latestIssue.hero_video_url}
+              style={{ filter: 'brightness(0.5)' }}
+            />
           ) : (
             <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(135deg, ${THEME_ACCENTS[latestIssue.theme]?.bg || '#0d0d14'} 0%, #1a1a2e 100%)` }} />
           )}

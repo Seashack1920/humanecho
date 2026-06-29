@@ -8,12 +8,14 @@ import { usePlayer } from '@/context/PlayerContext'
 import LikeButton from '@/components/LikeButton'
 import StoryContest from '@/components/StoryContest'
 import StoryContestWinners from '@/components/StoryContestWinners'
+import HeroMedia from '@/components/HeroMedia'
 
 type Story = {
   id: string
   title: string
   logline: string | null
   cover_image_url: string | null
+  hero_video_url: string | null
   story_type: string
   read_time_minutes: number | null
   word_count: number | null
@@ -90,7 +92,7 @@ export default function StoriesPage() {
       try {
         const { data: storiesData } = await supabase
           .from('stories')
-          .select('id, title, logline, cover_image_url, story_type, read_time_minutes, word_count, content_origin, explicit, status, is_featured, featured_order, tip_enabled, artist_id, created_at')
+          .select('id, title, logline, cover_image_url, hero_video_url, story_type, read_time_minutes, word_count, content_origin, explicit, status, is_featured, featured_order, tip_enabled, artist_id, created_at')
           .eq('status', 'published')
           .order('created_at', { ascending: false })
 
@@ -180,13 +182,12 @@ export default function StoriesPage() {
           overflow: 'hidden', background: '#0a0a0b',
           marginTop: '-70px', paddingTop: '70px',
         }}>
-          {heroStory.cover_image_url ? (
-            <div style={{
-              position: 'absolute', inset: 0,
-              backgroundImage: `url(${heroStory.cover_image_url})`,
-              backgroundSize: 'cover', backgroundPosition: 'center',
-              filter: 'blur(2px) brightness(0.45)', transform: 'scale(1.05)',
-            }} />
+          {(heroStory.cover_image_url || heroStory.hero_video_url) ? (
+            <HeroMedia
+              imageUrl={heroStory.cover_image_url}
+              videoUrl={heroStory.hero_video_url}
+              style={{ filter: 'blur(2px) brightness(0.45)', transform: 'scale(1.05)' }}
+            />
           ) : (
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #1a0d2e 0%, #0a0a0b 60%, #0d1a2e 100%)' }} />
           )}

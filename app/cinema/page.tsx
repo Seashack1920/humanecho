@@ -8,6 +8,7 @@ import LikeButton from '@/components/LikeButton'
 import MusicVideoContest from '@/components/MusicVideoContest'
 import ContestWinners from '@/components/ContestWinners'
 import CinemaModules from '@/components/CinemaModules'
+import HeroMedia from '@/components/HeroMedia'
 type Film = {
   id: string
   title: string
@@ -19,6 +20,7 @@ type Film = {
   poster_url: string | null
   trailer_url: string | null
   video_url: string | null
+  hero_video_url: string | null
   status: string
   is_featured: boolean
   release_year: number | null
@@ -64,7 +66,7 @@ export default function CinemaPage() {
     stopPlayer()
     const load = async () => {
       const [{ data: filmsData }, { data: profilesData }, { data: contestsData }] = await Promise.all([
-        supabase.from('films').select('id, title, logline, film_type, genre, runtime_minutes, director, poster_url, trailer_url, video_url, status, is_featured, release_year')
+        supabase.from('films').select('id, title, logline, film_type, genre, runtime_minutes, director, poster_url, trailer_url, video_url, hero_video_url, status, is_featured, release_year')
           .eq('status', 'published')
           .order('created_at', { ascending: false })
           .limit(12),
@@ -107,8 +109,12 @@ export default function CinemaPage() {
           marginTop: '-70px', paddingTop: '70px',
           cursor: 'pointer',
         }} onClick={() => router.push(`/cinema/films/${featuredFilm.id}`)}>
-          {featuredFilm.poster_url ? (
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${featuredFilm.poster_url})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(0.45)' }} />
+          {(featuredFilm.poster_url || featuredFilm.hero_video_url) ? (
+            <HeroMedia
+              imageUrl={featuredFilm.poster_url}
+              videoUrl={featuredFilm.hero_video_url}
+              style={{ filter: 'brightness(0.45)' }}
+            />
           ) : (
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #0d1f2d 0%, #0a0a0b 100%)' }} />
           )}

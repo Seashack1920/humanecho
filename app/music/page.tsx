@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { usePlayer } from '@/context/PlayerContext'
 import LikeButton from '@/components/LikeButton'
+import HeroMedia from '@/components/HeroMedia'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -15,6 +16,7 @@ type Artist = {
   bio: string | null
   creator_label: string | null
   is_featured: boolean
+  hero_video_url?: string | null
 }
 
 type Track = {
@@ -97,7 +99,12 @@ function FeaturedHero({ artists, onPlayArtist }: {
   return (
     <div style={{ position: 'relative', overflow: 'hidden', height: '520px', marginTop: '-70px' }}
       onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: artist.photo_url ? `url(${artist.photo_url})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center top', filter: 'blur(2px) brightness(0.75)', transform: 'scale(1.05)', transition: 'opacity 0.3s', opacity: animating ? 0 : 1 }} />
+      <HeroMedia
+        imageUrl={artist.photo_url}
+        videoUrl={artist.hero_video_url}
+        position="center top"
+        style={{ filter: 'blur(2px) brightness(0.75)', transform: 'scale(1.05)', transition: 'opacity 0.3s', opacity: animating ? 0 : 1 }}
+      />
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%)' }} />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '200px', background: 'linear-gradient(to top, var(--bg-primary), transparent)' }} />
 
@@ -273,7 +280,7 @@ export default function MusicPage() {
         { data: coachesData },
         { data: genresData },
       ] = await Promise.all([
-        supabase.from('artists').select('id, name, photo_url, bio, creator_label, is_featured').eq('is_featured', true).order('featured_order'),
+        supabase.from('artists').select('id, name, photo_url, bio, creator_label, is_featured, hero_video_url').eq('is_featured', true).order('featured_order'),
         supabase.from('tracks').select('id, title, duration, cloudinary_url, track_image_url, track_type, content_origin, album_id, artist_id, mood_tags').eq('status', 'published').order('created_at', { ascending: false }),
         supabase.from('albums').select('id, title, cover_url, release_date, album_type, artist_id').eq('status', 'published').order('release_date', { ascending: false }),
         supabase.from('escape_coaches').select('id, name, category, tagline, avatar_url').eq('is_active', true).order('display_order'),

@@ -9,11 +9,12 @@ import { useRouter } from 'next/navigation'
 import JoinBlock from '@/components/JoinBlock'
 import HomeStoryWinners from '@/components/HomeStoryWinners'
 import HomeContestWinners from '@/components/HomeContestWinners'
+import HeroMedia from '@/components/HeroMedia'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Track     = { id: string; title: string; duration: string | null; cloudinary_url: string | null; track_image_url: string | null; content_origin: string | null; track_type: string | null; artist_id: string | null; music_video_url?: string | null; cover_welcome?: boolean }
-type Album     = { id: string; title: string; cover_url: string | null; artist_id: string | null }
+type Album     = { id: string; title: string; cover_url: string | null; artist_id: string | null; hero_video_url?: string | null }
 type Artist    = { id: string; name: string; photo_url: string | null; bio: string | null; content_origin: string | null; creator_label?: string | null; creator_type?: string[] | null; featured_order?: number | null }
 type Executive = { id: string; name: string; title: string; photo_url: string | null; intro_video_url: string | null; featured_message: string | null; department: string | null }
 type Genre     = { id: string; name: string }
@@ -183,7 +184,7 @@ export default function HomePage() {
         console.log('[HE] calling Promise.all of fetchScheduled')
         const [featuredTrack, featuredAlbum, featuredArtist, exec] = await Promise.all([
           fetchScheduled('hero', 'track',     'id, title, duration, cloudinary_url, track_image_url, content_origin, track_type, artist_id, music_video_url, cover_welcome'),
-          fetchScheduled('hero', 'album',     'id, title, cover_url, artist_id'),
+          fetchScheduled('hero', 'album',     'id, title, cover_url, artist_id, hero_video_url'),
           fetchScheduled('hero', 'artist',    'id, name, photo_url, bio, content_origin, creator_label'),
           fetchScheduled('spotlight', 'executive', 'id, name, title, photo_url, intro_video_url, featured_message, department'),
         ])
@@ -328,8 +329,12 @@ export default function HomePage() {
 
       {/* ── HERO ── */}
       <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'flex-end', overflow: 'hidden', background: '#0a0a0b', marginTop: '-70px', paddingTop: '70px' }}>
-        {heroAlbum?.cover_url ? (
-          <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${heroAlbum.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(2px) brightness(0.80)', transform: 'scale(1.05)' }} />
+        {(heroAlbum?.cover_url || heroAlbum?.hero_video_url) ? (
+          <HeroMedia
+            imageUrl={heroAlbum.cover_url}
+            videoUrl={heroAlbum.hero_video_url}
+            style={{ filter: 'blur(2px) brightness(0.80)', transform: 'scale(1.05)' }}
+          />
         ) : (
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #0d1f2d 0%, #0a0a0b 60%, #1a0d0d 100%)' }} />
         )}
