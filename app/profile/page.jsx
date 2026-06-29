@@ -101,7 +101,7 @@ export default function ProfilePage() {
 
         const { data: prof } = await supabase
           .from('profiles')
-          .select('id, full_name, avatar_url, is_subscriber, subscription_status, subscription_plan, subscription_period_end')
+          .select('id, full_name, avatar_url, is_subscriber, subscription_status, subscription_plan, subscription_period_end, artist_id')
           .eq('id', user.id).single()
         if (off) return
         setProfile(prof)
@@ -174,6 +174,22 @@ export default function ProfilePage() {
     } catch { showToast('Could not open billing portal.') }
   }
 
+  async function startUploading() {
+    if (profile?.artist_id) { window.location.href = '/dashboard'; return }
+    try {
+      const res = await fetch('/api/creator/enable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not set up your Studio.')
+      window.location.href = '/dashboard'
+    } catch (e) {
+      showToast(e.message || 'Could not set up your Studio.')
+    }
+  }
+
   const renewLabel = useMemo(() => {
     if (!profile?.subscription_period_end) return null
     try {
@@ -227,6 +243,21 @@ export default function ProfilePage() {
         fullName={profile?.full_name}
         onPhotoChange={(url) => setProfile((p) => ({ ...p, avatar_url: url }))}
       />
+
+      {/* Your Studio — upload your own music */}
+      <section className="he-sec">
+        <div className="he-secHead">
+          <h2 className="he-secTitle">Your Studio</h2>
+          {profile?.artist_id
+            ? <a className="he-btn he-btn--primary he-btn--sm" href="/dashboard">Open your Studio →</a>
+            : <button className="he-btn he-btn--primary he-btn--sm" onClick={startUploading}>Share your music →</button>}
+        </div>
+        <p className="he-muted he-nudge">
+          {profile?.artist_id
+            ? 'Upload tracks, manage your releases, and see your whole library in your Studio.'
+            : 'As a member, you can upload your own songs into your private library — play them, add them to playlists, and enter contests. Click to set up your Studio.'}
+        </p>
+      </section>
 
       {/* playlists */}
       <section className="he-sec">
