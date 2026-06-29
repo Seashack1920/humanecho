@@ -478,7 +478,7 @@ useEffect(() => {
                                   <select style={s.select} value={editAlbum.status ?? album.status ?? 'draft'} onChange={e => setEditAlbum(p => ({ ...p, status: e.target.value }))}>
                                     <option value="draft">Draft</option>
                                     <option value="private">Private</option>
-                                    <option value="published">Published</option>
+                                    {isAdmin && <option value="published">Published</option>}
                                   </select>
                                 </div>
                               </div>
@@ -553,7 +553,7 @@ useEffect(() => {
                                       <select style={s.select} value={editTrack.status ?? track.status ?? 'draft'} onChange={e => setEditTrack(p => ({ ...p, status: e.target.value }))}>
                                         <option value="draft">Draft</option>
                                         <option value="private">Private</option>
-                                        <option value="published">Published</option>
+                                        {isAdmin && <option value="published">Published</option>}
                                       </select>
                                     </div>
                                     <div>

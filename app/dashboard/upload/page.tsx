@@ -222,6 +222,8 @@ const [trackMusicVideoFile, setTrackMusicVideoFile] = useState<File | null>(null
 
   const slugify = (str: string) => str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 
+  const [isAdmin, setIsAdmin] = useState(false)
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -230,6 +232,7 @@ const [trackMusicVideoFile, setTrackMusicVideoFile] = useState<File | null>(null
       const { data: profile } = await supabase
         .from('profiles').select('*').eq('id', user.id).single()
       if (!profile) { router.push('/login'); return }
+      setIsAdmin(profile.role === 'admin')
 
       let artistId = profile.artist_id
 
@@ -530,7 +533,7 @@ const songStory = trackSongStoryFile
                     <select style={s.select} value={newAlbum.status} onChange={e => setNewAlbum(a => ({ ...a, status: e.target.value }))}>
                       <option value="draft">Draft</option>
                       <option value="private">Private</option>
-                      <option value="published">Published</option>
+                      {isAdmin && <option value="published">Published</option>}
                     </select>
                   </div>
                 </div>
@@ -626,7 +629,7 @@ const songStory = trackSongStoryFile
                 <select style={s.select} value={track.status} onChange={e => setTrack(t => ({ ...t, status: e.target.value }))}>
                   <option value="draft">Draft</option>
                   <option value="private">Private</option>
-                  <option value="published">Published</option>
+                  {isAdmin && <option value="published">Published</option>}
                 </select>
               </div>
               <div>
