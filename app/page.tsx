@@ -153,6 +153,14 @@ export default function HomePage() {
   const [hubCards, setHubCards]       = useState<HubCard[]>([])
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null)
   const [hoveredArtist, setHoveredArtist] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
   const [showGate, setShowGate]       = useState(false)
   const [loading, setLoading]         = useState(true)
   const [email, setEmail]             = useState('')
@@ -340,13 +348,13 @@ export default function HomePage() {
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,10,11,0.98) 0%, rgba(10,10,11,0.4) 50%, rgba(10,10,11,0.1) 100%)' }} />
         <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '0 40px 80px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '48px' }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'center' : 'flex-end', textAlign: isMobile ? 'center' : 'left', gap: isMobile ? '24px' : '48px' }}>
             {heroAlbum?.cover_url && (
               <div style={{ flexShrink: 0 }}>
-                <img src={heroAlbum.cover_url} alt={heroAlbum.title} style={{ width: '220px', height: '220px', borderRadius: '12px', objectFit: 'cover', boxShadow: '0 32px 80px rgba(0,0,0,0.8)' }} />
+                <img src={heroAlbum.cover_url} alt={heroAlbum.title} style={{ width: isMobile ? '160px' : '220px', height: isMobile ? '160px' : '220px', borderRadius: '12px', objectFit: 'cover', boxShadow: '0 32px 80px rgba(0,0,0,0.8)' }} />
               </div>
             )}
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent-primary)', marginBottom: '12px', fontWeight: '600' }}>Featured Release</div>
               <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 'clamp(36px, 6vw, 72px)', fontWeight: '700', color: 'white', lineHeight: '1.05', marginBottom: '8px', letterSpacing: '-0.02em' }}>
                 {heroAlbum?.title || 'Human Echo'}
@@ -362,7 +370,7 @@ export default function HomePage() {
                   {heroTrack.cover_welcome && <span style={{ marginLeft: '6px' }}>🎤</span>}
                 </div>
               )}
-              <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', justifyContent: isMobile ? 'center' : 'flex-start' }}>
                 {heroTrack && (
                   <button onClick={() => handlePlay(heroTrack)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 28px', borderRadius: '50px', background: currentTrack?.id === heroTrack.id && isPlaying ? 'rgba(255,255,255,0.15)' : 'white', color: currentTrack?.id === heroTrack.id && isPlaying ? 'white' : '#0a0a0b', fontSize: '15px', fontWeight: '600', border: 'none', cursor: 'pointer', transition: 'all 0.2s ease' }}>
                     <span style={{ fontSize: '18px' }}>{currentTrack?.id === heroTrack.id && isPlaying ? '⏸' : '▶'}</span>
@@ -401,7 +409,7 @@ export default function HomePage() {
         {/* ── EXECUTIVE SPOTLIGHT ── */}
         {executive && (
           <section style={{ padding: '80px 0 60px' }}>
-            <div style={{ display: 'flex', gap: '40px', alignItems: 'center', background: 'var(--bg-secondary)', borderRadius: '20px', padding: '40px', border: '1px solid var(--border)', overflow: 'hidden', position: 'relative' }}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '20px' : '40px', alignItems: 'center', textAlign: isMobile ? 'center' : 'left', background: 'var(--bg-secondary)', borderRadius: '20px', padding: isMobile ? '32px 22px' : '40px', border: '1px solid var(--border)', overflow: 'hidden', position: 'relative' }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))' }} />
               {executive.intro_video_url ? (
                 <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -421,7 +429,7 @@ export default function HomePage() {
               ) : (
                 <div style={{ width: '140px', height: '140px', borderRadius: '50%', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', flexShrink: 0 }}>🤖</div>
               )}
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--accent-primary)', marginBottom: '8px', fontWeight: '600' }}>A message from {executive.department || 'the team'}</div>
                 {executive.featured_message && (
                   <blockquote style={{ fontFamily: 'Playfair Display, serif', fontSize: 'clamp(16px, 2.5vw, 22px)', fontWeight: '400', color: 'var(--text-primary)', lineHeight: '1.5', marginBottom: '20px', fontStyle: 'italic' }}>
