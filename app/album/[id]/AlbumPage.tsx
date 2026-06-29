@@ -40,6 +40,7 @@ type Artist = {
   photo_url: string | null
   creator_label: string | null
   stripe_onboarded: boolean | null
+  platform_owned: boolean | null
 }
 
 type NavSection = { key: string; label: string }
@@ -154,7 +155,7 @@ export default function AlbumPage({ id }: { id: string }) {
       ] = await Promise.all([
         supabase.from('tracks').select('id, title, track_number, duration, cloudinary_url, track_image_url, content_origin, track_type, text_content, text_content_type, price')
           .eq('album_id', id).eq('status', 'published').order('track_number'),
-        supabase.from('artists').select('id, name, photo_url, creator_label, stripe_onboarded').eq('id', albumData.artist_id).single(),
+        supabase.from('artists').select('id, name, photo_url, creator_label, stripe_onboarded, platform_owned').eq('id', albumData.artist_id).single(),
         supabase.from('tracks').select('id').eq('artist_id', albumData.artist_id).eq('status', 'published').is('album_id', null),
         supabase.from('stories').select('id').eq('artist_id', albumData.artist_id).eq('status', 'published'),
         supabase.from('films').select('id').eq('artist_id', albumData.artist_id).eq('status', 'published'),
@@ -298,7 +299,7 @@ export default function AlbumPage({ id }: { id: string }) {
               style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 28px', borderRadius: '50px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: '600' }}>
               ▶ Play Album
             </button>
-            {artist?.stripe_onboarded && (
+            {(artist?.platform_owned || artist?.stripe_onboarded) && (
               <BuyButton
                 itemType="album"
                 itemId={album.id}
@@ -329,7 +330,7 @@ export default function AlbumPage({ id }: { id: string }) {
               isCurrent={currentTrack?.id === track.id}
               isPlaying={isPlaying}
               owned={albumOwned || ownedTrackIds.has(track.id)}
-              sellable={!!artist?.stripe_onboarded}
+              sellable={!!(artist?.platform_owned || artist?.stripe_onboarded)}
               onPlay={() => currentTrack?.id === track.id ? togglePlay() : playTrack(track as any, tracks as any, tracks.findIndex(t => t.id === track.id))}
             />
           ))}

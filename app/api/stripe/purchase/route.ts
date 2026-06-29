@@ -56,14 +56,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'You already own this.', alreadyOwned: true }, { status: 409 })
     }
 
-    // ── Artist must be Connect-onboarded to receive the 85% split ──
     const { data: artist } = await supabase
       .from('artists')
-      .select('id, name, stripe_account_id, stripe_onboarded')
+      .select('id, name, stripe_account_id, stripe_onboarded, platform_owned')
       .eq('id', item.artist_id)
       .maybeSingle()
 
-    if (!artist?.stripe_account_id || !artist.stripe_onboarded) {
+    if (!artist) {
+      return NextResponse.json({ error: 'Artist not found.' }, { status: 404 })
+    }
+
+    // House content (platform_owned) charges straight to Human Echo's own
+    // Stripe account — no Connect split. Third-party artists require a
+    // connected, onboarded Stripe account and get the 85/15 destination split.
+    const isHouse = artist.platform_owned === true
+    if (!isHouse && (!artist.stripe_account_id || !artist.stripe_onboarded)) {
       return NextResponse.json(
         { error: 'This artist is not set up to receive payments yet.' },
         { status: 400 }
@@ -81,8 +88,8 @@ export async function POST(req: NextRequest) {
       kind: 'purchase',
     }
 
-    // Destination charge: Human Echo is merchant of record, keeps the
-    // application fee (15%), and transfers the rest to the artist.
+    // House content: plain charge to Human Echo (100%). Third-party artist:
+    // destination charge — platform keeps the 15% fee, 85% transfers to them.
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
@@ -98,11 +105,13 @@ export async function POST(req: NextRequest) {
           },
         },
       }],
-      payment_intent_data: {
-        application_fee_amount: feeCents,
-        transfer_data: { destination: artist.stripe_account_id },
-        metadata,
-      },
+      payment_intent_data: isHouse
+        ? { metadata }
+        : {
+            application_fee_amount: feeCents,
+            transfer_data: { destination: artist.stripe_account_id },
+            metadata,
+          },
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/library?purchase=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: returnUrl || `${process.env.NEXT_PUBLIC_SITE_URL}/album/${itemType === 'album' ? itemId : ''}`,
       metadata,
