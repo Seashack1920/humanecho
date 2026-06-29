@@ -56,7 +56,7 @@ export default function Header() {
 
   const menuItems = []
   menuItems.push({ label: 'Your profile', action: () => router.push('/profile') })
-  if (isArtist) menuItems.push({ label: 'Artist dashboard', action: () => router.push('/dashboard') })
+  if (isArtist) menuItems.push({ label: 'Your Studio', action: () => router.push('/dashboard') })
   if (isAdmin) menuItems.push({ label: 'Admin', action: () => router.push('/dashboard') })
   menuItems.push({ label: 'Log out', action: () => signOut(router), danger: true })
 
