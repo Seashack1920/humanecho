@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [mode, setMode]         = useState('password')
   const [sent, setSent]         = useState(false)
+  const [signupSent, setSignupSent] = useState(false)
   const [resetSent, setResetSent] = useState(false)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState(null)
@@ -88,6 +89,23 @@ export default function LoginPage() {
     setLoading(false)
   }
 
+  const handleSignUp = async () => {
+    if (!email || !password) return setError('Please enter an email and a password.')
+    if (password.length < 8)  return setError('Password must be at least 8 characters.')
+    setLoading(true)
+    setError(null)
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/login` },
+    })
+    if (error) { setError(error.message); setLoading(false); return }
+    // If email confirmation is off, a session is returned and onAuthStateChange
+    // routes the user. If it's on, no session yet — ask them to confirm.
+    if (!data.session) setSignupSent(true)
+    setLoading(false)
+  }
+
   const handleForgotPassword = async () => {
     if (!email) return setError('Enter your email above first, then click “Forgot password?”')
     setLoading(true)
@@ -139,6 +157,19 @@ export default function LoginPage() {
                 Back to sign in
               </button>
             </div>
+          ) : signupSent ? (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '40px', marginBottom: '20px' }}>✉️</div>
+              <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px' }}>
+                Confirm your email
+              </div>
+              <div style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '28px' }}>
+                We sent a confirmation link to <strong style={{ color: 'var(--text-primary)' }}>{email}</strong>. Click it to activate your account, then come back and sign in.
+              </div>
+              <button onClick={() => { setSignupSent(false); setMode('password') }} style={{ fontSize: '13px', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                Back to sign in
+              </button>
+            </div>
           ) : sent ? (
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '40px', marginBottom: '20px' }}>✉️</div>
@@ -155,10 +186,11 @@ export default function LoginPage() {
           ) : (
             <>
               <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '24px' }}>
-                Sign in
+                {mode === 'signup' ? 'Create your account' : 'Sign in'}
               </div>
 
-              {/* Mode toggle */}
+              {/* Mode toggle (sign-in only) */}
+              {mode !== 'signup' && (
               <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'var(--bg-card)', borderRadius: '10px', padding: '4px' }}>
                 {['password', 'magic'].map(m => (
                   <button key={m} onClick={() => { setMode(m); setError(null) }} style={{ flex: 1, padding: '8px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '500', background: mode === m ? 'var(--bg-secondary)' : 'transparent', color: mode === m ? 'var(--text-primary)' : 'var(--text-muted)', transition: 'all 0.2s' }}>
@@ -166,6 +198,7 @@ export default function LoginPage() {
                   </button>
                 ))}
               </div>
+              )}
 
               {error && (
                 <div style={{ padding: '12px 14px', borderRadius: '8px', background: 'rgba(220,60,60,0.08)', border: '1px solid rgba(220,60,60,0.2)', color: '#dc3c3c', fontSize: '13px', marginBottom: '20px' }}>
@@ -191,17 +224,17 @@ export default function LoginPage() {
               </div>
 
               {/* Password field with show/hide + forgot link */}
-              {mode === 'password' && (
+              {(mode === 'password' || mode === 'signup') && (
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                    Password
+                    Password{mode === 'signup' ? ' (8+ characters)' : ''}
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={e => setPassword(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handlePasswordLogin()}
+                      onKeyDown={e => e.key === 'Enter' && (mode === 'signup' ? handleSignUp() : handlePasswordLogin())}
                       placeholder="••••••••"
                       style={{ ...inputStyle, paddingRight: '46px' }}
                       onFocus={e => e.target.style.borderColor = 'var(--accent-primary)'}
@@ -216,6 +249,7 @@ export default function LoginPage() {
                       {showPassword ? '🙈' : '👁'}
                     </button>
                   </div>
+                  {mode === 'password' && (
                   <div style={{ textAlign: 'right', marginTop: '8px' }}>
                     <button
                       type="button"
@@ -226,16 +260,30 @@ export default function LoginPage() {
                       Forgot password?
                     </button>
                   </div>
+                  )}
                 </div>
               )}
 
               <button
-                onClick={mode === 'password' ? handlePasswordLogin : handleMagicLink}
+                onClick={mode === 'signup' ? handleSignUp : mode === 'password' ? handlePasswordLogin : handleMagicLink}
                 disabled={loading}
                 style={{ width: '100%', padding: '13px', borderRadius: '10px', background: 'var(--accent-primary)', color: 'white', fontSize: '15px', fontWeight: '500', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
               >
-                {loading ? 'Please wait...' : mode === 'password' ? 'Sign in →' : 'Send magic link →'}
+                {loading ? 'Please wait...' : mode === 'signup' ? 'Create account →' : mode === 'password' ? 'Sign in →' : 'Send magic link →'}
               </button>
+
+              {/* Sign in ⇄ Create account */}
+              <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                {mode === 'signup' ? (
+                  <>Already have an account?{' '}
+                    <button onClick={() => { setMode('password'); setError(null) }} style={{ color: 'var(--accent-primary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '13px' }}>Sign in</button>
+                  </>
+                ) : (
+                  <>New to Human Echo?{' '}
+                    <button onClick={() => { setMode('signup'); setError(null) }} style={{ color: 'var(--accent-primary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '13px' }}>Create an account</button>
+                  </>
+                )}
+              </div>
             </>
           )}
         </div>
