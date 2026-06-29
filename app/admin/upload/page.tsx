@@ -267,6 +267,24 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
     setLoading(false)
   }
 
+  const toggleFeatured = async (type: 'artist' | 'album' | 'track', id: string, current: boolean) => {
+    setMessage(null)
+    const table = type === 'artist' ? 'artists' : type === 'album' ? 'albums' : 'tracks'
+    const { error } = await supabase.from(table).update({ is_featured: !current }).eq('id', id)
+    if (error) { setMessage({ type: 'error', text: error.message }); return }
+    setMessage({ type: 'success', text: `${type.charAt(0).toUpperCase() + type.slice(1)} ${!current ? 'featured ★' : 'unfeatured'}.` })
+    if (type === 'artist') refreshArtists()
+    else if (type === 'album') setAlbums(prev => prev.map(a => a.id === id ? ({ ...a, is_featured: !current } as any) : a))
+    else setTracks(prev => prev.map(t => t.id === id ? ({ ...t, is_featured: !current } as any) : t))
+  }
+
+  const featBtn = (active: boolean) => ({
+    padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', marginRight: '8px',
+    background: active ? 'rgba(224,168,46,0.12)' : 'var(--bg-card)',
+    color: active ? '#e0a82e' : 'var(--text-muted)',
+    border: `1px solid ${active ? '#e0a82e' : 'var(--border)'}`,
+  })
+
   const handleSaveArtist = async (artistId: string) => {
     setLoading(true)
     setMessage(null)
@@ -568,6 +586,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <button style={featBtn(!!(artist as any).is_featured)} title={(artist as any).is_featured ? 'Featured — click to unfeature' : 'Feature this artist'} onClick={() => toggleFeatured('artist', artist.id, !!(artist as any).is_featured)}>{(artist as any).is_featured ? '★ Featured' : '☆ Feature'}</button>
                     <button style={s.btnEdit} onClick={() => { setEditingArtistId(artist.id); setEditArtist({}) }}>Edit</button>
                     <button style={s.btnDanger} onClick={() => setConfirmDelete({ type: 'artist', id: artist.id, name: artist.name })}>Delete</button>
                   </div>
@@ -677,6 +696,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <button style={featBtn(!!(album as any).is_featured)} title={(album as any).is_featured ? 'Featured — click to unfeature' : 'Feature this album'} onClick={() => toggleFeatured('album', album.id, !!(album as any).is_featured)}>{(album as any).is_featured ? '★ Featured' : '☆ Feature'}</button>
                     <button style={s.btnEdit} onClick={async () => { setEditingAlbumId(album.id); setEditAlbum({}); const g = await loadContentGenres('album', album.id); setEditingGenres(g) }}>Edit</button>
                     <button style={s.btnDanger} onClick={() => setConfirmDelete({ type: 'album', id: album.id, name: album.title })}>Delete</button>
                   </div>
@@ -877,6 +897,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     >
                       {currentTrack?.id === track.id && isPlaying ? '⏸' : '▶'}
                     </button>
+                    <button style={featBtn(!!(track as any).is_featured)} title={(track as any).is_featured ? 'Featured — click to unfeature' : 'Feature this track'} onClick={() => toggleFeatured('track', track.id, !!(track as any).is_featured)}>{(track as any).is_featured ? '★ Featured' : '☆ Feature'}</button>
                     <button style={s.btnEdit} onClick={async () => { setEditingTrackId(track.id); setEditTrack({}); const g = await loadContentGenres('track', track.id); setEditingGenres(g) }}>Edit</button>
                     <button style={s.btnDanger} onClick={() => setConfirmDelete({ type: 'track', id: track.id, name: track.title })}>Delete</button>
                   </div>
@@ -1212,7 +1233,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
   const loadArtists = () => {
     supabase
       .from('artists')
-      .select('id, name, bio, photo_url, content_origin, creator_type, creator_label, artist_profile_video_url, hero_video_url')
+      .select('id, name, bio, photo_url, content_origin, creator_type, creator_label, artist_profile_video_url, hero_video_url, is_featured, featured_order')
       .order('name')
       .then(({ data }) => { if (data) setArtists(data) })
   }

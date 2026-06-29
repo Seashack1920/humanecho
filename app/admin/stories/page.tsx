@@ -22,6 +22,7 @@ type Story    = {
   content_origin: string
   explicit: boolean
   tip_enabled: boolean
+  is_featured: boolean
   read_time_minutes: number | null
   word_count: number | null
   artist_id: string | null
@@ -604,6 +605,7 @@ function StoryForm({ artists: initialArtists, narrators, bgTracks, story, onSave
     status:           story?.status || 'draft',
     explicit:         story?.explicit || false,
     tip_enabled:      story?.tip_enabled ?? true,
+    is_featured:      story?.is_featured || false,
     artist_id:        story?.artist_id || '',
     reading_theme:    'light',
     content_warnings: '',
@@ -692,7 +694,7 @@ function StoryForm({ artists: initialArtists, narrators, bgTracks, story, onSave
       const payload: any = {
         title: form.title, logline: form.logline || null, story_type: form.story_type,
         content_origin: form.content_origin, status: form.status, explicit: form.explicit,
-        tip_enabled: form.tip_enabled, artist_id: form.artist_id || null,
+        tip_enabled: form.tip_enabled, is_featured: form.is_featured, artist_id: form.artist_id || null,
         reading_theme: form.reading_theme, text_content: editor!.getHTML(),
         word_count: wordCount, read_time_minutes: readTime,
         contributors: contributors.length > 0 ? contributors : null,
@@ -849,6 +851,7 @@ function StoryForm({ artists: initialArtists, narrators, bgTracks, story, onSave
       <div style={{ display: 'flex', gap: '24px', marginBottom: '20px', flexWrap: 'wrap' as const }}>
         <label style={s.checkbox}><input type="checkbox" checked={form.explicit} onChange={e => setForm(f => ({ ...f, explicit: e.target.checked }))} /> 🅴 Explicit (18+)</label>
         <label style={s.checkbox}><input type="checkbox" checked={form.tip_enabled} onChange={e => setForm(f => ({ ...f, tip_enabled: e.target.checked }))} /> 💰 Pay-what-you-want tips enabled</label>
+        <label style={s.checkbox}><input type="checkbox" checked={form.is_featured} onChange={e => setForm(f => ({ ...f, is_featured: e.target.checked }))} /> ★ Feature on the Stories page</label>
       </div>
 
       <div style={s.divider} />
