@@ -1,0 +1,71 @@
+name: Nightly database backup
+
+# Independent, off-Supabase backup of the Postgres database. Runs every night,
+# dumps the whole database with pg_dump, encrypts the dump, and stores it as a
+# 90-day GitHub Actions artifact. This is a safety net that survives even if the
+# Supabase project or account is lost — keep it even after upgrading to Pro.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL    Postgres connection string (Supabase → Project Settings →
+#                      Database → Connection string → URI). Use the Session
+#                      pooler URI so it works over IPv4 from GitHub's runners.
+#   BACKUP_PASSPHRASE  Any strong passphrase. Needed to decrypt a backup later —
+#                      store it somewhere safe and separate (a password manager).
+#
+# Restore a backup:
+#   gpg --batch --passphrase 'YOUR_PASSPHRASE' -o backup.dump -d humanecho-*.dump.gpg
+#   pg_restore --no-owner --no-privileges -d "$TARGET_DB_URL" backup.dump
+
+on:
+  schedule:
+    - cron: '0 8 * * *'    # 08:00 UTC every day
+  workflow_dispatch: {}     # plus a manual "Run workflow" button
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+          pg_dump --version
+
+      - name: Dump and encrypt database
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL secret is not set."; exit 1
+          fi
+          if [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::BACKUP_PASSPHRASE secret is not set."; exit 1
+          fi
+          STAMP=$(date -u +%Y-%m-%d_%H%M%SZ)
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+
+          # Full database dump in pg_dump custom format (compressed, restorable
+          # with pg_restore). --no-owner/--no-privileges make it portable.
+          pg_dump "$SUPABASE_DB_URL" \
+            --format=custom --no-owner --no-privileges \
+            --file="humanecho-$STAMP.dump"
+
+          # Encrypt with AES-256 so the artifact never holds plaintext PII.
+          gpg --batch --yes --passphrase "$BACKUP_PASSPHRASE" \
+            --symmetric --cipher-algo AES256 \
+            -o "humanecho-$STAMP.dump.gpg" "humanecho-$STAMP.dump"
+          rm -f "humanecho-$STAMP.dump"
+
+          ls -lh "humanecho-$STAMP.dump.gpg"
+
+      - name: Upload encrypted backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ env.STAMP }}
+          path: humanecho-*.dump.gpg
+          retention-days: 90
+          if-no-files-found: error
