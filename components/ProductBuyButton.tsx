@@ -60,12 +60,12 @@ export default function ProductBuyButton({
 }
 
 const baseStyle: CSSProperties = {
-  padding: '10px 20px',
+  padding: '8px 16px',
   borderRadius: '999px',
-  border: '1px solid var(--accent-primary)',
-  background: 'var(--accent-primary)',
-  color: '#fff',
-  fontSize: '14px',
+  border: '1px solid color-mix(in srgb, var(--accent-primary) 38%, transparent)',
+  background: 'color-mix(in srgb, var(--accent-primary) 13%, transparent)',
+  color: 'var(--accent-primary)',
+  fontSize: '13px',
   fontWeight: 600,
   cursor: 'pointer',
 }
