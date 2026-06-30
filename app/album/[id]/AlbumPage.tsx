@@ -305,7 +305,7 @@ export default function AlbumPage({ id }: { id: string }) {
                 itemId={album.id}
                 price={album.price}
                 owned={albumOwned}
-                label={`Buy album · $${Number(album.price).toFixed(2)}`}
+                label={`$${Number(album.price).toFixed(2)}`}
                 style={{ padding: '12px 28px', fontSize: '15px' }}
               />
             )}

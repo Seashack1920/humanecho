@@ -56,7 +56,7 @@ export default function BuyButton({
   return (
     <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
       <button onClick={buy} disabled={loading} style={{ ...baseStyle, ...style, opacity: loading ? 0.6 : 1 }}>
-        {loading ? 'Starting…' : (label || `Buy $${p.toFixed(2)}`)}
+        {loading ? 'Starting…' : (label || `$${p.toFixed(2)}`)}
       </button>
       {err && <span style={{ fontSize: '12px', color: '#dc3c3c' }}>{err}</span>}
     </span>

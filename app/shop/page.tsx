@@ -164,7 +164,6 @@ export default function ShopPage() {
                   <div style={s.cardTitle}>{prod.title}</div>
                   {prod.description && <div style={s.cardDesc}>{prod.description}</div>}
                   <div style={s.cardFoot}>
-                    <span style={s.price}>${Number(prod.price).toFixed(2)}</span>
                     <ProductBuyButton productId={prod.id} price={prod.price} owned={owned.has(prod.id)} />
                   </div>
                 </div>
