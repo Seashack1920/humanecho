@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import ProductDownloadButton from '@/components/ProductDownloadButton'
 
 type LibItem = {
   key: string
-  type: 'track' | 'album'
+  type: 'track' | 'album' | 'product'
   id: string
   title: string
   image: string | null
@@ -43,17 +44,22 @@ export default function LibraryPage() {
 
       if (!purchases || purchases.length === 0) { setItems([]); setLoading(false); return }
 
-      const trackIds = purchases.filter(p => p.item_type === 'track').map(p => p.item_id)
-      const albumIds = purchases.filter(p => p.item_type === 'album').map(p => p.item_id)
+      const trackIds   = purchases.filter(p => p.item_type === 'track').map(p => p.item_id)
+      const albumIds   = purchases.filter(p => p.item_type === 'album').map(p => p.item_id)
+      const productIds = purchases.filter(p => p.item_type === 'product').map(p => p.item_id)
 
-      const [{ data: tracks }, { data: albums }] = await Promise.all([
+      const [{ data: tracks }, { data: albums }, { data: products }] = await Promise.all([
         trackIds.length
           ? supabase.from('tracks').select('id, title, track_image_url, cloudinary_url, artist_id').in('id', trackIds)
           : Promise.resolve({ data: [] as any[] }),
         albumIds.length
           ? supabase.from('albums').select('id, title, cover_url, artist_id').in('id', albumIds)
           : Promise.resolve({ data: [] as any[] }),
+        productIds.length
+          ? supabase.from('products').select('id, title, image_url, product_type').in('id', productIds)
+          : Promise.resolve({ data: [] as any[] }),
       ])
+      const productMap = new Map((products || []).map(p => [p.id, p]))
 
       const artistIds = [
         ...(tracks || []).map(t => t.artist_id),
@@ -68,6 +74,14 @@ export default function LibraryPage() {
       const albumMap = new Map((albums || []).map(a => [a.id, a]))
 
       const built: LibItem[] = purchases.map(p => {
+        if (p.item_type === 'product') {
+          const pr = productMap.get(p.item_id)
+          return pr && {
+            key: `product-${p.item_id}`, type: 'product' as const, id: p.item_id,
+            title: pr.title, image: pr.image_url, artistName: pr.product_type || 'ebook',
+            fileUrl: null, purchasedAt: p.created_at, amount: p.amount,
+          }
+        }
         if (p.item_type === 'track') {
           const t = trackMap.get(p.item_id)
           return t && {
@@ -115,7 +129,7 @@ export default function LibraryPage() {
         {!loading && !signedOut && items.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>🎵</div>
-            <p>Nothing here yet. Tracks and albums you buy will live here.</p>
+            <p>Nothing here yet. Tracks, albums, and shop items you buy will live here.</p>
           </div>
         )}
 
@@ -129,7 +143,9 @@ export default function LibraryPage() {
                 <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</div>
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{item.artistName} · {item.type}</div>
               </div>
-              {item.type === 'track' && item.fileUrl ? (
+              {item.type === 'product' ? (
+                <ProductDownloadButton productId={item.id} />
+              ) : item.type === 'track' && item.fileUrl ? (
                 <a href={item.fileUrl} download style={{ padding: '8px 16px', borderRadius: '999px', background: 'var(--accent-primary)', color: '#fff', fontSize: '13px', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>⬇ Download</a>
               ) : (
                 <button onClick={() => router.push(`/album/${item.id}`)} style={{ padding: '8px 16px', borderRadius: '999px', background: 'transparent', color: 'var(--accent-primary)', border: '1px solid var(--accent-primary)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>Open album</button>

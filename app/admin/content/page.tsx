@@ -100,6 +100,9 @@ export default function AdminContent() {
           <Link href="/admin/stories/new" style={{ ...s.link, fontSize: '14px' }}>
             + New Story
           </Link>
+          <Link href="/admin/shop" style={{ ...s.link, fontSize: '14px' }}>
+            🛍 Shop
+          </Link>
         </div>
       </div>
 

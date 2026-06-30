@@ -167,6 +167,25 @@ export async function POST(req: NextRequest) {
           break
         }
 
+        // Digital product (ebook, etc.) — house content, full amount to Human
+        // Echo. Recorded into purchases so the buyer gains download access.
+        if (session.mode === 'payment' && md.kind === 'product') {
+          if (!md.supabase_user_id) { console.error('Product purchase missing user id'); break }
+          const { error: productErr } = await supabase.from('purchases').upsert({
+            user_id:           md.supabase_user_id,
+            item_type:         'product',
+            item_id:           md.item_id,
+            artist_id:         null,
+            amount:            (session.amount_total || 0) / 100,
+            stripe_payment_id: session.payment_intent as string,
+            status:            'completed',
+          }, { onConflict: 'stripe_payment_id', ignoreDuplicates: true })
+
+          if (productErr) console.error('PRODUCT PURCHASE INSERT FAILED:', productErr)
+          else console.log(`Product purchase recorded: ${md.item_id} for user ${md.supabase_user_id}`)
+          break
+        }
+
         // Tip (free-content support): 100% to the artist, no platform fee.
         // Tips may be anonymous, so user id is optional here.
         if (session.mode === 'payment' && md.kind === 'tip') {
