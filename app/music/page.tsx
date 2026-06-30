@@ -282,7 +282,7 @@ export default function MusicPage() {
       ] = await Promise.all([
         supabase.from('artists').select('id, name, photo_url, bio, creator_label, is_featured, hero_video_url').eq('is_featured', true).order('featured_order'),
         supabase.from('tracks').select('id, title, duration, cloudinary_url, track_image_url, track_type, content_origin, album_id, artist_id, mood_tags, is_featured, featured_order').eq('status', 'published').order('created_at', { ascending: false }),
-        supabase.from('albums').select('id, title, cover_url, release_date, album_type, artist_id').eq('status', 'published').order('release_date', { ascending: false }),
+        supabase.from('albums').select('id, title, cover_url, release_date, album_type, artist_id, is_featured').eq('status', 'published').order('release_date', { ascending: false }),
         supabase.from('escape_coaches').select('id, name, category, tagline, avatar_url').eq('is_active', true).order('display_order'),
         supabase.from('genres').select('id, name').eq('content_type', 'music').order('name'),
       ])
@@ -337,12 +337,20 @@ export default function MusicPage() {
         ? featuredArrivals.slice(0, 12)
         : dedupeByArtist(normTracks).slice(0, 6)
 
-      // Hot Albums — newest album per artist
-      const hotAlbumsDeduped = dedupeByArtist(normAlbums).slice(0, 6)
+      // Hot Albums — curate-or-auto: featured albums take priority, else newest per artist
+      const featuredAlbums = normAlbums.filter((a: any) => a.is_featured)
+      const hotAlbumsDeduped = featuredAlbums.length > 0
+        ? featuredAlbums.slice(0, 12)
+        : dedupeByArtist(normAlbums).slice(0, 6)
 
-      // Cool Tracks — standalone singles only, one per artist
+      // Cool Tracks — standalone singles; featured singles take priority, else newest per artist
       const singles = normTracks.filter((t: any) => !t.album_id)
-      const coolTracksDeduped = dedupeByArtist(singles).slice(0, 6)
+      const featuredSingles = singles
+        .filter((t: any) => t.is_featured)
+        .sort((a: any, b: any) => (a.featured_order ?? 999) - (b.featured_order ?? 999))
+      const coolTracksDeduped = featuredSingles.length > 0
+        ? featuredSingles.slice(0, 12)
+        : dedupeByArtist(singles).slice(0, 6)
 
       setFeaturedArtists(artistsData || [])
       setNewArrivals(newArrivalsDeduped)
