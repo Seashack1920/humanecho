@@ -259,6 +259,18 @@ export default function ProfilePage() {
         </p>
       </section>
 
+      {/* Writing Room — notepad + AI Writing Coach */}
+      <section className="he-sec">
+        <div className="he-secHead">
+          <h2 className="he-secTitle">Your Writing Room</h2>
+          <a className="he-btn he-btn--primary he-btn--sm" href="/writing-room">Open the Writing Room →</a>
+        </div>
+        <p className="he-muted he-nudge">
+          A private notepad plus your personal Writing Coach — honest, developmental feedback on your
+          prose, lyrics, screenplays, and stage plays. Your coach guides and never rewrites your work.
+        </p>
+      </section>
+
       {/* playlists */}
       <section className="he-sec">
         <div className="he-secHead">
