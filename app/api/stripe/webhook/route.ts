@@ -48,6 +48,13 @@ export async function POST(req: NextRequest) {
         const isActive         = status === 'active' || status === 'trialing'
         const terminalInactive = status === 'canceled' || status === 'unpaid' || status === 'incomplete_expired'
 
+        // Writing Room tier from the subscribed price. Creator+ and The Revisionist
+        // are higher membership tiers (one price each); base = neither.
+        let membershipTier: string | null = null
+        let revisionistAddon = false
+        if (priceId && priceId === process.env.STRIPE_REVISIONIST_PRICE_ID) { membershipTier = 'creator_plus'; revisionistAddon = true }
+        else if (priceId && priceId === process.env.STRIPE_CREATORPLUS_PRICE_ID) { membershipTier = 'creator_plus' }
+
         const updates: any = {
           subscription_status:     status,
           subscription_plan:       plan,
@@ -58,8 +65,8 @@ export async function POST(req: NextRequest) {
         // Only flip access on definitive states. Transient states ('incomplete',
         // 'past_due') must NOT downgrade an active member — they resolve via a
         // later event or the invoice.payment_succeeded backstop below.
-        if (isActive) updates.is_subscriber = true
-        else if (terminalInactive) updates.is_subscriber = false
+        if (isActive) { updates.is_subscriber = true; updates.membership_tier = membershipTier; updates.revisionist_addon = revisionistAddon }
+        else if (terminalInactive) { updates.is_subscriber = false; updates.membership_tier = null; updates.revisionist_addon = false }
 
         const { error: updateError } = await supabase.from('profiles').update(updates).eq('id', userId)
 
@@ -78,6 +85,8 @@ export async function POST(req: NextRequest) {
           subscription_status:    'canceled',
           subscription_plan:      null,
           is_subscriber:          false,
+          membership_tier:        null,
+          revisionist_addon:      false,
           subscription_period_end: null,
           updated_at:             new Date().toISOString(),
         }).eq('id', userId)

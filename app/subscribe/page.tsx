@@ -4,150 +4,135 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-const MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID || ''
-const ANNUAL_PRICE_ID  = process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID  || ''
+const MONTHLY_PRICE_ID     = process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID || ''
+const ANNUAL_PRICE_ID      = process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID || ''
+const CREATORPLUS_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_CREATORPLUS_PRICE_ID || ''
+const REVISIONIST_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_REVISIONIST_PRICE_ID || ''
 
-const BENEFITS = [
-  { icon: '🎵', text: 'Unlimited listening — no track limits' },
-  { icon: '🎛️', text: 'Build your own playlists and Escapes' },
-  { icon: '🔔', text: 'Early access to new releases' },
-  { icon: '⬇️', text: 'Download tracks and albums' },
-  { icon: '🎤', text: 'Upload cover songs and music videos' },
-  { icon: '🏆', text: 'Echo Advocates rewards program' },
-  { icon: '✨', text: 'Access to subscriber-only content' },
+type TierKey = 'base' | 'creator_plus' | 'revisionist'
+
+const TIERS: { key: TierKey; name: string; price: string; per: string; priceId: string; blurb: string; features: string[]; highlight?: boolean }[] = [
+  {
+    key: 'base', name: 'Member', price: '$5.99', per: '/mo', priceId: MONTHLY_PRICE_ID,
+    blurb: 'Your full Human Echo experience.',
+    features: ['Unlimited music, playlists & Escapes', 'Downloads, early access, contests', 'Writing Room with 5 critiques / month'],
+  },
+  {
+    key: 'creator_plus', name: 'Creator+', price: '$9.99', per: '/mo', priceId: CREATORPLUS_PRICE_ID, highlight: true,
+    blurb: 'For writers who want to go deeper.',
+    features: ['Everything in Member', 'Unlimited critiques + much higher word limits', 'Deeper, more actionable analysis', 'Notepad Reader (ElevenLabs voices)'],
+  },
+  {
+    key: 'revisionist', name: 'The Revisionist', price: '$24.99', per: '/mo', priceId: REVISIONIST_PRICE_ID,
+    blurb: 'The full editorial suite.',
+    features: ['Everything in Creator+', 'Comprehensive developmental analysis', 'Genre positioning & marketability', 'Query letter, synopsis & comp titles', 'Screen / TV adaptation assessment'],
+  },
 ]
 
 export default function SubscribePage() {
-  const router  = useRouter()
-  const [plan, setPlan]       = useState<'monthly' | 'annual'>('monthly')
-  const [loading, setLoading] = useState(false)
-  const [user, setUser]       = useState<any>(null)
+  const router = useRouter()
+  const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
-  const [error, setError]     = useState('')
+  const [loading, setLoading] = useState<string | null>(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       setUser(user)
-      if (user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-        setProfile(data)
-      }
-    }
-    load()
+      if (user) { const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single(); setProfile(data) }
+    })
   }, [])
 
-  const handleSubscribe = async () => {
-    if (!user) { router.push('/login?redirect=/subscribe'); return }
-    if (profile?.is_subscriber) { router.push('/account'); return }
+  const currentTier: TierKey | 'none' = profile
+    ? (profile.revisionist_addon ? 'revisionist' : profile.membership_tier === 'creator_plus' ? 'creator_plus' : profile.is_subscriber ? 'base' : 'none')
+    : 'none'
 
-    setLoading(true); setError('')
+  const checkout = async (priceId: string, planLabel: string, key: string) => {
+    if (!user) { router.push('/login?redirect=/subscribe'); return }
+    if (!priceId) { setError('This plan isn’t configured yet. Please check back soon.'); return }
+    setLoading(key); setError('')
     try {
-      const priceId = plan === 'annual' ? ANNUAL_PRICE_ID : MONTHLY_PRICE_ID
       const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          priceId,
-          userId: user.id,
-          email:  user.email,
-          plan,
-        }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId, userId: user.id, email: user.email, plan: planLabel }),
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       window.location.href = data.url
-    } catch (err) {
-      setError((err as Error).message)
-    }
-    setLoading(false)
+    } catch (e) { setError((e as Error).message); setLoading(null) }
   }
 
-  const savings = Math.round(((5.99 * 12 - 49.99) / (5.99 * 12)) * 100)
+  const openPortal = async () => {
+    setLoading('portal'); setError('')
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      window.location.href = data.url
+    } catch (e) { setError((e as Error).message); setLoading(null) }
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', fontFamily: 'DM Sans, sans-serif' }}>
-      <div style={{ maxWidth: '760px', margin: '0 auto', padding: '80px 24px 120px' }}>
-
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '56px' }}>
-          <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent-primary)', marginBottom: '12px', fontWeight: '600' }}>
-            Human Echo Subscription
-          </div>
-          <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: '700', color: 'var(--text-primary)', lineHeight: '1.1', marginBottom: '16px' }}>
-            Your full Human Echo experience
-          </h1>
-          <p style={{ fontSize: '17px', color: 'var(--text-muted)', maxWidth: '480px', margin: '0 auto', lineHeight: '1.7' }}>
-            Unlimited listening, playlist building, early access, and more — all for less than a coffee a month.
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '72px 24px 120px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+          <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent-primary)', marginBottom: '12px', fontWeight: 600 }}>Human Echo Membership</div>
+          <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 'clamp(30px, 5vw, 52px)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: '14px' }}>Choose your plan</h1>
+          <p style={{ fontSize: '17px', color: 'var(--text-muted)', maxWidth: '520px', margin: '0 auto', lineHeight: 1.7 }}>
+            Every plan includes the full platform. Step up for unlimited, deeper critiques and the complete editorial suite.
           </p>
         </div>
 
-        {/* Already subscribed */}
-        {profile?.is_subscriber && (
-          <div style={{ background: 'rgba(43,122,143,0.1)', border: '1px solid var(--accent-primary)', borderRadius: '16px', padding: '24px', textAlign: 'center', marginBottom: '32px' }}>
-            <div style={{ fontSize: '24px', marginBottom: '8px' }}>✓</div>
-            <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '20px', color: 'var(--text-primary)', marginBottom: '8px' }}>You're already subscribed!</div>
-            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '16px' }}>Manage your subscription from your account page.</div>
-            <button onClick={() => router.push('/account')} style={{ padding: '10px 24px', borderRadius: '8px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
-              Go to Account
-            </button>
-          </div>
-        )}
+        {error && <div style={{ padding: '12px 16px', borderRadius: '8px', background: 'rgba(220,60,60,0.1)', border: '1px solid rgba(220,60,60,0.3)', color: '#dc3c3c', fontSize: '14px', marginBottom: '20px', textAlign: 'center' }}>{error}</div>}
 
-        {/* Plan selector */}
-        {!profile?.is_subscriber && (
-          <>
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', justifyContent: 'center' }}>
-              {/* Monthly */}
-              <div onClick={() => setPlan('monthly')}
-                style={{ flex: 1, maxWidth: '280px', padding: '24px', borderRadius: '16px', border: `2px solid ${plan === 'monthly' ? 'var(--accent-primary)' : 'var(--border)'}`, background: plan === 'monthly' ? 'rgba(43,122,143,0.06)' : 'var(--bg-secondary)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center' }}>
-                <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: '600' }}>Monthly</div>
-                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '36px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>$5.99</div>
-                <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>per month</div>
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'stretch' }}>
+          {TIERS.map(t => {
+            const isCurrent = currentTier === t.key
+            const subscribed = currentTier !== 'none'
+            return (
+              <div key={t.key} style={{
+                flex: '1 1 280px', maxWidth: '320px', display: 'flex', flexDirection: 'column',
+                padding: '28px', borderRadius: '18px',
+                border: `2px solid ${t.highlight ? 'var(--accent-primary)' : 'var(--border)'}`,
+                background: t.highlight ? 'color-mix(in srgb, var(--accent-primary) 6%, var(--bg-secondary))' : 'var(--bg-secondary)',
+                position: 'relative',
+              }}>
+                {t.highlight && <div style={{ position: 'absolute', top: '-11px', left: '50%', transform: 'translateX(-50%)', background: 'var(--accent-primary)', color: '#fff', fontSize: '11px', fontWeight: 700, padding: '3px 12px', borderRadius: '20px', whiteSpace: 'nowrap' }}>MOST POPULAR</div>}
+                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)' }}>{t.name}</div>
+                <div style={{ margin: '6px 0 2px' }}><span style={{ fontFamily: 'Playfair Display, serif', fontSize: '38px', fontWeight: 700, color: 'var(--text-primary)' }}>{t.price}</span><span style={{ fontSize: '15px', color: 'var(--text-muted)' }}>{t.per}</span></div>
+                <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '18px' }}>{t.blurb}</div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 22px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+                  {t.features.map(f => (
+                    <li key={f} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      <span style={{ color: 'var(--accent-primary)', flexShrink: 0 }}>✓</span>{f}
+                    </li>
+                  ))}
+                </ul>
+
+                {isCurrent ? (
+                  <button disabled style={{ ...btn, background: 'transparent', color: 'var(--accent-primary)', border: '1px solid var(--accent-primary)', cursor: 'default' }}>✓ Your current plan</button>
+                ) : subscribed ? (
+                  <button onClick={openPortal} disabled={loading === 'portal'} style={{ ...btn, background: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>{loading === 'portal' ? 'Opening…' : 'Change plan'}</button>
+                ) : (
+                  <button onClick={() => checkout(t.priceId, t.key, t.key)} disabled={loading === t.key} style={btn}>{loading === t.key ? 'Redirecting…' : (user ? 'Subscribe' : 'Create account to subscribe')}</button>
+                )}
+
+                {t.key === 'base' && !subscribed && (
+                  <button onClick={() => checkout(ANNUAL_PRICE_ID, 'annual', 'annual')} disabled={loading === 'annual'} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginTop: '10px' }}>
+                    {loading === 'annual' ? 'Redirecting…' : 'or save with annual — $49.99/yr'}
+                  </button>
+                )}
               </div>
+            )
+          })}
+        </div>
 
-              {/* Annual */}
-              <div onClick={() => setPlan('annual')}
-                style={{ flex: 1, maxWidth: '280px', padding: '24px', borderRadius: '16px', border: `2px solid ${plan === 'annual' ? 'var(--accent-primary)' : 'var(--border)'}`, background: plan === 'annual' ? 'rgba(43,122,143,0.06)' : 'var(--bg-secondary)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center', position: 'relative' as const }}>
-                <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: 'var(--accent-secondary)', color: 'white', fontSize: '11px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', whiteSpace: 'nowrap' as const }}>
-                  SAVE {savings}%
-                </div>
-                <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: '600' }}>Annual</div>
-                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '36px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>$49.99</div>
-                <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>per year · ~$4.17/mo</div>
-              </div>
-            </div>
-
-            {/* Benefits */}
-            <div style={{ background: 'var(--bg-secondary)', borderRadius: '16px', padding: '28px', marginBottom: '32px', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '16px' }}>Everything included</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                {BENEFITS.map(b => (
-                  <div key={b.text} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                    <span style={{ fontSize: '18px', flexShrink: 0 }}>{b.icon}</span>
-                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>{b.text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {error && (
-              <div style={{ padding: '12px 16px', borderRadius: '8px', background: 'rgba(220,60,60,0.1)', border: '1px solid rgba(220,60,60,0.3)', color: '#dc3c3c', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
-                {error}
-              </div>
-            )}
-
-            <button onClick={handleSubscribe} disabled={loading}
-              style={{ width: '100%', padding: '16px', borderRadius: '12px', background: 'var(--accent-primary)', color: 'white', fontSize: '16px', fontWeight: '700', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'opacity 0.2s', letterSpacing: '0.02em' }}>
-              {loading ? 'Redirecting to Stripe...' : user ? `Subscribe ${plan === 'annual' ? 'Annually — $49.99/yr' : 'Monthly — $5.99/mo'}` : 'Create account to subscribe →'}
-            </button>
-
-            <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px', color: 'var(--text-muted)' }}>
-              Secure payment via Stripe · Cancel anytime · No hidden fees
-            </div>
-          </>
-        )}
+        <div style={{ textAlign: 'center', marginTop: '28px', fontSize: '13px', color: 'var(--text-muted)' }}>
+          Secure payment via Stripe · Cancel anytime · Change or cancel from the billing portal
+        </div>
       </div>
     </div>
   )
 }
+
+const btn: React.CSSProperties = { width: '100%', padding: '13px', borderRadius: '12px', background: 'var(--accent-primary)', color: '#fff', fontSize: '15px', fontWeight: 700, border: 'none', cursor: 'pointer' }
