@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { anthropic, MODELS } from '@/lib/anthropic'
 import { JUDGE_SYSTEM, JUDGE_SCHEMA, buildJudgeUser, statusFromJudgment } from '@/lib/writingCoach/judge'
+import { retrieveChunks, chunksToReferenceBlock } from '@/lib/rag'
 
 const supabase = createClient(
   (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'),
@@ -54,10 +55,14 @@ export async function POST(req: NextRequest) {
       wordLimit: contest?.word_limit, title: sub.title || 'Untitled', body: sub.body,
     })
 
+    // Best-effort PD grounding (Phase 2). No-op until the library/key exist.
+    const refs = await retrieveChunks({ queryText: sub.body, tier: 'revisionist', documentType: 'novel_excerpt', count: 6 })
+    const system = JUDGE_SYSTEM + (refs.length ? chunksToReferenceBlock(refs) : '')
+
     const msg = await anthropic.messages.create({
       model: MODELS.base, // Sonnet 4.6 — consistent, cost-effective first-pass
       max_tokens: 1800,
-      system: JUDGE_SYSTEM,
+      system,
       output_config: { format: { type: 'json_schema', schema: JUDGE_SCHEMA } },
       messages: [{ role: 'user', content: userContent }],
     } as any)
@@ -71,6 +76,7 @@ export async function POST(req: NextRequest) {
       submission_id: sub.id, contest_id: sub.contest_id,
       scores: j.scores, overall: j.overall, recommendation: j.recommendation,
       strengths: j.strengths, weaknesses: j.weaknesses, flags: j.flags, rationale: j.rationale,
+      retrieved_chunk_ids: refs.map(r => r.id),
       model: MODELS.base,
     }).select().maybeSingle()
 

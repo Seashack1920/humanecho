@@ -106,6 +106,9 @@ export default function AdminContent() {
           <Link href="/admin/story-judging" style={{ ...s.link, fontSize: '14px' }}>
             ⚖️ Story Judging
           </Link>
+          <Link href="/admin/reference-library" style={{ ...s.link, fontSize: '14px' }}>
+            📚 Reference Library
+          </Link>
         </div>
       </div>
 

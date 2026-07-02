@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { anthropic, MODELS, type CritiqueTier } from '@/lib/anthropic'
 import { buildSystemPrompt, buildUserContent, GUARD_SYSTEM } from '@/lib/writingCoach/prompts'
+import { retrieveChunks, chunksToReferenceBlock } from '@/lib/rag'
+
+// Map the writer's chosen format to the PD reference document_type.
+const PD_TYPE: Record<string, string> = { prose: 'novel_excerpt', lyrics: 'song_lyrics', screenplay: 'screenplay', stage_play: 'stage_play' }
 
 const supabase = createClient(
   (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'),
@@ -100,7 +104,10 @@ export async function POST(req: NextRequest) {
 
     // ── Generate ──
     const model = tier === 'base' ? MODELS.base : MODELS.paid
-    const system = buildSystemPrompt(tier, tone, genre, docType)
+    let system = buildSystemPrompt(tier, tone, genre, docType)
+    // Best-effort PD grounding (Phase 2). No-op until VOYAGE_API_KEY + a library exist.
+    const refs = await retrieveChunks({ queryText: text, tier, documentType: PD_TYPE[docType] || null, count: tier === 'base' ? 4 : 6 })
+    if (refs.length) system += chunksToReferenceBlock(refs)
     const userContent = buildUserContent(text)
     let feedback = await generate(model, tier, system, userContent, TIER_LIMITS[tier].maxTokens)
 
