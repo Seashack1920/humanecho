@@ -55,7 +55,7 @@ export default function Header() {
   const initial = (profile?.full_name || '?').trim().charAt(0).toUpperCase()
 
   const menuItems = []
-  menuItems.push({ label: 'Your profile', action: () => router.push('/profile') })
+  menuItems.push({ label: 'Your Profile', action: () => router.push('/profile') })
   if (isArtist) menuItems.push({ label: 'Your Studio', action: () => router.push('/dashboard') })
   if (isAdmin) menuItems.push({ label: 'Admin', action: () => router.push('/dashboard') })
   menuItems.push({ label: 'Log out', action: () => signOut(router), danger: true })
@@ -102,7 +102,7 @@ export default function Header() {
           }}>
             <div style={{ padding: '8px 12px 10px', borderBottom: '1px solid var(--border)', marginBottom: '6px' }}>
               <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.04em', color: 'var(--accent-gold)' }}>
                 {isAdmin ? 'Admin' : isArtist ? 'Artist' : isMember ? 'Member' : 'Follower'}
               </div>
             </div>
