@@ -156,6 +156,8 @@ export default function WritingRoomPage() {
   const [inputText, setInputText] = useState('')
   const [format, setFormat] = useState('prose')
   const [critiques, setCritiques] = useState<Critique[]>([])
+  const [notepadKey, setNotepadKey] = useState(0) // bump to force-remount the editor on clear
+  const [inputKey, setInputKey] = useState(0)
 
   const [title, setTitle] = useState('')
   const [tone, setTone] = useState('balanced')
@@ -193,6 +195,8 @@ export default function WritingRoomPage() {
   const saveInput = (html: string, text: string) => { setInputHtml(html); setInputText(text); localStorage.setItem(K(uid, 'input'), html) }
   const saveFormat = (f: string) => { setFormat(f); localStorage.setItem(K(uid, 'format'), f) }
   const saveCritiques = (list: Critique[]) => { setCritiques(list); localStorage.setItem(K(uid, 'critiques'), JSON.stringify(list)) }
+  const clearNotepad = () => { if (confirm('Clear the notepad? This can’t be undone — download it first if you want to keep it.')) { saveNotepad(''); setNotepadKey(k => k + 1) } }
+  const clearInput = () => { if (confirm('Clear the Critique Input? This can’t be undone.')) { saveInput('', ''); setInputKey(k => k + 1) } }
 
   const runCritique = async () => {
     if (!inputText.trim()) { setErr('Add some writing to the Critique Input first.'); setGate(null); return }
@@ -251,11 +255,12 @@ export default function WritingRoomPage() {
           <section>
             <h2 style={secTitle}>Notepad</h2>
             <p style={secDesc}>For new notes: thoughts, ideas, inspirations. (Not for the Writing Coach.)</p>
-            <RichText initialHtml={notepadHtml} onChange={(h) => saveNotepad(h)} minHeight={140}
+            <RichText key={notepadKey} initialHtml={notepadHtml} onChange={(h) => saveNotepad(h)} minHeight={140}
               placeholder="Jot down anything — this stays in your browser and is never sent to the coach." />
             {notepadHtml && (
-              <div style={{ marginTop: '8px' }}>
+              <div style={{ marginTop: '8px', display: 'flex', gap: '18px' }}>
                 <button onClick={downloadNotepad} style={linkBtn}>⬇ Download notepad (PDF)</button>
+                <button onClick={clearNotepad} style={{ ...linkBtn, color: '#dc3c3c' }}>Clear notepad</button>
               </div>
             )}
           </section>
@@ -269,9 +274,12 @@ export default function WritingRoomPage() {
               </select>
             </div>
             <p style={secDesc}>Write or paste the piece you want critiqued. Pasted line breaks and formatting are preserved.</p>
-            <RichText initialHtml={inputHtml} onChange={saveInput} minHeight={280} mono={format !== 'prose'}
+            <RichText key={inputKey} initialHtml={inputHtml} onChange={saveInput} minHeight={280} mono={format !== 'prose'}
               placeholder="Write or paste your work here…" />
-            <div style={{ ...muted, fontSize: '12px', marginTop: '6px' }}>{inputText.split(/\s+/).filter(Boolean).length.toLocaleString()} words</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+              <span style={{ ...muted, fontSize: '12px' }}>{inputText.split(/\s+/).filter(Boolean).length.toLocaleString()} words</span>
+              {inputText.trim() && <button onClick={clearInput} style={{ ...linkBtn, color: '#dc3c3c', fontSize: '12px' }}>Clear</button>}
+            </div>
           </section>
 
           {/* Writing Coach */}
