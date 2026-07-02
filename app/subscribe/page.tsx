@@ -18,13 +18,13 @@ const TIERS: Tier[] = [
   {
     key: 'base', name: 'Member', price: '$5.99', per: '/mo', priceId: MONTHLY_PRICE_ID,
     blurb: 'Your full Human Echo experience.',
-    features: ['Unlimited music, playlists & Escapes', 'Downloads, early access, contests', 'Writing Room with 5 critiques / month'],
+    features: ['Unlimited music & playlists, Stories, Cinema & Escapes', 'Downloads, early access, contests', 'Writing Room with 5 critiques / month'],
     annual: { price: '$49.99/yr', priceId: ANNUAL_PRICE_ID },
   },
   {
     key: 'creator_plus', name: 'Creator+', price: '$9.99', per: '/mo', priceId: CREATORPLUS_PRICE_ID, highlight: true,
     blurb: 'For writers who want to go deeper.',
-    features: ['Everything in Member', 'Unlimited critiques + much higher word limits', 'Deeper, more actionable analysis', 'Notepad Reader (ElevenLabs voices)'],
+    features: ['Everything in Member', 'Unlimited critiques + much higher word limits', 'Deeper, more actionable analysis', 'Notepad Reader (Human Echo Custom Voices)'],
     annual: { price: '$99.99/yr', priceId: CREATORPLUS_ANNUAL_PRICE_ID },
   },
   {
