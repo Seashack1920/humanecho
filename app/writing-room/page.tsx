@@ -18,6 +18,13 @@ const TONES = [
   { value: 'balanced', label: 'Be balanced' },
   { value: 'brutal', label: 'Be brutal' },
 ]
+const VOICES = [
+  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel — warm' },
+  { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni — steady' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella — soft' },
+  { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh — deep' },
+  { id: 'MF3mGyEYCl7XYWbV9V6O', name: 'Elli — expressive' },
+]
 
 const INTRO = `This is your private space for critiques by Human Echo's augmented AI-powered critique engine. Only ten critiques will be stored in your Writing Room, so be sure to download those you want to save. None of your work will be ingested by our critique engine or stored in our database. Your ideas and creative products are safe here. Please note, our critique engine is not designed to write for you: it is only for feedback and to suggest next steps to improve your work. Remember, any AI is limited in how complete or accurate its responses can be.`
 
@@ -158,6 +165,11 @@ export default function WritingRoomPage() {
   const [critiques, setCritiques] = useState<Critique[]>([])
   const [notepadKey, setNotepadKey] = useState(0) // bump to force-remount the editor on clear
   const [inputKey, setInputKey] = useState(0)
+  const [voiceId, setVoiceId] = useState(VOICES[0].id)
+  const [reading, setReading] = useState(false)
+  const [readErr, setReadErr] = useState<string | null>(null)
+  const [audioReady, setAudioReady] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
 
   const [title, setTitle] = useState('')
   const [tone, setTone] = useState('balanced')
@@ -197,6 +209,23 @@ export default function WritingRoomPage() {
   const saveCritiques = (list: Critique[]) => { setCritiques(list); localStorage.setItem(K(uid, 'critiques'), JSON.stringify(list)) }
   const clearNotepad = () => { if (confirm('Clear the notepad? This can’t be undone — download it first if you want to keep it.')) { saveNotepad(''); setNotepadKey(k => k + 1) } }
   const clearInput = () => { if (confirm('Clear the Critique Input? This can’t be undone.')) { saveInput('', ''); setInputKey(k => k + 1) } }
+
+  const readNotepad = async () => {
+    const text = htmlToPlain(notepadHtml)
+    if (!text.trim()) { setReadErr('Write some notes first.'); return }
+    setReading(true); setReadErr(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/writing-room/read', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ text, voice_id: voiceId }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); setReadErr(d.error || 'Reader failed.'); return }
+      const url = URL.createObjectURL(await res.blob())
+      setAudioReady(true)
+      if (audioRef.current) { audioRef.current.src = url; audioRef.current.play().catch(() => {}) }
+    } catch (e) { setReadErr((e as Error).message) } finally { setReading(false) }
+  }
 
   const runCritique = async () => {
     if (!inputText.trim()) { setErr('Add some writing to the Critique Input first.'); setGate(null); return }
@@ -238,6 +267,7 @@ export default function WritingRoomPage() {
 
   const current = critiques.find(c => c.id === currentId) || null
   const remainingLabel = status?.unlimited ? 'Unlimited critiques' : `${status?.remaining ?? 0} of ${status?.limit ?? 5} free critiques left this month`
+  const readerAllowed = status?.tier === 'creator_plus' || status?.tier === 'revisionist'
 
   return (
     <Shell>
@@ -261,6 +291,24 @@ export default function WritingRoomPage() {
               <div style={{ marginTop: '8px', display: 'flex', gap: '18px' }}>
                 <button onClick={downloadNotepad} style={linkBtn}>⬇ Download notepad (PDF)</button>
                 <button onClick={clearNotepad} style={{ ...linkBtn, color: '#dc3c3c' }}>Clear notepad</button>
+              </div>
+            )}
+            {/* Reader — Creator+ / Revisionist */}
+            {readerAllowed ? (
+              <div style={{ marginTop: '12px', padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>🔊 Reader</span>
+                  <select value={voiceId} onChange={e => setVoiceId(e.target.value)} style={{ ...input, width: 'auto', marginBottom: 0 }}>
+                    {VOICES.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                  </select>
+                  <button onClick={readNotepad} disabled={reading} style={{ ...btn, padding: '8px 16px' }}>{reading ? 'Generating…' : '▶ Read aloud'}</button>
+                </div>
+                <audio ref={audioRef} controls style={{ width: '100%', marginTop: '10px', display: audioReady ? 'block' : 'none' }} />
+                {readErr && <div style={{ color: '#dc3c3c', fontSize: '13px', marginTop: '8px' }}>{readErr}</div>}
+              </div>
+            ) : (
+              <div style={{ marginTop: '10px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                🔒 The Notepad Reader (voice narration) is a <a href="/subscribe" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>Creator+</a> feature.
               </div>
             )}
           </section>

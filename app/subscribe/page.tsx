@@ -8,24 +8,30 @@ const MONTHLY_PRICE_ID     = process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID || 
 const ANNUAL_PRICE_ID      = process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID || ''
 const CREATORPLUS_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_CREATORPLUS_PRICE_ID || ''
 const REVISIONIST_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_REVISIONIST_PRICE_ID || ''
+const CREATORPLUS_ANNUAL_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_CREATORPLUS_ANNUAL_PRICE_ID || ''
+const REVISIONIST_ANNUAL_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_REVISIONIST_ANNUAL_PRICE_ID || ''
 
 type TierKey = 'base' | 'creator_plus' | 'revisionist'
+type Tier = { key: TierKey; name: string; price: string; per: string; priceId: string; blurb: string; features: string[]; highlight?: boolean; annual?: { price: string; priceId: string } }
 
-const TIERS: { key: TierKey; name: string; price: string; per: string; priceId: string; blurb: string; features: string[]; highlight?: boolean }[] = [
+const TIERS: Tier[] = [
   {
     key: 'base', name: 'Member', price: '$5.99', per: '/mo', priceId: MONTHLY_PRICE_ID,
     blurb: 'Your full Human Echo experience.',
     features: ['Unlimited music, playlists & Escapes', 'Downloads, early access, contests', 'Writing Room with 5 critiques / month'],
+    annual: { price: '$49.99/yr', priceId: ANNUAL_PRICE_ID },
   },
   {
     key: 'creator_plus', name: 'Creator+', price: '$9.99', per: '/mo', priceId: CREATORPLUS_PRICE_ID, highlight: true,
     blurb: 'For writers who want to go deeper.',
     features: ['Everything in Member', 'Unlimited critiques + much higher word limits', 'Deeper, more actionable analysis', 'Notepad Reader (ElevenLabs voices)'],
+    annual: { price: '$99.99/yr', priceId: CREATORPLUS_ANNUAL_PRICE_ID },
   },
   {
     key: 'revisionist', name: 'The Revisionist', price: '$24.99', per: '/mo', priceId: REVISIONIST_PRICE_ID,
     blurb: 'The full editorial suite.',
     features: ['Everything in Creator+', 'Comprehensive developmental analysis', 'Genre positioning & marketability', 'Query letter, synopsis & comp titles', 'Screen / TV adaptation assessment'],
+    annual: { price: '$249.99/yr', priceId: REVISIONIST_ANNUAL_PRICE_ID },
   },
 ]
 
@@ -117,9 +123,9 @@ export default function SubscribePage() {
                   <button onClick={() => checkout(t.priceId, t.key, t.key)} disabled={loading === t.key} style={btn}>{loading === t.key ? 'Redirecting…' : (user ? 'Subscribe' : 'Create account to subscribe')}</button>
                 )}
 
-                {t.key === 'base' && !subscribed && (
-                  <button onClick={() => checkout(ANNUAL_PRICE_ID, 'annual', 'annual')} disabled={loading === 'annual'} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginTop: '10px' }}>
-                    {loading === 'annual' ? 'Redirecting…' : 'or save with annual — $49.99/yr'}
+                {t.annual && t.annual.priceId && !subscribed && (
+                  <button onClick={() => checkout(t.annual!.priceId, 'annual', `${t.key}-annual`)} disabled={loading === `${t.key}-annual`} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginTop: '10px' }}>
+                    {loading === `${t.key}-annual` ? 'Redirecting…' : `or save with annual — ${t.annual.price}`}
                   </button>
                 )}
               </div>

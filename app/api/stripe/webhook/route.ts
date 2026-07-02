@@ -50,10 +50,12 @@ export async function POST(req: NextRequest) {
 
         // Writing Room tier from the subscribed price. Creator+ and The Revisionist
         // are higher membership tiers (one price each); base = neither.
+        const isRevisionist = !!priceId && (priceId === process.env.STRIPE_REVISIONIST_PRICE_ID || priceId === process.env.STRIPE_REVISIONIST_ANNUAL_PRICE_ID)
+        const isCreatorPlus = !!priceId && (priceId === process.env.STRIPE_CREATORPLUS_PRICE_ID || priceId === process.env.STRIPE_CREATORPLUS_ANNUAL_PRICE_ID)
         let membershipTier: string | null = null
         let revisionistAddon = false
-        if (priceId && priceId === process.env.STRIPE_REVISIONIST_PRICE_ID) { membershipTier = 'creator_plus'; revisionistAddon = true }
-        else if (priceId && priceId === process.env.STRIPE_CREATORPLUS_PRICE_ID) { membershipTier = 'creator_plus' }
+        if (isRevisionist) { membershipTier = 'creator_plus'; revisionistAddon = true }
+        else if (isCreatorPlus) { membershipTier = 'creator_plus' }
 
         const updates: any = {
           subscription_status:     status,
