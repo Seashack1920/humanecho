@@ -65,23 +65,11 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token)
     if (authErr || !user) return NextResponse.json({ error: 'Please sign in.' }, { status: 401 })
 
-    const { documentId, text: rawText, tone, genre, docType } = await req.json()
+    const { text: rawText, tone, genre, docType } = await req.json()
 
-    // ── Resolve the text (own notepad doc, or pasted text) ──
-    let text: string = (rawText || '').trim()
-    let resolvedDocId: string | null = null
-    if (documentId) {
-      const { data: doc } = await supabase
-        .from('notepad_documents')
-        .select('id, content, user_id')
-        .eq('id', documentId)
-        .maybeSingle()
-      if (!doc || doc.user_id !== user.id) {
-        return NextResponse.json({ error: 'Document not found.' }, { status: 404 })
-      }
-      text = (doc.content || '').trim()
-      resolvedDocId = doc.id
-    }
+    // The client sends the writer's text directly (their work lives in their
+    // browser, not our database). We use it transiently and never store it.
+    const text: string = (rawText || '').trim()
     if (!text) return NextResponse.json({ error: 'There is nothing to critique yet — add some writing first.' }, { status: 400 })
 
     // ── Usage gate (atomic; derives tier, gates base tier) ──
@@ -130,16 +118,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No feedback was generated. Please try again.' }, { status: 502 })
     }
 
-    // ── Log ──
-    await supabase.from('critiques').insert({
-      user_id: user.id,
-      document_id: resolvedDocId,
-      tone: tone || null, genre: genre || null, doc_type: docType || null,
-      tier, word_count: wordCount, model,
-      input_preview: text.slice(0, 500),
-      output: { text: feedback },
-    })
-
+    // Privacy promise: we do NOT persist the writer's work or the critique text.
+    // The only server-side record is the anonymous monthly usage count (already
+    // incremented by consume_critique). Nothing here is written to the database.
     return NextResponse.json({ feedback, tier, remaining: gate.remaining ?? null, model })
   } catch (err) {
     // Best-effort refund so a crash never silently eats a base-tier credit.
