@@ -274,9 +274,18 @@ export default function WritingRoomPage() {
       <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 14px' }}>The Writing Room</h1>
 
       {/* Intro / disclaimer */}
-      <div style={{ padding: '16px 18px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.7, marginBottom: '28px' }}>
+      <div style={{ padding: '16px 18px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.7, marginBottom: '14px' }}>
         {INTRO}
       </div>
+
+      {/* Plan line (tier-aware upgrade path) */}
+      {status && status.tier !== 'revisionist' && (
+        <div style={{ marginBottom: '28px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+          {status.tier === 'creator_plus'
+            ? <>You're on <strong>Creator+</strong> — unlimited critiques. <a href="/subscribe" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>Explore The Revisionist →</a></>
+            : <>You're on the <strong>Member</strong> plan — 5 critiques a month. <a href="/subscribe" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>See plans &amp; upgrade for unlimited critiques →</a></>}
+        </div>
+      )}
 
       {!ready ? <p style={muted}>Preparing…</p> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '26px' }}>
