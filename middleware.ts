@@ -37,6 +37,7 @@ export function middleware(req: NextRequest) {
   // rewritten to the holding page so the real site stays private.
   const isAllowed =
     pathname === '/holding' ||
+    pathname === '/beta' ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname === '/favicon.ico' ||

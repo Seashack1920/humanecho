@@ -179,6 +179,11 @@ export default function HoldingPage() {
           ))}
         </div>
 
+        {/* Beta tester entry */}
+        <a href="/beta" style={{ marginTop: '28px', fontSize: '12px', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.25)', paddingBottom: '2px' }}>
+          Official Beta Tester? Enter here →
+        </a>
+
       </div>
 
       {/* ── AUDIO CONTROLS ── */}
