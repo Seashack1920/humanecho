@@ -32,7 +32,8 @@ jobs:
           sudo apt-get install -y postgresql-common
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y postgresql-client-17
-          pg_dump --version
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/17/bin/pg_dump --version
 
       - name: Dump and encrypt database
         env:
@@ -50,7 +51,7 @@ jobs:
 
           # Full database dump in pg_dump custom format (compressed, restorable
           # with pg_restore). --no-owner/--no-privileges make it portable.
-          pg_dump "$SUPABASE_DB_URL" \
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" \
             --format=custom --no-owner --no-privileges \
             --file="humanecho-$STAMP.dump"
 
