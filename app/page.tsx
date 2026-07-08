@@ -424,7 +424,7 @@ export default function HomePage() {
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))' }} />
               {executive.intro_video_url ? (
                 <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <video ref={execVideoRef} src={executive.intro_video_url} style={{ width: '140px', height: '140px', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--accent-primary)', display: 'block' }} autoPlay muted playsInline onEnded={() => setExecEnded(true)} />
+                  <video ref={execVideoRef} src={executive.intro_video_url} style={{ width: '140px', height: '140px', borderRadius: '50%', objectFit: 'cover', objectPosition: 'top', border: '3px solid var(--accent-primary)', display: 'block' }} autoPlay muted playsInline onEnded={() => setExecEnded(true)} />
                   {execEnded && (
                     <div onClick={() => { execVideoRef.current?.play(); setExecEnded(false) }} style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Replay">
                       <div style={{ fontSize: '28px' }}>↺</div>
@@ -436,7 +436,7 @@ export default function HomePage() {
                   </button>
                 </div>
               ) : executive.photo_url ? (
-                <img src={executive.photo_url} alt={executive.name} style={{ width: '140px', height: '140px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '3px solid var(--accent-primary)' }} />
+                <img src={executive.photo_url} alt={executive.name} style={{ width: '140px', height: '140px', borderRadius: '50%', objectFit: 'cover', objectPosition: 'top', flexShrink: 0, border: '3px solid var(--accent-primary)' }} />
               ) : (
                 <div style={{ width: '140px', height: '140px', borderRadius: '50%', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', flexShrink: 0 }}>🤖</div>
               )}
