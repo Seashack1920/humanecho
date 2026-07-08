@@ -43,7 +43,7 @@ export default function HomeContestPromo() {
       <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '30px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 14px' }}>{contest.title}</h2>
       <div style={{ borderRadius: '18px', overflow: 'hidden', border: '1px solid var(--border)', background: '#000' }}>
         <video src={contest.promo_video_url} controls playsInline preload="metadata"
-          style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', objectPosition: 'top center', display: 'block', background: '#000' }} />
+          style={{ width: '100%', display: 'block', maxHeight: '540px', background: '#000' }} />
       </div>
       <button onClick={() => router.push(dest)}
         style={{ marginTop: '14px', fontSize: '14px', color: 'var(--accent-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600 }}>
