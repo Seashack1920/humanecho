@@ -9,7 +9,6 @@ import { useRouter } from 'next/navigation'
 import JoinBlock from '@/components/JoinBlock'
 import HomeStoryWinners from '@/components/HomeStoryWinners'
 import HomeContestWinners from '@/components/HomeContestWinners'
-import HomeContestPromo from '@/components/HomeContestPromo'
 import HeroMedia from '@/components/HeroMedia'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -510,8 +509,6 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* ── FEATURED CONTEST PROMO VIDEO ── */}
-        <HomeContestPromo />
         {/* ── STORY CONTEST WINNERS TEASER ── */}
         <HomeStoryWinners />
         {/* ── CONTEST WINNERS TEASER ── */}
