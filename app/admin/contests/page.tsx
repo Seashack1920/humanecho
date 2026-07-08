@@ -243,7 +243,7 @@ function ContestForm({ contest, tracks, onSave, onCancel }) {
       <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>An optional video for this contest. It plays on the homepage when the contest is featured. MP4 or MOV.</div>
       {form.promo_video_url ? (
         <div style={{ marginBottom: '10px' }}>
-          <video src={form.promo_video_url} controls playsInline style={{ width: '100%', maxWidth: '380px', borderRadius: '10px', display: 'block', marginBottom: '8px', background: '#000' }} />
+          <video src={form.promo_video_url} controls playsInline style={{ width: '100%', maxWidth: '380px', aspectRatio: '16 / 9', objectFit: 'cover', objectPosition: 'top center', borderRadius: '10px', display: 'block', marginBottom: '8px', background: '#000' }} />
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
             <label style={{ color: 'var(--accent-primary)', fontSize: '13px', fontWeight: 600, cursor: videoPct != null ? 'default' : 'pointer' }}>
               {videoPct != null ? `Uploading… ${videoPct}%` : 'Replace video'}
