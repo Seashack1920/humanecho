@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import JoinBlock from '@/components/JoinBlock'
 import HomeStoryWinners from '@/components/HomeStoryWinners'
 import HomeContestWinners from '@/components/HomeContestWinners'
+import HomeContestPromo from '@/components/HomeContestPromo'
 import HeroMedia from '@/components/HeroMedia'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -453,6 +454,9 @@ export default function HomePage() {
             </div>
           </section>
         )}
+
+        {/* ── CONTEST ANNOUNCEMENT ── */}
+        <HomeContestPromo />
 
         {/* ── NEW ARRIVALS ── */}
         {newArrivals.length > 0 && (

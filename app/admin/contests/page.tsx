@@ -16,6 +16,24 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 
+const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+
+// Upload a contest announcement video to Cloudinary (same unsigned preset used elsewhere).
+function uploadContestVideo(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('upload_preset', 'humanecho_upload')
+    fd.append('folder', 'contest/promos')
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`)
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100)) }
+    xhr.onload = () => { const d = JSON.parse(xhr.responseText); d.error ? reject(new Error(d.error.message)) : resolve(d.secure_url) }
+    xhr.onerror = () => reject(new Error('Upload failed'))
+    xhr.send(fd)
+  })
+}
+
 const s = {
   page:      { maxWidth: '900px', margin: '0 auto', padding: '40px 24px', fontFamily: 'DM Sans, sans-serif' },
   h1:        { fontFamily: 'Playfair Display, serif', fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' },
@@ -62,7 +80,17 @@ function ContestForm({ contest, tracks, onSave, onCancel }) {
     submission_opens_at:  contest?.submission_opens_at ? contest.submission_opens_at.slice(0, 16) : '',
     submission_closes_at: contest?.submission_closes_at ? contest.submission_closes_at.slice(0, 16) : '',
     featured: contest?.featured || false,
+    promo_video_url: contest?.promo_video_url || '',
   })
+  const [videoPct, setVideoPct] = useState(null)
+  const doUploadVideo = async (file) => {
+    setVideoPct(0)
+    try {
+      const url = await uploadContestVideo(file, setVideoPct)
+      setForm(f => ({ ...f, promo_video_url: url }))
+    } catch (err) { setMessage({ type: 'error', text: err.message || 'Video upload failed' }) }
+    finally { setVideoPct(null) }
+  }
   // the 3 chosen song track_ids (ordered)
   const [songIds, setSongIds] = useState(['', '', ''])
 
@@ -98,6 +126,7 @@ function ContestForm({ contest, tracks, onSave, onCancel }) {
         submission_opens_at:  form.submission_opens_at  ? new Date(form.submission_opens_at).toISOString()  : null,
         submission_closes_at: form.submission_closes_at ? new Date(form.submission_closes_at).toISOString() : null,
         featured: form.featured,
+        promo_video_url: form.promo_video_url || null,
       }
       let contestId = contest?.id
       if (contestId) {
@@ -208,6 +237,27 @@ function ContestForm({ contest, tracks, onSave, onCancel }) {
         ⭐ Feature this contest on its page
       </label>
       <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>When on, this contest appears in its featured spot (e.g. the Cinema page). Several contests can be featured at once.</div>
+
+      <div style={s.divider} />
+      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Announcement video</div>
+      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>An optional video — e.g. an executive announcing this contest. It appears in the contest announcement box on the homepage when this contest is featured. MP4 or MOV.</div>
+      {form.promo_video_url ? (
+        <div style={{ marginBottom: '10px' }}>
+          <video src={form.promo_video_url} controls playsInline style={{ width: '160px', aspectRatio: '9 / 16', objectFit: 'cover', objectPosition: 'top center', borderRadius: '10px', display: 'block', marginBottom: '8px', background: '#000' }} />
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <label style={{ color: 'var(--accent-primary)', fontSize: '13px', fontWeight: 600, cursor: videoPct != null ? 'default' : 'pointer' }}>
+              {videoPct != null ? `Uploading… ${videoPct}%` : 'Replace video'}
+              <input type="file" accept="video/*" style={{ display: 'none' }} disabled={videoPct != null} onChange={e => e.target.files[0] && doUploadVideo(e.target.files[0])} />
+            </label>
+            <button type="button" onClick={() => setForm(f => ({ ...f, promo_video_url: '' }))} style={{ background: 'none', border: 'none', color: '#dc3c3c', fontSize: '13px', fontWeight: 600, cursor: 'pointer', padding: 0 }}>Remove</button>
+          </div>
+        </div>
+      ) : (
+        <label style={{ color: 'var(--accent-primary)', fontSize: '13px', fontWeight: 600, cursor: videoPct != null ? 'default' : 'pointer', display: 'inline-block', marginBottom: '10px' }}>
+          {videoPct != null ? `Uploading… ${videoPct}%` : '⬆ Upload an announcement video'}
+          <input type="file" accept="video/*" style={{ display: 'none' }} disabled={videoPct != null} onChange={e => e.target.files[0] && doUploadVideo(e.target.files[0])} />
+        </label>
+      )}
 
       {form.type === 'music_video' && (
         <>
