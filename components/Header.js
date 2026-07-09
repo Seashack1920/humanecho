@@ -58,6 +58,7 @@ export default function Header() {
   menuItems.push({ label: 'Your Profile', action: () => router.push('/profile') })
   if (isArtist) menuItems.push({ label: 'Your Studio', action: () => router.push('/dashboard') })
   if (isAdmin) menuItems.push({ label: 'Admin', action: () => router.push('/dashboard') })
+  if (isAdmin) menuItems.push({ label: '🏠 Homepage Hero', action: () => router.push('/admin/homepage') })
   menuItems.push({ label: 'Log out', action: () => signOut(router), danger: true })
 
   // ── The account area (right side of header) ──
