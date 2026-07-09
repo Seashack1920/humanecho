@@ -194,6 +194,8 @@ export default function ArtistUpload() {
   const [selectedAlbumId, setSelectedAlbumId] = useState('')
   const [newAlbum, setNewAlbum]   = useState({ title: '', description: '', price: '', album_type: 'music', content_origin: '100% human', status: 'draft' })
   const [albumCoverFile, setAlbumCoverFile] = useState<File | null>(null)
+  const [heroType, setHeroType] = useState<'image' | 'video'>('image')
+  const [heroFile, setHeroFile] = useState<File | null>(null)
   const [albumGenres, setAlbumGenres] = useState<string[]>([])
   const [genres, setGenres]       = useState<{ id: string; name: string }[]>([])
   const [savedTracks, setSavedTracks] = useState<{ title: string; duration: string }[]>([])
@@ -298,6 +300,7 @@ const [trackMusicVideoFile, setTrackMusicVideoFile] = useState<File | null>(null
       const artistName  = artist?.name || 'unknown'
       const albumFolder = `${slugify(artistName)}/albums/${slugify(newAlbum.title)}`
       const cover       = albumCoverFile ? await uploadToCloudinary(albumCoverFile, albumFolder, 'image') : null
+      const hero        = heroFile ? await uploadToCloudinary(heroFile, albumFolder, heroType === 'video' ? 'video' : 'image') : null
       const { data, error } = await supabase.from('albums').insert({
         artist_id: artist?.id,
         title: newAlbum.title, description: newAlbum.description,
@@ -306,6 +309,8 @@ const [trackMusicVideoFile, setTrackMusicVideoFile] = useState<File | null>(null
         status: newAlbum.status,
         cover_url: cover?.url ?? '',
         cloudinary_public_id: cover?.public_id ?? null,
+        hero_image_url: hero && heroType === 'image' ? hero.url : null,
+        hero_video_url: hero && heroType === 'video' ? hero.url : null,
       }).select().single()
       if (error) throw error
       await saveGenres('album', data.id, albumGenres)
@@ -541,6 +546,22 @@ const songStory = trackSongStoryFile
                   <label style={s.label}>Album Cover</label>
                   <input type="file" accept="image/*" style={s.fileInput} onChange={e => setAlbumCoverFile(e.target.files?.[0] || null)} />
                   {albumCoverFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumCoverFile.name}</div>}
+                </div>
+                <div style={s.field}>
+                  <label style={s.label}>Album Hero <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '12px' }}>— optional big banner. A still image or a video; 16:9 works best.</span></label>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                    {(['image', 'video'] as const).map(t => (
+                      <button key={t} type="button" onClick={() => { setHeroType(t); setHeroFile(null) }}
+                        style={{ padding: '7px 14px', borderRadius: '999px', border: '1px solid var(--border)', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                          background: heroType === t ? 'color-mix(in srgb, var(--accent-primary) 14%, transparent)' : 'transparent',
+                          borderColor: heroType === t ? 'var(--accent-primary)' : 'var(--border)',
+                          color: heroType === t ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
+                        {t === 'image' ? 'Still image' : 'Video'}
+                      </button>
+                    ))}
+                  </div>
+                  <input type="file" accept={heroType === 'video' ? 'video/*' : 'image/*'} style={s.fileInput} onChange={e => setHeroFile(e.target.files?.[0] || null)} />
+                  {heroFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {heroFile.name}</div>}
                 </div>
                 <div style={s.field}>
                   <label style={s.label}>Genres (up to 3)</label>
