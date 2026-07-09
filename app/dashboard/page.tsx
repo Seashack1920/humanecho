@@ -20,7 +20,7 @@ type Track = {
 }
 type Album = {
   id: string; title: string; status: string | null; album_type: string | null
-  cover_url: string | null; hero_image_url: string | null; price: number | null; description: string | null
+  cover_url: string | null; hero_image_url: string | null; hero_video_url: string | null; price: number | null; description: string | null
   tracks?: Track[]
 }
 
@@ -131,6 +131,7 @@ export default function Dashboard() {
   const [trackSongStoryFile, setTrackSongStoryFile] = useState<File | null>(null)
   const [albumCoverFile, setAlbumCoverFile]         = useState<File | null>(null)
   const [albumHeroFile, setAlbumHeroFile]           = useState<File | null>(null)
+  const [albumHeroVideoFile, setAlbumHeroVideoFile] = useState<File | null>(null)
 
   const totalTracks     = albums.reduce((sum, a) => sum + (a.tracks?.length || 0), 0)
   const publishedTracks = albums.reduce((sum, a) => sum + (a.tracks?.filter(t => t.status === 'published').length || 0), 0)
@@ -162,7 +163,7 @@ useEffect(() => {
     setLoading(true)
     const { data: artistData } = await supabase.from('artists').select('id, name, bio, photo_url, stripe_account_id, stripe_onboarded').eq('id', artistId).single()
     if (artistData) setArtist(artistData)
-    const { data: albumsData } = await supabase.from('albums').select('id, title, status, album_type, cover_url, hero_image_url, price, description').eq('artist_id', artistId).order('title')
+    const { data: albumsData } = await supabase.from('albums').select('id, title, status, album_type, cover_url, hero_image_url, hero_video_url, price, description').eq('artist_id', artistId).order('title')
     if (albumsData) {
       const albumsWithTracks = await Promise.all(
         albumsData.map(async (album) => {
@@ -268,10 +269,14 @@ useEffect(() => {
         setMessage({ type: 'success', text: 'Uploading hero image...' })
         updates.hero_image_url = await uploadImage(albumHeroFile, `albums/${albumId}/hero`)
       }
+      if (albumHeroVideoFile) {
+        setMessage({ type: 'success', text: 'Uploading hero video...' })
+        updates.hero_video_url = await uploadVideo(albumHeroVideoFile, `albums/${albumId}/hero`)
+      }
       const { error } = await supabase.from('albums').update(updates).eq('id', albumId)
       if (!error) {
         setAlbums(prev => prev.map(a => a.id === albumId ? { ...a, ...updates } : a))
-        setEditingAlbumId(null); setEditAlbum({}); setAlbumCoverFile(null); setAlbumHeroFile(null)
+        setEditingAlbumId(null); setEditAlbum({}); setAlbumCoverFile(null); setAlbumHeroFile(null); setAlbumHeroVideoFile(null)
         setMessage({ type: 'success', text: 'Album updated.' })
       } else { setMessage({ type: 'error', text: error.message }) }
     } catch (err) { setMessage({ type: 'error', text: (err as Error).message }) }
@@ -497,9 +502,15 @@ useEffect(() => {
                               {album.hero_image_url && !albumHeroFile && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Current hero set · <a href={album.hero_image_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a></div>}
                               {!album.hero_image_url && !albumHeroFile && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontStyle: 'italic' }}>None set — album cover will be used as background</div>}
 
+                              {/* Album Hero Video (optional — loops silently behind the album hero; overrides the hero image) */}
+                              <label style={s.label}>Hero Video <span style={{ fontWeight: '400', textTransform: 'none', letterSpacing: 0, color: 'var(--text-muted)' }}>— optional, 16:9; loops silently behind the hero and overrides the image</span></label>
+                              <input type="file" accept="video/*" style={s.fileInput} onChange={e => setAlbumHeroVideoFile(e.target.files?.[0] || null)} />
+                              {albumHeroVideoFile && <div style={{ fontSize: '11px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumHeroVideoFile.name} — will upload on save</div>}
+                              {album.hero_video_url && !albumHeroVideoFile && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Current video set · <a href={album.hero_video_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a> · <button onClick={() => setEditAlbum(p => ({ ...p, hero_video_url: null }))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#dc3c3c', padding: 0 }}>remove</button></div>}
+
                               <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
                                 <button style={s.btnSm} onClick={() => handleSaveAlbum(album.id)} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
-                                <button style={s.btnSmSecondary} onClick={() => { setEditingAlbumId(null); setEditAlbum({}); setAlbumCoverFile(null); setAlbumHeroFile(null) }}>Cancel</button>
+                                <button style={s.btnSmSecondary} onClick={() => { setEditingAlbumId(null); setEditAlbum({}); setAlbumCoverFile(null); setAlbumHeroFile(null); setAlbumHeroVideoFile(null) }}>Cancel</button>
                               </div>
                             </div>
                           ) : (

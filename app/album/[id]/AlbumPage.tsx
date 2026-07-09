@@ -14,6 +14,7 @@ type Album = {
   description: string | null
   cover_url: string | null
   hero_image_url: string | null
+  hero_video_url: string | null
   release_date: string | null
   album_type: string | null
   artist_id: string
@@ -237,7 +238,13 @@ export default function AlbumPage({ id }: { id: string }) {
             {isAdmin ? '← Admin Portal' : '← Dashboard'}
           </a>
         )}
-        {(album.hero_image_url || album.cover_url) && (
+        {album.hero_video_url ? (
+          <>
+            <video src={album.hero_video_url} autoPlay loop muted playsInline preload="metadata"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
+          </>
+        ) : (album.hero_image_url || album.cover_url) && (
           <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${album.hero_image_url || album.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: album.hero_image_url ? 'brightness(0.45)' : 'blur(40px) brightness(0.2)' }} />
         )}
         <div style={{ position: 'relative', zIndex: 10, maxWidth: '860px', margin: '0 auto', padding: '60px 48px 48px', display: 'flex', gap: '40px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
