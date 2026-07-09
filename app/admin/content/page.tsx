@@ -94,6 +94,9 @@ export default function AdminContent() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
+          <Link href="/admin/homepage" style={{ ...s.link, fontSize: '14px' }}>
+            🏠 Homepage Hero
+          </Link>
           <Link href="/admin/upload" style={{ ...s.link, fontSize: '14px' }}>
             + Upload Music
           </Link>
