@@ -70,10 +70,14 @@ async function fetchScheduled(slot: string, contentType: string, selectFields: s
     }
 
     const table = contentType === 'track' ? 'tracks' : contentType === 'album' ? 'albums' : contentType === 'executive' ? 'executives' : 'artists'
+    // If more than one item is featured, pick the most recently featured one.
+    // (limit(1) keeps maybeSingle from erroring when multiple rows match.)
     const { data } = await withTimeout(
       supabase.from(table).select(selectFields).eq('is_featured', true)
         .or(`featured_from.is.null,featured_from.lte.${now}`)
         .or(`featured_until.is.null,featured_until.gte.${now}`)
+        .order('featured_from', { ascending: false, nullsFirst: false })
+        .limit(1)
         .maybeSingle(),
       4000, empty
     )

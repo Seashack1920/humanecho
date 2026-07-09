@@ -3,6 +3,21 @@
 import { CSSProperties } from 'react'
 
 /**
+ * Normalize a Cloudinary video URL to a browser-friendly delivery. Source files
+ * like .mov/.mkv/.avi don't play in Chrome/Firefox; asking Cloudinary for an
+ * mp4 (with q_auto) transcodes on the fly. Non-Cloudinary URLs pass through.
+ */
+export function playableVideoUrl(url?: string | null): string | undefined {
+  if (!url) return undefined
+  if (url.includes('/video/upload/') && !url.includes('/upload/f_')) {
+    return url
+      .replace('/video/upload/', '/video/upload/f_mp4,q_auto/')
+      .replace(/\.(mov|mkv|avi|m4v|wmv|flv)$/i, '.mp4')
+  }
+  return url
+}
+
+/**
  * Full-bleed hero background media. If videoUrl is set, plays a silent looping
  * background video (with the still image as poster/fallback); otherwise shows
  * the still image. Always absolute inset-0 to sit behind the hero content.
@@ -27,7 +42,7 @@ export default function HeroMedia({
   if (videoUrl) {
     return (
       <video
-        src={videoUrl}
+        src={playableVideoUrl(videoUrl)}
         autoPlay
         loop
         muted

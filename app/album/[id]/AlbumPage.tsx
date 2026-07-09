@@ -7,6 +7,7 @@ import { usePlayer } from '@/context/PlayerContext'
 import LikeButton from '@/components/LikeButton'
 import BuyButton from '@/components/BuyButton'
 import TipButton from '@/components/TipButton'
+import { playableVideoUrl } from '@/components/HeroMedia'
 
 type Album = {
   id: string
@@ -240,7 +241,7 @@ export default function AlbumPage({ id }: { id: string }) {
         )}
         {album.hero_video_url ? (
           <>
-            <video src={album.hero_video_url} autoPlay loop muted playsInline preload="metadata"
+            <video src={playableVideoUrl(album.hero_video_url)} autoPlay loop muted playsInline preload="metadata"
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
           </>
