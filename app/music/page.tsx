@@ -68,6 +68,7 @@ function FeaturedHero({ artists, onPlayArtist }: {
   const router = useRouter()
   const [current, setCurrent]     = useState(0)
   const [paused, setPaused]       = useState(false)
+  const [soundOn, setSoundOn]     = useState(false)
   const [animating, setAnimating] = useState(false)
   const [isMobile, setIsMobile]   = useState(false)
   const intervalRef               = useRef<NodeJS.Timeout | null>(null)
@@ -88,10 +89,11 @@ function FeaturedHero({ artists, onPlayArtist }: {
   const prev = useCallback(() => goTo((current - 1 + artists.length) % artists.length), [current, artists.length, goTo])
 
   useEffect(() => {
-    if (paused || artists.length <= 1) return
+    // Don't auto-advance while hovering or while the viewer is listening with sound on.
+    if (paused || soundOn || artists.length <= 1) return
     intervalRef.current = setInterval(next, 6000)
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [paused, next, artists.length])
+  }, [paused, soundOn, next, artists.length])
 
   if (!artists.length) return null
   const artist = artists[current]
@@ -103,6 +105,8 @@ function FeaturedHero({ artists, onPlayArtist }: {
         imageUrl={artist.photo_url}
         videoUrl={artist.hero_video_url}
         position="center top"
+        allowUnmute={!!artist.hero_video_url}
+        onSoundChange={setSoundOn}
         style={{ filter: 'blur(2px) brightness(0.75)', transform: 'scale(1.05)', transition: 'opacity 0.3s', opacity: animating ? 0 : 1 }}
       />
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%)' }} />

@@ -103,14 +103,27 @@ function ArtistMessageVideo({ url, name }: { url: string; name: string }) {
         muted={muted}
         playsInline
         autoPlay
-        style={{ width: '100%', display: 'block', objectFit: 'contain' }}
+        style={{ width: '100%', display: 'block', objectFit: 'contain', cursor: 'pointer' }}
+        onClick={() => {
+          const v = videoRef.current; if (!v) return
+          // First tap turns on sound; after that, tap toggles play/pause.
+          if (muted) { v.muted = false; setMuted(false); if (v.paused) { v.play(); setPlaying(true); setEnded(false) } }
+          else { toggle() }
+        }}
         onEnded={() => { setPlaying(false); setEnded(true) }}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
       />
+      {/* "Tap for sound" hint while muted */}
+      {muted && !ended && (
+        <div style={{ position: 'absolute', bottom: '10px', left: '10px', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '999px', background: 'rgba(0,0,0,0.62)', border: '1px solid rgba(255,255,255,0.25)', color: 'white', fontSize: '12px', fontWeight: 600, pointerEvents: 'none', backdropFilter: 'blur(4px)' }}>
+          🔊 Tap for sound
+        </div>
+      )}
       {/* Controls overlay */}
       <div style={{ position: 'absolute', bottom: '10px', right: '10px', display: 'flex', gap: '8px' }}>
         <button onClick={() => { if (videoRef.current) { videoRef.current.muted = !muted; setMuted(!muted) } }}
+          aria-label={muted ? 'Unmute' : 'Mute'}
           style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', color: 'white', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {muted ? '🔇' : '🔊'}
         </button>
