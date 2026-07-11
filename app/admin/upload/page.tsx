@@ -533,16 +533,28 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     <label style={s.label}>Replace Photo — square, min 400×400px</label>
                     <input type="file" accept="image/*" style={s.fileInput} onChange={e => setArtistPhotoFile(e.target.files?.[0] || null)} />
                     {artistPhotoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistPhotoFile.name}</div>}
-                    {artist.photo_url && !artistPhotoFile && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Current: {artist.photo_url.split('/').pop()}</div>}
+                    {artist.photo_url && !artistPhotoFile && editArtist.photo_url !== null && (
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Current: {artist.photo_url.split('/').pop()}
+                        <button onClick={() => setEditArtist(p => ({ ...p, photo_url: null }))} style={{ marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#dc3c3c' }}>remove</button>
+                      </div>
+                    )}
+                    {editArtist.photo_url === null && !artistPhotoFile && (
+                      <div style={{ fontSize: '11px', color: '#dc3c3c', marginTop: '4px', fontStyle: 'italic' }}>Photo will be removed on save</div>
+                    )}
                   </div>
                <div style={s.field}>
                     <label style={s.label}>Artist Introduction <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— up to :30, any aspect ratio</span></label>
                     <input type="file" accept="video/*" style={s.fileInput} onChange={e => setArtistIntroFile(e.target.files?.[0] || null)} />
                     {artistIntroFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {artistIntroFile.name}</div>}
-                    {artist.artist_profile_video_url && !artistIntroFile && (
+                    {artist.artist_profile_video_url && !artistIntroFile && editArtist.artist_profile_video_url !== null && (
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                         Current: {artist.artist_profile_video_url.split('/').pop()}
+                        <button onClick={() => setEditArtist(p => ({ ...p, artist_profile_video_url: null }))} style={{ marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#dc3c3c' }}>remove</button>
                       </div>
+                    )}
+                    {editArtist.artist_profile_video_url === null && !artistIntroFile && (
+                      <div style={{ fontSize: '11px', color: '#dc3c3c', marginTop: '4px', fontStyle: 'italic' }}>Introduction will be removed on save</div>
                     )}
                   </div>
 
@@ -550,11 +562,14 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     <label style={s.label}>Hero Background Video <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— 16:9, up to :30, loops muted on artist page</span></label>
                     <input type="file" accept="video/*" style={s.fileInput} onChange={e => setHeroVideoFile(e.target.files?.[0] || null)} />
                     {heroVideoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {heroVideoFile.name}</div>}
-                    {artist.hero_video_url && !heroVideoFile && (
+                    {artist.hero_video_url && !heroVideoFile && editArtist.hero_video_url !== null && (
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                         Current: {artist.hero_video_url.split('/').pop()}
                         <button onClick={() => setEditArtist(p => ({ ...p, hero_video_url: null }))} style={{ marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#dc3c3c' }}>Remove (use default)</button>
                       </div>
+                    )}
+                    {editArtist.hero_video_url === null && !heroVideoFile && (
+                      <div style={{ fontSize: '11px', color: '#dc3c3c', marginTop: '4px', fontStyle: 'italic' }}>Hero video will be removed on save (a platform default will play)</div>
                     )}
                     {!artist.hero_video_url && !heroVideoFile && (
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontStyle: 'italic' }}>None set — a platform default will play on this artist's page</div>
@@ -666,13 +681,15 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     <label style={s.label}>Hero Image <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— wide landscape, shown as album page background</span></label>
                     <input type="file" accept="image/*" style={s.fileInput} onChange={e => setAlbumHeroFile(e.target.files?.[0] || null)} />
                     {albumHeroFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumHeroFile.name}</div>}
-                    {album.hero_image_url && !albumHeroFile && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Current hero set · <a href={album.hero_image_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a></div>}
+                    {album.hero_image_url && !albumHeroFile && editAlbum.hero_image_url !== null && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Current hero set · <a href={album.hero_image_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a> · <button onClick={() => setEditAlbum(p => ({ ...p, hero_image_url: null }))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#dc3c3c', padding: 0 }}>remove</button></div>}
+                    {editAlbum.hero_image_url === null && !albumHeroFile && <div style={{ fontSize: '11px', color: '#dc3c3c', marginTop: '4px', fontStyle: 'italic' }}>Hero image will be removed on save</div>}
                   </div>
                   <div style={s.field}>
                     <label style={s.label}>Hero Video <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional; loops silently behind the homepage hero (overrides the image)</span></label>
                     <input type="file" accept="video/*" style={s.fileInput} onChange={e => setAlbumHeroVideoFile(e.target.files?.[0] || null)} />
                     {albumHeroVideoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumHeroVideoFile.name}</div>}
-                    {album.hero_video_url && !albumHeroVideoFile && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Current video set · <a href={album.hero_video_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a> · <button onClick={() => setEditAlbum(p => ({ ...p, hero_video_url: null }))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#dc3c3c', padding: 0 }}>remove</button></div>}
+                    {album.hero_video_url && !albumHeroVideoFile && editAlbum.hero_video_url !== null && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Current video set · <a href={album.hero_video_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a> · <button onClick={() => setEditAlbum(p => ({ ...p, hero_video_url: null }))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#dc3c3c', padding: 0 }}>remove</button></div>}
+                    {editAlbum.hero_video_url === null && !albumHeroVideoFile && <div style={{ fontSize: '11px', color: '#dc3c3c', marginTop: '4px', fontStyle: 'italic' }}>Hero video will be removed on save</div>}
                   </div>
                   <div style={s.field}>
                     <label style={s.label}>Genres (up to 3)</label>

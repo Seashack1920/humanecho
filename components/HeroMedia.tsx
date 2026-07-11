@@ -1,6 +1,6 @@
 'use client'
 
-import { CSSProperties } from 'react'
+import { CSSProperties, useState } from 'react'
 
 /**
  * Normalize a Cloudinary video URL to a browser-friendly delivery. Source files
@@ -19,8 +19,12 @@ export function playableVideoUrl(url?: string | null): string | undefined {
 
 /**
  * Full-bleed hero background media. If videoUrl is set, plays a silent looping
- * background video (with the still image as poster/fallback); otherwise shows
- * the still image. Always absolute inset-0 to sit behind the hero content.
+ * background video; otherwise shows the still image. Always absolute inset-0 to
+ * sit behind the hero content.
+ *
+ * When a video is set we do NOT use the still image as a poster — a poster
+ * flashes the photo and then jumps to the first video frame. Instead the video
+ * fades in from a dark background once it can render, so there's no photo flash.
  *
  * Pass filter / transform / opacity / transition via `style`. Use `position`
  * for focal point (maps to background-position for image, object-position for
@@ -37,6 +41,7 @@ export default function HeroMedia({
   style?: CSSProperties
   position?: string
 }) {
+  const [ready, setReady] = useState(false)
   const base: CSSProperties = { position: 'absolute', inset: 0, ...style }
 
   if (videoUrl) {
@@ -47,8 +52,18 @@ export default function HeroMedia({
         loop
         muted
         playsInline
-        poster={imageUrl || undefined}
-        style={{ ...base, width: '100%', height: '100%', objectFit: 'cover', objectPosition: position }}
+        onLoadedData={() => setReady(true)}
+        onPlaying={() => setReady(true)}
+        style={{
+          ...base,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: position,
+          background: '#0a0a0b',
+          opacity: ready ? 1 : 0,
+          transition: 'opacity 0.5s ease',
+        }}
       />
     )
   }
