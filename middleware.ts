@@ -8,10 +8,23 @@ import type { NextRequest } from 'next/server'
 // cookie granting access. To go fully public, set LAUNCH_MODE=live (or remove it)
 // and redeploy — no code change required.
 const BETA_COOKIE = 'he_beta'
+const REF_COOKIE = 'he_ref'
 
 export function middleware(req: NextRequest) {
+  // First-touch referral attribution: remember who sent this visitor (for
+  // Phase 2 signup crediting). Set on the first ?ref= we see; don't overwrite.
+  const ref = req.nextUrl.searchParams.get('ref')
+  const withRef = (res: NextResponse) => {
+    if (ref && !req.cookies.get(REF_COOKIE)) {
+      res.cookies.set(REF_COOKIE, ref.slice(0, 32), {
+        sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 30, // 30 days
+      })
+    }
+    return res
+  }
+
   // Off unless explicitly in holding mode → site behaves normally (public).
-  if (process.env.LAUNCH_MODE !== 'holding') return NextResponse.next()
+  if (process.env.LAUNCH_MODE !== 'holding') return withRef(NextResponse.next())
 
   const { pathname, searchParams } = req.nextUrl
   const code = process.env.BETA_ACCESS_CODE
@@ -30,7 +43,7 @@ export function middleware(req: NextRequest) {
   }
 
   // Already a beta tester → full access.
-  if (req.cookies.get(BETA_COOKIE)?.value === '1') return NextResponse.next()
+  if (req.cookies.get(BETA_COOKIE)?.value === '1') return withRef(NextResponse.next())
 
   // Public visitor: allow only the holding page, framework internals, API
   // routes (Stripe webhooks etc.), and static asset files. Everything else is

@@ -90,22 +90,52 @@ async function fetchScheduled(slot: string, contentType: string, selectFields: s
 
 // ─── Share Panel ─────────────────────────────────────────────────────────────
 
-function ShareTheEchoPanel() {
+function ShareTheEchoPanel({ profile }: { profile: any }) {
   const [copied, setCopied] = useState(false)
-  const url = typeof window !== 'undefined' ? window.location.origin : 'https://humanecho.com'
+  const code: string | null = profile?.referral_code || null
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(url)
+  const site = (process.env.NEXT_PUBLIC_SITE_URL
+    || (typeof window !== 'undefined' ? window.location.origin : 'https://humanechomusic.com')).replace(/\/$/, '')
+
+  // Personalized, attributed link (falls back to a plain link when logged out).
+  const buildLink = (source: string) => {
+    const p = new URLSearchParams()
+    if (code) p.set('ref', code)
+    p.set('utm_source', source); p.set('utm_medium', 'share'); p.set('utm_campaign', 'share_the_echo')
+    return `${site}/?${p.toString()}`
+  }
+
+  const logShare = (platform: string) => {
+    if (!profile?.id) return
+    // Best-effort share-intent log — never block opening the share dialog.
+    supabase.from('share_events').insert({
+      user_id: profile.id, referral_code: code, platform,
+      campaign: 'share_the_echo', share_url: buildLink(platform),
+    }).then(() => {}, () => {})
+  }
+
+  const openShare = (platform: string, href: string) => {
+    logShare(platform)
+    window.open(href, '_blank', 'noopener,noreferrer')
+  }
+
+  const copyLink = (platform = 'copy') => {
+    navigator.clipboard.writeText(buildLink(platform))
+    logShare(platform)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const shareLinks = [
-    { label: 'X / Twitter', icon: '𝕏', href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent('Discover music made by humans on Human Echo 🎵')}`, color: '#000' },
-    { label: 'Facebook',    icon: 'f', href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, color: '#1877f2' },
-    { label: 'WhatsApp',    icon: '💬', href: `https://wa.me/?text=${encodeURIComponent('Check out Human Echo — music made by humans: ' + url)}`, color: '#25d366' },
-    { label: 'Instagram',   icon: '📸', href: 'https://instagram.com', color: '#e1306c' },
-    { label: 'TikTok',      icon: '🎵', href: 'https://tiktok.com', color: '#010101' },
+  const text = 'Discover music made by humans on Human Echo 🎵'
+  const urlButtons = [
+    { label: 'X / Twitter', icon: '𝕏', platform: 'x',        color: '#000',     href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(buildLink('x'))}&text=${encodeURIComponent(text)}` },
+    { label: 'Facebook',    icon: 'f', platform: 'facebook', color: '#1877f2',  href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(buildLink('facebook'))}` },
+    { label: 'WhatsApp',    icon: '💬', platform: 'whatsapp', color: '#25d366', href: `https://wa.me/?text=${encodeURIComponent(text + ' ' + buildLink('whatsapp'))}` },
+  ]
+  // Instagram/TikTok have no web share-intent — copy the link to paste into a post.
+  const copyButtons = [
+    { label: 'Instagram (copy link)', icon: '📸', platform: 'instagram', color: '#e1306c' },
+    { label: 'TikTok (copy link)',    icon: '🎵', platform: 'tiktok',    color: '#010101' },
   ]
 
   return (
@@ -115,24 +145,37 @@ function ShareTheEchoPanel() {
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent-primary)', marginBottom: '12px', fontWeight: '600' }}>Share the Echo</div>
           <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px' }}>Help artists get heard</div>
-          <div style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '36px', maxWidth: '400px', margin: '0 auto 36px', lineHeight: '1.6' }}>
+          <div style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '36px', maxWidth: '420px', margin: '0 auto 36px', lineHeight: '1.6' }}>
             Share Human Echo with your world. Every share helps independent artists reach new fans.
           </div>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
-            {shareLinks.map(s => (
-              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" title={s.label}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', background: 'var(--bg-card)', border: '1px solid var(--border)', fontSize: '18px', textDecoration: 'none', color: 'var(--text-primary)', transition: 'all 0.2s ease' }}
+            {urlButtons.map(s => (
+              <button key={s.label} onClick={() => openShare(s.platform, s.href)} title={s.label}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', background: 'var(--bg-card)', border: '1px solid var(--border)', fontSize: '18px', cursor: 'pointer', color: 'var(--text-primary)', transition: 'all 0.2s ease' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = s.color; e.currentTarget.style.transform = 'translateY(-2px)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)' }}
-              >{s.icon}</a>
+              >{s.icon}</button>
             ))}
-            <button onClick={copyLink} title="Copy link"
+            {copyButtons.map(s => (
+              <button key={s.label} onClick={() => copyLink(s.platform)} title={s.label}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', background: 'var(--bg-card)', border: '1px solid var(--border)', fontSize: '18px', cursor: 'pointer', color: 'var(--text-primary)', transition: 'all 0.2s ease' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = s.color; e.currentTarget.style.transform = 'translateY(-2px)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)' }}
+              >{s.icon}</button>
+            ))}
+            <button onClick={() => copyLink('copy')} title="Copy your link"
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', background: copied ? 'var(--accent-primary)' : 'var(--bg-card)', border: `1px solid ${copied ? 'var(--accent-primary)' : 'var(--border)'}`, fontSize: '18px', cursor: 'pointer', color: copied ? 'white' : 'var(--text-primary)', transition: 'all 0.2s ease' }}
             >{copied ? '✓' : '🔗'}</button>
           </div>
-          <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            Join our <span style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}>Echo Advocates</span> program and earn tokens for every new fan you bring in.
-          </div>
+          {code ? (
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              {copied ? 'Your personal link is copied — paste it anywhere.' : 'Shares from your personal link are credited to you — we thank our top sharers.'}
+            </div>
+          ) : (
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              <a href="/login" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Sign in</a> so your shares are credited to you.
+            </div>
+          )}
         </div>
       </div>
     </section>
@@ -604,7 +647,7 @@ export default function HomePage() {
         <JoinBlock />
 
         {/* ── SHARE THE ECHO ── */}
-        <ShareTheEchoPanel />
+        <ShareTheEchoPanel profile={profile} />
 
       </div>
 

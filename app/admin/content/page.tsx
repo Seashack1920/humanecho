@@ -97,6 +97,9 @@ export default function AdminContent() {
           <Link href="/admin/homepage" style={{ ...s.link, fontSize: '14px' }}>
             🏠 Homepage Hero
           </Link>
+          <Link href="/admin/referrals" style={{ ...s.link, fontSize: '14px' }}>
+            📣 Share the Echo
+          </Link>
           <Link href="/admin/upload" style={{ ...s.link, fontSize: '14px' }}>
             + Upload Music
           </Link>
