@@ -101,7 +101,7 @@ export default function AdminContent() {
             📣 Share the Echo
           </Link>
           <Link href="/admin/inventory" style={{ ...s.link, fontSize: '14px' }}>
-            📋 Track Inventory
+            📋 Content Inventory
           </Link>
           <Link href="/admin/upload" style={{ ...s.link, fontSize: '14px' }}>
             + Upload Music
