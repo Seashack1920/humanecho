@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation'
 import { usePlayer } from '@/context/PlayerContext'
 import { StoriesTab } from './StoriesTab'
 
+// Synthetic album id used to group standalone singles (tracks with no album).
+const SINGLES_ID = '__singles__'
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Profile = { id: string; role: string; full_name: string | null; artist_id: string | null }
@@ -133,6 +136,7 @@ export default function Dashboard() {
   const [albumHeroFile, setAlbumHeroFile]           = useState<File | null>(null)
   const [albumHeroVideoFile, setAlbumHeroVideoFile] = useState<File | null>(null)
 
+  const realAlbumCount  = albums.filter(a => a.id !== SINGLES_ID).length
   const totalTracks     = albums.reduce((sum, a) => sum + (a.tracks?.length || 0), 0)
   const publishedTracks = albums.reduce((sum, a) => sum + (a.tracks?.filter(t => t.status === 'published').length || 0), 0)
   const draftTracks     = albums.reduce((sum, a) => sum + (a.tracks?.filter(t => t.status === 'draft').length || 0), 0)
@@ -163,18 +167,30 @@ useEffect(() => {
     setLoading(true)
     const { data: artistData } = await supabase.from('artists').select('id, name, bio, photo_url, stripe_account_id, stripe_onboarded').eq('id', artistId).single()
     if (artistData) setArtist(artistData)
+    const TRACK_FIELDS = 'id, title, duration, status, track_type, content_origin, track_number, cloudinary_url, track_image_url, album_id, price, text_content, cover_welcome, music_video_welcome, explicit, mood_tags, coach_categories'
     const { data: albumsData } = await supabase.from('albums').select('id, title, status, album_type, cover_url, hero_image_url, hero_video_url, price, description').eq('artist_id', artistId).order('title')
+    const built: any[] = []
     if (albumsData) {
       const albumsWithTracks = await Promise.all(
         albumsData.map(async (album) => {
           const { data: tracks } = await supabase.from('tracks')
-            .select('id, title, duration, status, track_type, content_origin, track_number, cloudinary_url, track_image_url, album_id, price, text_content, cover_welcome, music_video_welcome, explicit, mood_tags, coach_categories')
+            .select(TRACK_FIELDS)
             .eq('album_id', album.id).order('track_number', { nullsFirst: false })
           return { ...album, tracks: tracks || [] }
         })
       )
-      setAlbums(albumsWithTracks)
+      built.push(...albumsWithTracks)
     }
+    // Standalone singles (tracks not attached to any album) — grouped into a
+    // synthetic "Singles" card so they're visible and editable here too.
+    const { data: singles } = await supabase.from('tracks')
+      .select(TRACK_FIELDS)
+      .eq('artist_id', artistId).is('album_id', null)
+      .order('track_number', { nullsFirst: false }).order('created_at', { ascending: false })
+    if (singles && singles.length) {
+      built.push({ id: SINGLES_ID, title: 'Singles', album_type: 'single', status: null, cover_url: null, hero_image_url: null, hero_video_url: null, price: null, description: null, tracks: singles })
+    }
+    setAlbums(built)
     setLoading(false)
   }
 
@@ -415,7 +431,7 @@ useEffect(() => {
             </div>
 
             <div style={s.statsRow}>
-              {[{ num: albums.length, label: 'Albums' }, { num: totalTracks, label: 'Tracks' }, { num: publishedTracks, label: 'Published' }, { num: draftTracks, label: 'Drafts' }].map(stat => (
+              {[{ num: realAlbumCount, label: 'Albums' }, { num: totalTracks, label: 'Tracks' }, { num: publishedTracks, label: 'Published' }, { num: draftTracks, label: 'Drafts' }].map(stat => (
                 <div key={stat.label} style={s.statCard}>
                   <div style={s.statNum}>{stat.num}</div>
                   <div style={s.statLabel}>{stat.label}</div>
@@ -518,23 +534,27 @@ useEffect(() => {
                           ) : (
                             <>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={s.albumTitle}>{album.title}</div>
-                                <a href={`/album/${album.id}`} target="_blank" rel="noreferrer" style={{ fontSize: '11px', color: 'var(--accent-primary)', textDecoration: 'none' }}>view →</a>
+                                <div style={s.albumTitle}>{album.id === SINGLES_ID ? '🎵 Singles' : album.title}</div>
+                                {album.id !== SINGLES_ID && <a href={`/album/${album.id}`} target="_blank" rel="noreferrer" style={{ fontSize: '11px', color: 'var(--accent-primary)', textDecoration: 'none' }}>view →</a>}
                               </div>
-                              <div style={s.albumMeta}>
-                                {album.album_type} · {album.tracks?.length || 0} tracks · {album.price ? `$${album.price}` : 'no price'}
-                                &nbsp;&nbsp;
-                                <span style={s.statusBadge(album.status || 'draft')} title="Click to cycle status" onClick={() => toggleAlbumStatus(album)}>
-                                  {album.status || 'draft'}
-                                </span>
-                                {album.hero_image_url && <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--accent-primary)' }}>🖼 hero</span>}
-                              </div>
+                              {album.id === SINGLES_ID ? (
+                                <div style={s.albumMeta}>{album.tracks?.length || 0} standalone {album.tracks?.length === 1 ? 'single' : 'singles'} · not part of an album</div>
+                              ) : (
+                                <div style={s.albumMeta}>
+                                  {album.album_type} · {album.tracks?.length || 0} tracks · {album.price ? `$${album.price}` : 'no price'}
+                                  &nbsp;&nbsp;
+                                  <span style={s.statusBadge(album.status || 'draft')} title="Click to cycle status" onClick={() => toggleAlbumStatus(album)}>
+                                    {album.status || 'draft'}
+                                  </span>
+                                  {album.hero_image_url && <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--accent-primary)' }}>🖼 hero</span>}
+                                </div>
+                              )}
                             </>
                           )}
                         </div>
                       </div>
 
-                      {editingAlbumId !== album.id && (
+                      {editingAlbumId !== album.id && album.id !== SINGLES_ID && (
                         <div style={s.albumActions}>
                           <button style={s.btnSmSecondary} onClick={() => { setEditingAlbumId(album.id); setEditAlbum({}) }}>Edit album</button>
                           <button style={s.btnSm} onClick={() => toggleAlbumStatus(album)}>{statusNext(album.status || 'draft')}</button>
