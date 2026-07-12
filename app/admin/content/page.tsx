@@ -100,6 +100,9 @@ export default function AdminContent() {
           <Link href="/admin/referrals" style={{ ...s.link, fontSize: '14px' }}>
             📣 Share the Echo
           </Link>
+          <Link href="/admin/inventory" style={{ ...s.link, fontSize: '14px' }}>
+            📋 Track Inventory
+          </Link>
           <Link href="/admin/upload" style={{ ...s.link, fontSize: '14px' }}>
             + Upload Music
           </Link>
