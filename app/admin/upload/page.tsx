@@ -173,6 +173,21 @@ function ManageTab({ artists, refreshArtists }: { artists: Artist[], refreshArti
   const [editingGenres, setEditingGenres] = useState<string[]>([])
   const { playTrack, currentTrack, isPlaying } = usePlayer()
 
+  // Per-artist track & album totals, shown on each artist row.
+  const [counts, setCounts] = useState<Record<string, { tracks: number; albums: number }>>({})
+  useEffect(() => {
+    ;(async () => {
+      const [{ data: t }, { data: al }] = await Promise.all([
+        supabase.from('tracks').select('artist_id').is('deleted_at', null),
+        supabase.from('albums').select('artist_id').is('deleted_at', null),
+      ])
+      const m: Record<string, { tracks: number; albums: number }> = {}
+      for (const r of t || []) if (r.artist_id) (m[r.artist_id] ??= { tracks: 0, albums: 0 }).tracks++
+      for (const r of al || []) if (r.artist_id) (m[r.artist_id] ??= { tracks: 0, albums: 0 }).albums++
+      setCounts(m)
+    })()
+  }, [artists.length])
+
   const [editingArtistId, setEditingArtistId] = useState<string | null>(null)
   const [editArtist, setEditArtist]           = useState<Partial<Artist>>({})
   const [artistPhotoFile, setArtistPhotoFile] = useState<File | null>(null)
@@ -590,7 +605,13 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                       : <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>🎤</div>
                     }
                     <div>
-                      <div style={s.manageLabel}>{artist.name}</div>
+                      <div style={s.manageLabel}>
+                        {artist.name}
+                        <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: 600, color: 'var(--accent-primary)' }}>
+                          {counts[artist.id]?.tracks || 0} track{(counts[artist.id]?.tracks || 0) === 1 ? '' : 's'}
+                          {' · '}{counts[artist.id]?.albums || 0} album{(counts[artist.id]?.albums || 0) === 1 ? '' : 's'}
+                        </span>
+                      </div>
                       <div style={s.manageMeta}>
                         {originEmoji(artist.content_origin)} {artist.content_origin || 'no origin'}
                         {artist.creator_label ? ` · ${artist.creator_label}` : ' · no label set'}
