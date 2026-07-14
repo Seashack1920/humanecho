@@ -401,6 +401,16 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
     setLoading(false)
   }
 
+  // Quick album membership change straight from the track row — add a track to
+  // an album, move it to a different one, or pull it out to a standalone single.
+  const reassignAlbum = async (trackId: string, albumId: string | null) => {
+    const { error } = await supabase.from('tracks').update({ album_id: albumId }).eq('id', trackId)
+    if (error) { setMessage({ type: 'error', text: error.message }); return }
+    setTracks(prev => prev.map(t => t.id === trackId ? { ...t, album_id: albumId } : t))
+    const albumName = albums.find(a => a.id === albumId)?.title
+    setMessage({ type: 'success', text: albumId ? `Moved to “${albumName}”.` : 'Removed from album — now a standalone single.' })
+  }
+
   // ── Track filtering + bulk actions ──
   const filteredTracks = tracks.filter(t => {
     if (trackStatusFilter !== 'all' && (t.status || 'draft') !== trackStatusFilter) return false
@@ -926,6 +936,18 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     <div>
                       <div style={s.manageLabel}>{track.track_number ? `${track.track_number}. ` : ''}{track.title}</div>
                       <div style={s.manageMeta}>{track.track_type} · {track.status} · {track.duration || 'no duration'} · {originEmoji(track.content_origin)}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Album:</span>
+                        <select
+                          value={track.album_id ?? ''}
+                          onChange={e => reassignAlbum(track.id, e.target.value || null)}
+                          title="Add to an album, move it, or make it a standalone single"
+                          style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: track.album_id ? 'var(--text-primary)' : 'var(--text-muted)', maxWidth: '220px', cursor: 'pointer' }}
+                        >
+                          <option value="">— standalone single —</option>
+                          {albums.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
+                        </select>
+                      </div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0, alignItems: 'center' }}>
