@@ -399,12 +399,13 @@ export default function HomePage() {
           <HeroMedia
             imageUrl={heroAlbum.hero_image_url || heroAlbum.cover_url}
             videoUrl={heroAlbum.hero_video_url}
-            style={{ filter: 'blur(2px) brightness(0.80)', transform: 'scale(1.05)' }}
+            position="center top"
+            style={{ filter: 'brightness(0.9)' }}
           />
         ) : (
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #0d1f2d 0%, #0a0a0b 60%, #1a0d0d 100%)' }} />
         )}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,10,11,0.98) 0%, rgba(10,10,11,0.4) 50%, rgba(10,10,11,0.1) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,10,11,0.92) 0%, rgba(10,10,11,0.25) 30%, rgba(10,10,11,0) 60%)' }} />
         <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '0 40px 80px' }}>
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'center' : 'flex-end', textAlign: isMobile ? 'center' : 'left', gap: isMobile ? '24px' : '48px' }}>
             {heroAlbum?.cover_url && (

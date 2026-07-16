@@ -99,7 +99,7 @@ function FeaturedHero({ artists, onPlayArtist }: {
   const artist = artists[current]
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', height: '520px', marginTop: '-70px' }}
+    <div style={{ position: 'relative', overflow: 'hidden', height: '620px', marginTop: '-70px' }}
       onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <HeroMedia
         imageUrl={artist.photo_url}
@@ -107,10 +107,10 @@ function FeaturedHero({ artists, onPlayArtist }: {
         position="center top"
         allowUnmute={!!artist.hero_video_url}
         onSoundChange={setSoundOn}
-        style={{ filter: 'blur(2px) brightness(0.75)', transform: 'scale(1.05)', transition: 'opacity 0.3s', opacity: animating ? 0 : 1 }}
+        style={{ filter: 'brightness(0.9)', transition: 'opacity 0.3s', opacity: animating ? 0 : 1 }}
       />
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%)' }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '200px', background: 'linear-gradient(to top, var(--bg-primary), transparent)' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 100%)' }} />
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '100px', background: 'linear-gradient(to top, var(--bg-primary), transparent)' }} />
 
       <div style={{ position: 'relative', zIndex: 10, height: '100%', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', textAlign: isMobile ? 'center' : 'left', padding: isMobile ? '70px 22px 64px' : '80px 64px 60px', gap: isMobile ? '20px' : '48px', opacity: animating ? 0 : 1, transition: 'opacity 0.3s' }}>
         {artist.photo_url && (
