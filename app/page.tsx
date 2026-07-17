@@ -399,7 +399,7 @@ export default function HomePage() {
           <HeroMedia
             imageUrl={heroAlbum.hero_image_url || heroAlbum.cover_url}
             videoUrl={heroAlbum.hero_video_url}
-            position="center top"
+            position="center center"
             style={{ filter: 'brightness(0.9)' }}
           />
         ) : (

@@ -104,7 +104,7 @@ function FeaturedHero({ artists, onPlayArtist }: {
       <HeroMedia
         imageUrl={artist.photo_url}
         videoUrl={artist.hero_video_url}
-        position="center top"
+        position="center center"
         allowUnmute={!!artist.hero_video_url}
         onSoundChange={setSoundOn}
         style={{ filter: 'brightness(0.9)', transition: 'opacity 0.3s', opacity: animating ? 0 : 1 }}
