@@ -394,13 +394,17 @@ export default function HomePage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', fontFamily: 'DM Sans, sans-serif' }}>
 
       {/* ── HERO ── */}
-      <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'flex-end', overflow: 'hidden', background: '#0a0a0b', marginTop: '-70px', paddingTop: '70px' }}>
+      <section style={{ position: 'relative', minHeight: '80vh', display: 'flex', alignItems: 'flex-end', overflow: 'hidden', background: '#0a0a0b', marginTop: '-70px', paddingTop: '70px' }}>
         {(heroAlbum?.hero_image_url || heroAlbum?.cover_url || heroAlbum?.hero_video_url) ? (
           <HeroMedia
             imageUrl={heroAlbum.hero_image_url || heroAlbum.cover_url}
             videoUrl={heroAlbum.hero_video_url}
             position="center center"
-            style={{ filter: 'brightness(0.9)' }}
+            style={{
+              filter: 'brightness(0.9)',
+              WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 15%, #000 78%, transparent 100%)',
+              maskImage: 'linear-gradient(to bottom, transparent 0%, #000 15%, #000 78%, transparent 100%)',
+            }}
           />
         ) : (
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #0d1f2d 0%, #0a0a0b 60%, #1a0d0d 100%)' }} />

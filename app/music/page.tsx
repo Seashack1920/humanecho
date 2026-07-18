@@ -99,7 +99,7 @@ function FeaturedHero({ artists, onPlayArtist }: {
   const artist = artists[current]
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', height: '620px', marginTop: '-70px' }}
+    <div style={{ position: 'relative', overflow: 'hidden', height: '500px', marginTop: '-70px' }}
       onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <HeroMedia
         imageUrl={artist.photo_url}
@@ -107,7 +107,13 @@ function FeaturedHero({ artists, onPlayArtist }: {
         position="center center"
         allowUnmute={!!artist.hero_video_url}
         onSoundChange={setSoundOn}
-        style={{ filter: 'brightness(0.9)', transition: 'opacity 0.3s', opacity: animating ? 0 : 1 }}
+        style={{
+          filter: 'brightness(0.9)',
+          transition: 'opacity 0.3s',
+          opacity: animating ? 0 : 1,
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 15%, #000 78%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, transparent 0%, #000 15%, #000 78%, transparent 100%)',
+        }}
       />
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 100%)' }} />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '100px', background: 'linear-gradient(to top, var(--bg-primary), transparent)' }} />
