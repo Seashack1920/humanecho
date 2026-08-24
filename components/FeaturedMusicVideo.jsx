@@ -13,24 +13,27 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { playableVideoUrl } from '@/components/HeroMedia'
 
-export default function FeaturedMusicVideo() {
-  const [data, setData] = useState(null)
-  const [open, setOpen] = useState(false)
+export default function FeaturedMusicVideo({ data: injected = null, preview = false }) {
+  const [fetched, setFetched] = useState(null)
+  const [open, setOpen] = useState(preview)
 
   useEffect(() => {
+    if (injected) return
     let off = false
     ;(async () => {
       try {
         const { data: row } = await supabase
           .from('homepage_features')
           .select('*').eq('key', 'featured_music_video').eq('is_active', true).maybeSingle()
-        if (!off && row?.video_url) setData(row)
+        if (!off && row?.video_url) setFetched(row)
       } catch { /* self-hide */ }
     })()
     return () => { off = true }
-  }, [])
+  }, [injected])
 
+  const data = injected || fetched
   if (!data) return null
+  if (!preview && !data.video_url) return null
 
   return (
     <section style={{ paddingBottom: '80px' }}>
@@ -69,10 +72,12 @@ export default function FeaturedMusicVideo() {
         <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 0.4s ease' }}>
           <div style={{ overflow: 'hidden' }}>
             <div style={{ padding: '0 clamp(24px, 4vw, 48px) clamp(28px, 4vw, 44px)' }}>
-              <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', borderRadius: '14px', overflow: 'hidden', background: '#000', marginBottom: data.body ? '20px' : 0 }}>
-                {open && (
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', borderRadius: '14px', overflow: 'hidden', background: '#000', marginBottom: data.body ? '20px' : 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {open && data.video_url ? (
                   <video src={playableVideoUrl(data.video_url)} poster={data.thumbnail_url || undefined} controls playsInline preload="metadata"
                     style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} />
+                ) : (
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>No video set yet</span>
                 )}
               </div>
               {data.body && (

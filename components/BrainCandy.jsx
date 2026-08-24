@@ -13,24 +13,26 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { playableVideoUrl } from '@/components/HeroMedia'
 
-export default function BrainCandy() {
-  const [data, setData] = useState(null)
-  const [open, setOpen] = useState(false)
+export default function BrainCandy({ data: injected = null, preview = false }) {
+  const [fetched, setFetched] = useState(null)
+  const [open, setOpen] = useState(preview)
   const router = useRouter()
 
   useEffect(() => {
+    if (injected) return
     let off = false
     ;(async () => {
       try {
         const { data: row } = await supabase
           .from('homepage_features')
           .select('*').eq('key', 'brain_candy').eq('is_active', true).maybeSingle()
-        if (!off && row) setData(row)
+        if (!off && row) setFetched(row)
       } catch { /* self-hide */ }
     })()
     return () => { off = true }
-  }, [])
+  }, [injected])
 
+  const data = injected || fetched
   if (!data) return null
   const hasMedia = !!(data.video_url || data.image_url)
 
