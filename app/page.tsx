@@ -249,8 +249,23 @@ export default function HomePage() {
 
         if (featuredTrack) setHeroTrack(featuredTrack as Track)
         if (featuredAlbum) setHeroAlbum(featuredAlbum as Album)
-        if (featuredArtist) setHeroArtist(featuredArtist as Artist)
         if (exec) setExecutive(exec as Executive)
+
+        // The hero name must match the hero ALBUM's artist. The separate
+        // "featured artist" slot can point at a different (or arbitrary, when
+        // many are featured) artist, so when there's a hero album, resolve its
+        // real artist and use that. Fall back to the featured-artist slot only
+        // when no album is set.
+        let heroArtistRow: any = featuredArtist
+        if ((featuredAlbum as any)?.artist_id) {
+          const { data: albArtist } = await withTimeout(
+            supabase.from('artists').select('id, name, photo_url, bio, content_origin, creator_label')
+              .eq('id', (featuredAlbum as any).artist_id).maybeSingle(),
+            4000, { data: null } as any
+          )
+          if (albArtist) heroArtistRow = albArtist
+        }
+        if (heroArtistRow) setHeroArtist(heroArtistRow as Artist)
 
         console.log('[HE] arrivals: querying tracks')
         const arrivalFields = 'id, title, duration, cloudinary_url, track_image_url, content_origin, track_type, artist_id, album_id, music_video_url, cover_welcome'

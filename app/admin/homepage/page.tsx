@@ -41,7 +41,7 @@ function uploadToCloudinary(
   })
 }
 
-type Album = { id: string; title: string; cover_url: string | null; hero_image_url: string | null; hero_video_url: string | null; artist_id: string | null; status: string | null; artists?: { name: string } | null }
+type Album = { id: string; title: string; cover_url: string | null; hero_image_url: string | null; hero_video_url: string | null; artist_id: string | null; status: string | null; artist_name?: string }
 type Track = { id: string; title: string; duration: string | null; album_id: string | null; artist_id: string | null }
 type Artist = { id: string; name: string }
 
@@ -66,14 +66,18 @@ export default function HomepageHeroAdmin() {
   useEffect(() => {
     ;(async () => {
       const [albRes, trkRes, artRes, schedRes] = await Promise.all([
-        supabase.from('albums').select('id, title, cover_url, hero_image_url, hero_video_url, artist_id, status, artists(name)').order('title'),
+        // No FK from albums→artists, so resolve names in JS instead of an embed.
+        supabase.from('albums').select('id, title, cover_url, hero_image_url, hero_video_url, artist_id, status').order('title'),
         supabase.from('tracks').select('id, title, duration, album_id, artist_id').eq('status', 'published').order('track_number'),
         supabase.from('artists').select('id, name').order('name'),
         supabase.from('scheduled_content').select('content_type, content_id').eq('slot', 'hero').eq('is_active', true),
       ])
-      setAlbums((albRes.data as any) || [])
+      const artRows = (artRes.data as Artist[]) || []
+      const nameById: Record<string, string> = {}
+      for (const a of artRows) nameById[a.id] = a.name
+      setAlbums(((albRes.data as any[]) || []).map(a => ({ ...a, artist_name: a.artist_id ? nameById[a.artist_id] : undefined })))
       setTracks((trkRes.data as any) || [])
-      setArtists((artRes.data as any) || [])
+      setArtists(artRows)
       for (const row of (schedRes.data || [])) {
         if (row.content_type === 'album')  setHeroAlbumId(row.content_id)
         if (row.content_type === 'track')  setHeroTrackId(row.content_id)
@@ -190,7 +194,7 @@ export default function HomepageHeroAdmin() {
               <div>
                 <div style={{ fontSize: '9px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent-primary)', fontWeight: 600 }}>Featured Release</div>
                 <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '28px', fontWeight: 700, color: '#fff', lineHeight: 1.05 }}>{selectedAlbum.title}</div>
-                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{artists.find(a => a.id === heroArtistId)?.name || selectedAlbum.artists?.name || ''}</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{artists.find(a => a.id === heroArtistId)?.name || selectedAlbum.artist_name || ''}</div>
                 {heroTrackId && <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>Now playing: {albumTracks.find(t => t.id === heroTrackId)?.title}</div>}
               </div>
             </div>
@@ -208,7 +212,7 @@ export default function HomepageHeroAdmin() {
         <label style={s.label}>Hero album</label>
         <select value={heroAlbumId} onChange={e => pickAlbum(e.target.value)} style={s.select}>
           <option value="">— Select an album —</option>
-          {albums.map(a => <option key={a.id} value={a.id}>{a.title}{a.artists?.name ? ` — ${a.artists.name}` : ''}{a.status !== 'published' ? ` (${a.status})` : ''}</option>)}
+          {albums.map(a => <option key={a.id} value={a.id}>{a.title}{a.artist_name ? ` — ${a.artist_name}` : ''}{a.status !== 'published' ? ` (${a.status})` : ''}</option>)}
         </select>
       </div>
 
