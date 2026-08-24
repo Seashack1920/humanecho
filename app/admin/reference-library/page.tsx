@@ -20,6 +20,8 @@ export default function ReferenceLibraryPage() {
   const [form, setForm] = useState({ source: '', document_type: 'novel_excerpt', genre: '', craft_element: '', example_type: '', text: '' })
   const [tierSupport, setTierSupport] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
+  const [previewing, setPreviewing] = useState(false)
+  const [preview, setPreview] = useState<any | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
@@ -48,6 +50,14 @@ export default function ReferenceLibraryPage() {
 
   useEffect(() => { if (isAdmin) loadList() }, [isAdmin, loadList])
 
+  const doPreview = async () => {
+    setPreviewing(true); setErr(null); setMsg(null); setPreview(null)
+    try {
+      const d = await call({ action: 'preview', text: form.text, document_type: form.document_type })
+      setPreview(d)
+    } catch (e) { setErr((e as Error).message) } finally { setPreviewing(false) }
+  }
+
   const ingest = async () => {
     setBusy(true); setErr(null); setMsg(null)
     try {
@@ -57,7 +67,7 @@ export default function ReferenceLibraryPage() {
         d.removed ? `${d.removed.toLocaleString()} chars trimmed` : null,
       ].filter(Boolean)
       setMsg(`Ingested ${d.ingested} chunks from “${form.source}”.` + (cleanBits.length ? ` (Auto-cleaned: ${cleanBits.join(' · ')}.)` : ''))
-      setForm(f => ({ ...f, source: '', text: '' })); setTierSupport([])
+      setForm(f => ({ ...f, source: '', text: '' })); setTierSupport([]); setPreview(null)
       loadList()
     } catch (e) { setErr((e as Error).message) } finally { setBusy(false) }
   }
@@ -106,7 +116,32 @@ export default function ReferenceLibraryPage() {
         <textarea style={{ ...input, minHeight: '160px', resize: 'vertical', fontFamily: 'ui-monospace, monospace' }} value={form.text} onChange={e => setForm(f => ({ ...f, text: e.target.value }))} placeholder="Paste the public-domain text — raw Project Gutenberg is fine (headers, footers, transcriber notes and illustration tags are stripped automatically). It's then chunked (stanzas for lyrics, scenes for scripts, paragraphs for prose) and embedded." />
         {err && <div style={{ color: '#dc3c3c', fontSize: '14px', margin: '10px 0' }}>{err}</div>}
         {msg && <div style={{ color: 'var(--accent-primary)', fontSize: '14px', margin: '10px 0' }}>{msg}</div>}
-        <button onClick={ingest} disabled={busy} style={btn}>{busy ? 'Chunking & embedding…' : 'Ingest'}</button>
+
+        {/* Before/after preview — verify the cleaning + chunking before embedding */}
+        {preview && (
+          <div style={{ margin: '12px 0 16px', padding: '14px 16px', border: '1px solid var(--border)', borderRadius: '10px', background: 'var(--bg-secondary)' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              Preview — {preview.chunkCount} chunks · {preview.totalWords.toLocaleString()} words
+              <span style={{ ...muted, fontWeight: 400 }}> · avg {preview.avgWords} ({preview.minWords}–{preview.maxWords}) words/chunk</span>
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+              {preview.notes?.length ? `Auto-cleaned: ${preview.notes.join(' · ')}` : 'No boilerplate detected.'}
+              {preview.removed ? ` · ${preview.removed.toLocaleString()} chars trimmed` : ''}
+            </div>
+            {[['First chunk', preview.firstChunk], ['Second chunk', preview.secondChunk], ['Last chunk', preview.lastChunk]].map(([label, txt]) => txt ? (
+              <div key={label as string} style={{ marginBottom: '8px' }}>
+                <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: '3px' }}>{label}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, monospace', lineHeight: 1.5, maxHeight: '120px', overflow: 'auto', padding: '8px', background: 'var(--bg-card)', borderRadius: '6px' }}>{txt as string}</div>
+              </div>
+            ) : null)}
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>Check the first chunk starts at the real text and the last chunk ends cleanly, then Ingest.</div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button onClick={doPreview} disabled={previewing || busy || !form.text.trim()} style={{ ...btn, background: 'transparent', color: 'var(--accent-primary)', border: '1px solid var(--accent-primary)' }}>{previewing ? 'Checking…' : 'Preview'}</button>
+          <button onClick={ingest} disabled={busy} style={btn}>{busy ? 'Chunking & embedding…' : 'Ingest'}</button>
+        </div>
       </div>
 
       {/* Search / preview */}

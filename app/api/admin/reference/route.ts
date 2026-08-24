@@ -62,6 +62,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // ── Preview: clean + chunk only (no embedding, no storage) ──
+    if (action === 'preview') {
+      const { text, document_type } = b
+      if (!text?.trim() || !document_type) {
+        return NextResponse.json({ error: 'Text and document type are required.' }, { status: 400 })
+      }
+      const cleaned = cleanReferenceText(text)
+      const chunks = chunkText(cleaned.text, document_type)
+      const wc = (s: string) => s.split(/\s+/).filter(Boolean).length
+      const chunkWords = chunks.map(wc)
+      const totalWords = chunkWords.reduce((a, n) => a + n, 0)
+      const cap = (s: string, n = 700) => (s.length > n ? s.slice(0, n) + '…' : s)
+      return NextResponse.json({
+        ok: true,
+        removed: cleaned.removed,
+        notes: cleaned.notes,
+        chunkCount: chunks.length,
+        totalWords,
+        avgWords: chunks.length ? Math.round(totalWords / chunks.length) : 0,
+        minWords: chunkWords.length ? Math.min(...chunkWords) : 0,
+        maxWords: chunkWords.length ? Math.max(...chunkWords) : 0,
+        firstChunk: chunks[0] ? cap(chunks[0]) : '',
+        secondChunk: chunks[1] ? cap(chunks[1]) : '',
+        lastChunk: chunks.length > 1 ? cap(chunks[chunks.length - 1]) : '',
+      })
+    }
+
     // ── Ingest: chunk → embed → store ──
     if (action === 'ingest') {
       const { text, document_type, genre, craft_element, example_type, source } = b
