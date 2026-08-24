@@ -60,6 +60,7 @@ export default function Header() {
   if (isAdmin) menuItems.push({ label: 'Admin', action: () => router.push('/dashboard') })
   if (isAdmin) menuItems.push({ label: '🏠 Homepage Hero', action: () => router.push('/admin/homepage') })
   if (isAdmin) menuItems.push({ label: '📣 Share the Echo', action: () => router.push('/admin/referrals') })
+  if (isAdmin) menuItems.push({ label: '📚 Reference Library', action: () => router.push('/admin/reference-library') })
   menuItems.push({ label: 'Log out', action: () => signOut(router), danger: true })
 
   // ── The account area (right side of header) ──
