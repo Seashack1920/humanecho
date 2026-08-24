@@ -1,6 +1,8 @@
 'use client'
 
 import ArtistInvite from '@/components/ArtistInvite'
+import FeaturedMusicVideo from '@/components/FeaturedMusicVideo'
+import BrainCandy from '@/components/BrainCandy'
 import { supabase } from '@/lib/supabase'
 import { useState, useEffect, useRef } from 'react'
 import { usePlayer } from '@/context/PlayerContext'
@@ -617,7 +619,10 @@ export default function HomePage() {
             </div>
           </section>
         )}
-<ArtistInvite />  
+<ArtistInvite />
+
+        <FeaturedMusicVideo />
+        <BrainCandy />
 
         {/* ── PLATFORM HUB ── */}
         {hubCards.length > 0 && (

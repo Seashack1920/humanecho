@@ -59,6 +59,7 @@ export default function Header() {
   if (isArtist) menuItems.push({ label: 'Your Studio', action: () => router.push('/dashboard') })
   if (isAdmin) menuItems.push({ label: 'Admin', action: () => router.push('/dashboard') })
   if (isAdmin) menuItems.push({ label: '🏠 Homepage Hero', action: () => router.push('/admin/homepage') })
+  if (isAdmin) menuItems.push({ label: '✨ Homepage Spotlights', action: () => router.push('/admin/homepage-features') })
   if (isAdmin) menuItems.push({ label: '📣 Share the Echo', action: () => router.push('/admin/referrals') })
   if (isAdmin) menuItems.push({ label: '📚 Reference Library', action: () => router.push('/admin/reference-library') })
   menuItems.push({ label: 'Log out', action: () => signOut(router), danger: true })
