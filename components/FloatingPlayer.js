@@ -2,6 +2,7 @@
 
 import { usePlayer } from '@/context/PlayerContext'
 import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 
 export default function FloatingPlayer() {
   const router = useRouter()
@@ -24,7 +25,16 @@ export default function FloatingPlayer() {
     stop,
   } = usePlayer()
 
-  
+  // iOS/iPadOS make the media `volume` property read-only — a JS volume slider
+  // does nothing there (Apple reserves volume for the hardware buttons). Detect
+  // it so we can show guidance instead of a dead control.
+  const [noVolumeControl, setNoVolumeControl] = useState(false)
+  useEffect(() => {
+    const ua = navigator.userAgent || ''
+    const iOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document)
+    setNoVolumeControl(iOS)
+  }, [])
+
   if (!currentTrack) return null
   
   const progressPercent = duration ? (progress / duration) * 100 : 0
@@ -118,14 +128,20 @@ export default function FloatingPlayer() {
             <button onClick={playNext} disabled={!hasNext} style={btnStyle(!hasNext)}>⏭</button>
           </div>
 
-          {/* Volume */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>🔈</span>
-            <input type="range" min={0} max={1} step={0.01} value={volume}
-              onChange={(e) => changeVolume(parseFloat(e.target.value))}
-              style={{ flex: 1, height: '3px', accentColor: 'var(--accent-gold)', cursor: 'pointer' }} />
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>🔊</span>
-          </div>
+          {/* Volume — the slider is hidden on iOS, where JS can't set volume */}
+          {noVolumeControl ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '16px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              🔊 Use your device's volume buttons
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>🔈</span>
+              <input type="range" min={0} max={1} step={0.01} value={volume}
+                onChange={(e) => changeVolume(parseFloat(e.target.value))}
+                style={{ flex: 1, height: '3px', accentColor: 'var(--accent-gold)', cursor: 'pointer' }} />
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>🔊</span>
+            </div>
+          )}
 
           {/* Collapse button */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', paddingBottom: '16px' }}>
