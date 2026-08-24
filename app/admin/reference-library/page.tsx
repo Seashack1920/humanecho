@@ -52,7 +52,11 @@ export default function ReferenceLibraryPage() {
     setBusy(true); setErr(null); setMsg(null)
     try {
       const d = await call({ action: 'ingest', ...form, tier_support: tierSupport })
-      setMsg(`Ingested ${d.ingested} chunks from “${form.source}”.`)
+      const cleanBits = [
+        ...(d.notes || []),
+        d.removed ? `${d.removed.toLocaleString()} chars trimmed` : null,
+      ].filter(Boolean)
+      setMsg(`Ingested ${d.ingested} chunks from “${form.source}”.` + (cleanBits.length ? ` (Auto-cleaned: ${cleanBits.join(' · ')}.)` : ''))
       setForm(f => ({ ...f, source: '', text: '' })); setTierSupport([])
       loadList()
     } catch (e) { setErr((e as Error).message) } finally { setBusy(false) }
@@ -99,7 +103,7 @@ export default function ReferenceLibraryPage() {
           {TIERS.map(t => <label key={t.v} style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }}><input type="checkbox" checked={tierSupport.includes(t.v)} onChange={() => toggleTier(t.v)} />{t.l}</label>)}
         </div>
         <label style={lbl}>Text</label>
-        <textarea style={{ ...input, minHeight: '160px', resize: 'vertical', fontFamily: 'ui-monospace, monospace' }} value={form.text} onChange={e => setForm(f => ({ ...f, text: e.target.value }))} placeholder="Paste the public-domain excerpt. It will be chunked (stanzas for lyrics, scenes for scripts, paragraphs for prose) and embedded." />
+        <textarea style={{ ...input, minHeight: '160px', resize: 'vertical', fontFamily: 'ui-monospace, monospace' }} value={form.text} onChange={e => setForm(f => ({ ...f, text: e.target.value }))} placeholder="Paste the public-domain text — raw Project Gutenberg is fine (headers, footers, transcriber notes and illustration tags are stripped automatically). It's then chunked (stanzas for lyrics, scenes for scripts, paragraphs for prose) and embedded." />
         {err && <div style={{ color: '#dc3c3c', fontSize: '14px', margin: '10px 0' }}>{err}</div>}
         {msg && <div style={{ color: 'var(--accent-primary)', fontSize: '14px', margin: '10px 0' }}>{msg}</div>}
         <button onClick={ingest} disabled={busy} style={btn}>{busy ? 'Chunking & embedding…' : 'Ingest'}</button>

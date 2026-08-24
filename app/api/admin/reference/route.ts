@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { embed } from '@/lib/voyage'
 import { chunkText } from '@/lib/chunk'
+import { cleanReferenceText } from '@/lib/clean'
 
 const supabase = createClient(
   (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'),
@@ -68,7 +69,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Text, source, and document type are required.' }, { status: 400 })
       }
       const tierSupport: string[] | null = Array.isArray(b.tier_support) && b.tier_support.length ? b.tier_support : null
-      const chunks = chunkText(text, document_type)
+      // Strip Gutenberg/boilerplate so only the work itself gets embedded.
+      const cleaned = cleanReferenceText(text)
+      if (!cleaned.text.trim()) return NextResponse.json({ error: 'Nothing left after cleaning — check the pasted text.' }, { status: 400 })
+      const chunks = chunkText(cleaned.text, document_type)
       if (!chunks.length) return NextResponse.json({ error: 'No chunks produced from that text.' }, { status: 400 })
 
       const embeddings: number[][] = []
@@ -89,7 +93,7 @@ export async function POST(req: NextRequest) {
       }))
       const { error } = await supabase.from('pd_reference_chunks').insert(rows)
       if (error) throw error
-      return NextResponse.json({ ok: true, ingested: rows.length })
+      return NextResponse.json({ ok: true, ingested: rows.length, removed: cleaned.removed, notes: cleaned.notes })
     }
 
     return NextResponse.json({ error: 'Unknown action.' }, { status: 400 })
