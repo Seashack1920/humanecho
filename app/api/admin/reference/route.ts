@@ -12,6 +12,10 @@ const supabase = createClient(
 const vecLiteral = (e: number[]) => `[${e.join(',')}]`
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length
 
+// Reflow wrapped lines for prose only — poetry/lyrics/scripts rely on their line breaks.
+const LINE_SENSITIVE = ['song_lyrics', 'poetry', 'screenplay', 'stage_play']
+const isProse = (dt: string) => !LINE_SENSITIVE.includes(dt)
+
 async function requireAdmin(req: NextRequest) {
   const token = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim()
   if (!token) return { ok: false as const, res: NextResponse.json({ error: 'Not signed in.' }, { status: 401 }) }
@@ -68,7 +72,7 @@ export async function POST(req: NextRequest) {
       if (!text?.trim() || !document_type) {
         return NextResponse.json({ error: 'Text and document type are required.' }, { status: 400 })
       }
-      const cleaned = cleanReferenceText(text)
+      const cleaned = cleanReferenceText(text, { reflow: isProse(document_type) })
       const chunks = chunkText(cleaned.text, document_type)
       const wc = (s: string) => s.split(/\s+/).filter(Boolean).length
       const chunkWords = chunks.map(wc)
@@ -97,7 +101,7 @@ export async function POST(req: NextRequest) {
       }
       const tierSupport: string[] | null = Array.isArray(b.tier_support) && b.tier_support.length ? b.tier_support : null
       // Strip Gutenberg/boilerplate so only the work itself gets embedded.
-      const cleaned = cleanReferenceText(text)
+      const cleaned = cleanReferenceText(text, { reflow: isProse(document_type) })
       if (!cleaned.text.trim()) return NextResponse.json({ error: 'Nothing left after cleaning — check the pasted text.' }, { status: 400 })
       const chunks = chunkText(cleaned.text, document_type)
       if (!chunks.length) return NextResponse.json({ error: 'No chunks produced from that text.' }, { status: 400 })

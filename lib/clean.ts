@@ -4,7 +4,18 @@
 // if no known markers are found, the text passes through (only whitespace
 // normalization + italics-underscore removal apply).
 
-export function cleanReferenceText(raw: string): { text: string; removed: number; notes: string[] } {
+// Rejoin hard-wrapped lines within a paragraph into continuous prose, keeping
+// blank-line paragraph breaks. Prose only — never call this on poetry/scripts,
+// where line breaks are meaningful.
+function reflowProse(t: string): string {
+  return t
+    .split(/\n\s*\n/)
+    .map(p => p.split('\n').map(l => l.trim()).filter(Boolean).join(' ').replace(/\s{2,}/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+export function cleanReferenceText(raw: string, opts?: { reflow?: boolean }): { text: string; removed: number; notes: string[] } {
   const notes: string[] = []
   let t = (raw || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
   const before = t.length
@@ -39,6 +50,13 @@ export function cleanReferenceText(raw: string): { text: string; removed: number
 
   // ── Whitespace: trim trailing spaces, collapse 3+ blank lines to one ──
   t = t.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
+
+  // ── Prose reflow: rejoin wrapped lines into flowing paragraphs ──
+  if (opts?.reflow) {
+    const reflowed = reflowProse(t)
+    if (reflowed !== t) notes.push('Reflowed wrapped lines')
+    t = reflowed
+  }
 
   return { text: t, removed: Math.max(0, before - t.length), notes }
 }
