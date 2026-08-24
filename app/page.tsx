@@ -402,8 +402,8 @@ export default function HomePage() {
             position="center center"
             style={{
               filter: 'brightness(0.9)',
-              WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 15%, #000 78%, transparent 100%)',
-              maskImage: 'linear-gradient(to bottom, transparent 0%, #000 15%, #000 78%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 88%, transparent 100%)',
+              maskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 88%, transparent 100%)',
             }}
           />
         ) : (

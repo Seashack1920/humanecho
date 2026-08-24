@@ -111,8 +111,8 @@ function FeaturedHero({ artists, onPlayArtist }: {
           filter: 'brightness(0.9)',
           transition: 'opacity 0.3s',
           opacity: animating ? 0 : 1,
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 15%, #000 78%, transparent 100%)',
-          maskImage: 'linear-gradient(to bottom, transparent 0%, #000 15%, #000 78%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 88%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 88%, transparent 100%)',
         }}
       />
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 100%)' }} />
