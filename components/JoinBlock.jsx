@@ -73,10 +73,10 @@ export default function JoinBlock() {
               Go deeper
             </div>
             <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px', lineHeight: 1.2 }}>
-              Or dive deep into the whole experience
+              Or dive deeper
             </div>
             <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.6 }}>
-              Enjoy the benefits of membership in our community.
+              Enjoy the whole experience of membership in our community.
             </div>
             <button
               onClick={() => setBenefitsOpen(o => !o)}
