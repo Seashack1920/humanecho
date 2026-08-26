@@ -70,7 +70,7 @@ export default function JoinBlock() {
           {/* ── RIGHT: Member (paid) ── */}
           <div style={{ flex: 1, minWidth: '260px' }}>
             <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent-gold)', fontWeight: 600, marginBottom: '12px' }}>
-              Go deeper
+              Explore the future
             </div>
             <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px', lineHeight: 1.2 }}>
               Or dive deeper
