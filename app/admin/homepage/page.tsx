@@ -20,7 +20,7 @@ import { supabase } from '@/lib/supabase'
 import { playableVideoUrl } from '@/components/HeroMedia'
 import { uploadToCloudinary } from '@/lib/cloudinaryUpload'
 
-type Album = { id: string; title: string; cover_url: string | null; hero_image_url: string | null; hero_video_url: string | null; artist_id: string | null; status: string | null; artist_name?: string }
+type Album = { id: string; title: string; cover_url: string | null; hero_image_url: string | null; hero_video_url: string | null; artist_id: string | null; status: string | null; hero_position: string | null; artist_name?: string }
 type Track = { id: string; title: string; duration: string | null; album_id: string | null; artist_id: string | null }
 type Artist = { id: string; name: string }
 
@@ -46,7 +46,7 @@ export default function HomepageHeroAdmin() {
     ;(async () => {
       const [albRes, trkRes, artRes, schedRes] = await Promise.all([
         // No FK from albums→artists, so resolve names in JS instead of an embed.
-        supabase.from('albums').select('id, title, cover_url, hero_image_url, hero_video_url, artist_id, status').order('title'),
+        supabase.from('albums').select('id, title, cover_url, hero_image_url, hero_video_url, artist_id, status, hero_position').order('title'),
         supabase.from('tracks').select('id, title, duration, album_id, artist_id').eq('status', 'published').order('track_number'),
         supabase.from('artists').select('id, name').order('name'),
         supabase.from('scheduled_content').select('content_type, content_id').eq('slot', 'hero').eq('is_active', true),
@@ -82,6 +82,16 @@ export default function HomepageHeroAdmin() {
   // Immediately persist a hero image/video onto the selected album.
   const patchAlbum = (patch: Partial<Album>) => {
     setAlbums(prev => prev.map(a => a.id === heroAlbumId ? { ...a, ...patch } : a))
+  }
+
+  // Vertical framing: 0 = show top of image, 100 = show bottom. Stored as
+  // object-position "center NN%" on the album. Live-preview on drag, save on release.
+  const framingPct = (() => { const m = (selectedAlbum?.hero_position || '').match(/(\d+)%/); return m ? parseInt(m[1]) : 50 })()
+  const setFraming = (n: number) => patchAlbum({ hero_position: `center ${n}%` })
+  const saveFraming = async (n: number) => {
+    if (!heroAlbumId) return
+    const { error } = await supabase.from('albums').update({ hero_position: `center ${n}%` }).eq('id', heroAlbumId)
+    setMsg(error ? { type: 'error', text: error.message } : { type: 'success', text: 'Framing saved. Check the live homepage to confirm.' })
   }
   const doUploadImage = async () => {
     if (!imgFile || !selectedAlbum) return
@@ -163,9 +173,9 @@ export default function HomepageHeroAdmin() {
           <>
             {selectedAlbum.hero_video_url ? (
               <video src={playableVideoUrl(selectedAlbum.hero_video_url) || undefined} autoPlay loop muted playsInline
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: selectedAlbum.hero_position || 'center center' }} />
             ) : bg ? (
-              <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(0.6)' }} />
+              <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${bg})`, backgroundSize: 'cover', backgroundPosition: selectedAlbum.hero_position || 'center center', filter: 'brightness(0.6)' }} />
             ) : <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,#0d1f2d,#0a0a0b 60%,#1a0d0d)' }} />}
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,10,11,0.95), rgba(10,10,11,0.2) 60%, transparent)' }} />
             <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'flex-end', gap: '18px', height: '100%', padding: '20px' }}>
@@ -197,6 +207,22 @@ export default function HomepageHeroAdmin() {
 
       {selectedAlbum && (
         <>
+          {/* Vertical framing */}
+          <div style={s.field}>
+            <label style={s.label}>Vertical framing <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>— slide to move the image up or down within the hero</span></label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', width: '44px', textAlign: 'right' }}>Top</span>
+              <input type="range" min={0} max={100} value={framingPct}
+                onChange={e => setFraming(parseInt(e.target.value))}
+                onMouseUp={e => saveFraming(parseInt((e.target as HTMLInputElement).value))}
+                onTouchEnd={e => saveFraming(parseInt((e.target as HTMLInputElement).value))}
+                style={{ flex: 1, accentColor: 'var(--accent-primary)', cursor: 'pointer' }} />
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', width: '44px' }}>Bottom</span>
+              <button type="button" onClick={() => { setFraming(50); saveFraming(50) }} style={{ fontSize: '11px', color: 'var(--accent-primary)', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>reset</button>
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Preview above updates live · the real hero is taller, so confirm on the homepage.</div>
+          </div>
+
           {/* Hero media management */}
           <div style={s.mediaGrid}>
             <div style={s.mediaCard}>

@@ -16,7 +16,7 @@ import HeroMedia from '@/components/HeroMedia'
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Track     = { id: string; title: string; duration: string | null; cloudinary_url: string | null; track_image_url: string | null; content_origin: string | null; track_type: string | null; artist_id: string | null; music_video_url?: string | null; cover_welcome?: boolean }
-type Album     = { id: string; title: string; cover_url: string | null; artist_id: string | null; hero_image_url?: string | null; hero_video_url?: string | null }
+type Album     = { id: string; title: string; cover_url: string | null; artist_id: string | null; hero_image_url?: string | null; hero_video_url?: string | null; hero_position?: string | null }
 type Artist    = { id: string; name: string; photo_url: string | null; bio: string | null; content_origin: string | null; creator_label?: string | null; creator_type?: string[] | null; featured_order?: number | null }
 type Executive = { id: string; name: string; title: string; photo_url: string | null; intro_video_url: string | null; featured_message: string | null; department: string | null }
 type Genre     = { id: string; name: string }
@@ -241,7 +241,7 @@ export default function HomePage() {
         console.log('[HE] calling Promise.all of fetchScheduled')
         const [featuredTrack, featuredAlbum, featuredArtist, exec] = await Promise.all([
           fetchScheduled('hero', 'track',     'id, title, duration, cloudinary_url, track_image_url, content_origin, track_type, artist_id, music_video_url, cover_welcome'),
-          fetchScheduled('hero', 'album',     'id, title, cover_url, artist_id, hero_image_url, hero_video_url'),
+          fetchScheduled('hero', 'album',     'id, title, cover_url, artist_id, hero_image_url, hero_video_url, hero_position'),
           fetchScheduled('hero', 'artist',    'id, name, photo_url, bio, content_origin, creator_label'),
           fetchScheduled('spotlight', 'executive', 'id, name, title, photo_url, intro_video_url, featured_message, department'),
         ])
@@ -416,7 +416,7 @@ export default function HomePage() {
           <HeroMedia
             imageUrl={heroAlbum.hero_image_url || heroAlbum.cover_url}
             videoUrl={heroAlbum.hero_video_url}
-            position="center center"
+            position={heroAlbum.hero_position || 'center center'}
             style={{
               filter: 'brightness(0.9)',
               WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 88%, transparent 100%)',
