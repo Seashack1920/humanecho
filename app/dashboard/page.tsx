@@ -217,6 +217,24 @@ useEffect(() => {
     if (!error) setAlbums(prev => prev.map(a => ({ ...a, tracks: a.tracks?.map(t => t.id === track.id ? { ...t, status: newStatus } : t) })))
   }
 
+  // Pull a track out of its album — it becomes a standalone single (album_id null)
+  // and moves into the synthetic "Singles" group.
+  const removeFromAlbum = async (track: Track) => {
+    const { error } = await supabase.from('tracks').update({ album_id: null }).eq('id', track.id)
+    if (error) { setMessage({ type: 'error', text: error.message }); return }
+    setAlbums(prev => {
+      const moved = { ...track, album_id: null }
+      let next = prev.map(a => a.id === SINGLES_ID ? a : { ...a, tracks: a.tracks?.filter(t => t.id !== track.id) })
+      if (next.some(a => a.id === SINGLES_ID)) {
+        next = next.map(a => a.id === SINGLES_ID ? { ...a, tracks: [...(a.tracks || []), moved] } : a)
+      } else {
+        next = [...next, { id: SINGLES_ID, title: 'Singles', album_type: 'single', status: null, cover_url: null, hero_image_url: null, hero_video_url: null, price: null, description: null, tracks: [moved] } as any]
+      }
+      return next
+    })
+    setMessage({ type: 'success', text: `"${track.title}" is now a standalone single.` })
+  }
+
   const toggleAlbumStatus = async (album: Album) => {
     const newStatus = statusCycle(album.status || 'draft')
     const { error } = await supabase.from('albums').update({ status: newStatus }).eq('id', album.id)
@@ -675,6 +693,9 @@ useEffect(() => {
                                       {copiedId === track.id ? '✓ Copied' : '🔗'}
                                     </button>
                                     <button style={s.btnSmSecondary} onClick={() => { setEditingTrackId(track.id); setEditTrack({}); resetTrackFiles() }}>Edit</button>
+                                    {album.id !== SINGLES_ID && (
+                                      <button style={s.btnSmSecondary} title="Remove from this album — keeps it as a standalone single" onClick={() => removeFromAlbum(track)}>↗ Make single</button>
+                                    )}
                                     <button style={s.btnSmDanger} onClick={() => setConfirmDelete({ type: 'track', id: track.id, name: track.title, albumId: album.id })}>×</button>
                                   </div>
                                 </div>
