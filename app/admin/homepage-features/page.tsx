@@ -12,21 +12,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import FeaturedMusicVideo from '@/components/FeaturedMusicVideo'
 import BrainCandy from '@/components/BrainCandy'
-
-const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-
-function uploadToCloudinary(file: File, folder: string, resourceType: string, onProgress?: (p: number) => void) {
-  return new Promise<string>((resolve, reject) => {
-    const fd = new FormData()
-    fd.append('file', file); fd.append('upload_preset', 'humanecho_upload'); fd.append('folder', folder)
-    const xhr = new XMLHttpRequest()
-    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`)
-    xhr.upload.onprogress = e => { if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100)) }
-    xhr.onload = () => { const d = JSON.parse(xhr.responseText); d.error ? reject(new Error(d.error.message)) : resolve(d.secure_url) }
-    xhr.onerror = () => reject(new Error('Upload failed'))
-    xhr.send(fd)
-  })
-}
+import { uploadToCloudinary } from '@/lib/cloudinaryUpload'
 
 type Row = Record<string, any>
 
@@ -139,7 +125,7 @@ function Editor({ r, onPatch, onSave, heading, folder, fields, help, picks }: {
     if (!file) return
     try {
       setPct(p => ({ ...p, [field]: 0 }))
-      const url = await uploadToCloudinary(file, folder, kind, n => setPct(p => ({ ...p, [field]: n })))
+      const { url } = await uploadToCloudinary(file, folder, kind, n => setPct(p => ({ ...p, [field]: n })))
       onPatch(field, url)
     } catch (e) { alert((e as Error).message) }
     setPct(p => ({ ...p, [field]: null }))

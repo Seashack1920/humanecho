@@ -18,28 +18,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { playableVideoUrl } from '@/components/HeroMedia'
-
-const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-
-function uploadToCloudinary(
-  file: File,
-  folder: string,
-  resourceType: string,
-  onProgress?: (pct: number) => void
-) {
-  return new Promise<string>((resolve, reject) => {
-    const fd = new FormData()
-    fd.append('file', file)
-    fd.append('upload_preset', 'humanecho_upload')
-    fd.append('folder', folder)
-    const xhr = new XMLHttpRequest()
-    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`)
-    xhr.upload.onprogress = (e) => { if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100)) }
-    xhr.onload = () => { const d = JSON.parse(xhr.responseText); d.error ? reject(new Error(d.error.message)) : resolve(d.secure_url) }
-    xhr.onerror = () => reject(new Error('Upload failed'))
-    xhr.send(fd)
-  })
-}
+import { uploadToCloudinary } from '@/lib/cloudinaryUpload'
 
 type Album = { id: string; title: string; cover_url: string | null; hero_image_url: string | null; hero_video_url: string | null; artist_id: string | null; status: string | null; artist_name?: string }
 type Track = { id: string; title: string; duration: string | null; album_id: string | null; artist_id: string | null }
@@ -108,7 +87,7 @@ export default function HomepageHeroAdmin() {
     if (!imgFile || !selectedAlbum) return
     try {
       setImgPct(0)
-      const url = await uploadToCloudinary(imgFile, `homepage/hero/${heroAlbumId}`, 'image', setImgPct)
+      const { url } = await uploadToCloudinary(imgFile, `homepage/hero/${heroAlbumId}`, 'image', setImgPct)
       const { error } = await supabase.from('albums').update({ hero_image_url: url }).eq('id', heroAlbumId)
       if (error) throw error
       patchAlbum({ hero_image_url: url }); setImgFile(null)
@@ -120,7 +99,7 @@ export default function HomepageHeroAdmin() {
     if (!vidFile || !selectedAlbum) return
     try {
       setVidPct(0)
-      const url = await uploadToCloudinary(vidFile, `homepage/hero/${heroAlbumId}`, 'video', setVidPct)
+      const { url } = await uploadToCloudinary(vidFile, `homepage/hero/${heroAlbumId}`, 'video', setVidPct)
       const { error } = await supabase.from('albums').update({ hero_video_url: url }).eq('id', heroAlbumId)
       if (error) throw error
       patchAlbum({ hero_video_url: url }); setVidFile(null)

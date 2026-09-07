@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { uploadToCloudinary } from '@/lib/cloudinaryUpload'
 import { useRouter } from 'next/navigation'
 import { usePlayer } from '@/context/PlayerContext'
 import { StoriesTab } from './StoriesTab'
@@ -84,28 +85,12 @@ const originEmoji = (o?: string | null) => o === '100% human' ? '🧑' : o === '
 const statusCycle = (s: string) => s === 'draft' ? 'private' : s === 'private' ? 'published' : 'draft'
 const statusNext  = (s: string) => s === 'draft' ? 'Make Private' : s === 'private' ? 'Publish' : 'Unpublish'
 
-const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-
 async function uploadImage(file: File, folder: string): Promise<string> {
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('upload_preset', 'humanecho_upload')
-  formData.append('folder', folder)
-  const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: formData })
-  const data = await res.json()
-  if (data.error) throw new Error(data.error.message)
-  return data.secure_url
+  return (await uploadToCloudinary(file, folder, 'image')).url
 }
 
 async function uploadVideo(file: File, folder: string): Promise<string> {
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('upload_preset', 'humanecho_upload')
-  formData.append('folder', folder)
-  const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`, { method: 'POST', body: formData })
-  const data = await res.json()
-  if (data.error) throw new Error(data.error.message)
-  return data.secure_url
+  return (await uploadToCloudinary(file, folder, 'video')).url
 }
 
 export default function Dashboard() {

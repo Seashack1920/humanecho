@@ -3,41 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-
-
-const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-
-async function uploadToCloudinary(
-  file: File,
-  folder: string,
-  resourceType: string = 'auto',
-  onProgress?: (percent: number) => void
-) {
-  return new Promise<{ url: string; public_id: string }>((resolve, reject) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('upload_preset', 'humanecho_upload')
-    formData.append('folder', folder)
-
-    const xhr = new XMLHttpRequest()
-    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`)
-
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable && onProgress) {
-        onProgress(Math.round((e.loaded / e.total) * 100))
-      }
-    }
-
-    xhr.onload = () => {
-      const data = JSON.parse(xhr.responseText)
-      if (data.error) reject(new Error(data.error.message))
-      else resolve({ url: data.secure_url, public_id: data.public_id })
-    }
-
-    xhr.onerror = () => reject(new Error('Upload failed'))
-    xhr.send(formData)
-  })
-}
+import { uploadToCloudinary } from '@/lib/cloudinaryUpload'
 
 async function readAudioDuration(file: File): Promise<string> {
   return new Promise<string>((resolve) => {
