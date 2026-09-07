@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { uploadToCloudinary } from '@/lib/cloudinaryUpload'
+import BulkTrackUpload from '@/components/BulkTrackUpload'
 
 async function readAudioDuration(file: File): Promise<string> {
   return new Promise<string>((resolve) => {
@@ -163,6 +164,7 @@ export default function ArtistUpload() {
   const [albumGenres, setAlbumGenres] = useState<string[]>([])
   const [genres, setGenres]       = useState<{ id: string; name: string }[]>([])
   const [savedTracks, setSavedTracks] = useState<{ title: string; duration: string }[]>([])
+  const [bulkMode, setBulkMode] = useState(false)
   const [trackGenres, setTrackGenres] = useState<string[]>([])
 
   const emptyTrack = {
@@ -526,6 +528,31 @@ const songStory = trackSongStoryFile
           <div style={s.card}>
             <div style={s.sectionTitle}>Track</div>
 
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '18px' }}>
+              <button type="button" onClick={() => setBulkMode(false)}
+                style={{ padding: '8px 16px', borderRadius: '999px', border: '1px solid var(--border)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, background: !bulkMode ? 'var(--accent-primary)' : 'transparent', color: !bulkMode ? '#fff' : 'var(--text-secondary)' }}>
+                Add one track
+              </button>
+              <button type="button" onClick={() => setBulkMode(true)}
+                style={{ padding: '8px 16px', borderRadius: '999px', border: '1px solid var(--border)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, background: bulkMode ? 'var(--accent-primary)' : 'transparent', color: bulkMode ? '#fff' : 'var(--text-secondary)' }}>
+                ⚡ Bulk drop
+              </button>
+            </div>
+
+            {bulkMode ? (
+              <BulkTrackUpload
+                artists={artist ? [{ id: artist.id, name: artist.name }] : []}
+                albums={albums}
+                selectedArtistId={artist?.id || ''}
+                selectedAlbumId={selectedAlbumId}
+                genres={genres}
+                albumGenres={albumGenres}
+                GenrePicker={GenrePicker}
+                onUploaded={(t) => setSavedTracks(prev => [...prev, { title: t.title, duration: t.duration }])}
+              />
+            ) : (
+            <>
+
             {savedTracks.length > 0 && (
               <div style={{ marginBottom: '24px' }}>
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
@@ -756,6 +783,8 @@ const songStory = trackSongStoryFile
                   {loading ? 'Uploading...' : 'Save Track'}
                 </button>
               </div>
+            )}
+            </>
             )}
           </div>
         )}
