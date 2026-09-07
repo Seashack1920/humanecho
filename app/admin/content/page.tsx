@@ -106,6 +106,9 @@ export default function AdminContent() {
           <Link href="/admin/inventory" style={{ ...s.link, fontSize: '14px' }}>
             📋 Content Inventory
           </Link>
+          <Link href="/admin/songbook" style={{ ...s.link, fontSize: '14px' }}>
+            🎼 Songbook
+          </Link>
           <Link href="/admin/upload" style={{ ...s.link, fontSize: '14px' }}>
             + Upload Music
           </Link>
