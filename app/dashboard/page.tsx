@@ -121,7 +121,8 @@ export default function Dashboard() {
   const [albumHeroFile, setAlbumHeroFile]           = useState<File | null>(null)
   const [albumHeroVideoFile, setAlbumHeroVideoFile] = useState<File | null>(null)
 
-  const realAlbumCount  = albums.filter(a => a.id !== SINGLES_ID).length
+  const realAlbums      = albums.filter(a => a.id !== SINGLES_ID)
+  const realAlbumCount  = realAlbums.length
   const totalTracks     = albums.reduce((sum, a) => sum + (a.tracks?.length || 0), 0)
   const publishedTracks = albums.reduce((sum, a) => sum + (a.tracks?.filter(t => t.status === 'published').length || 0), 0)
   const draftTracks     = albums.reduce((sum, a) => sum + (a.tracks?.filter(t => t.status === 'draft').length || 0), 0)
@@ -215,6 +216,23 @@ useEffect(() => {
     const newStatus = statusCycle(track.status || 'draft')
     const { error } = await supabase.from('tracks').update({ status: newStatus }).eq('id', track.id)
     if (!error) setAlbums(prev => prev.map(a => ({ ...a, tracks: a.tracks?.map(t => t.id === track.id ? { ...t, status: newStatus } : t) })))
+  }
+
+  // Add a standalone single into an existing album — moves it out of the
+  // Singles group and into that album's track list.
+  const addToAlbum = async (track: Track, albumId: string) => {
+    if (!albumId) return
+    const albumTitle = albums.find(a => a.id === albumId)?.title || 'the album'
+    const { error } = await supabase.from('tracks').update({ album_id: albumId }).eq('id', track.id)
+    if (error) { setMessage({ type: 'error', text: error.message }); return }
+    setAlbums(prev => {
+      const moved = { ...track, album_id: albumId }
+      let next = prev.map(a => a.id === SINGLES_ID ? { ...a, tracks: a.tracks?.filter(t => t.id !== track.id) } : a)
+      next = next.map(a => a.id === albumId ? { ...a, tracks: [...(a.tracks || []), moved] } : a)
+      next = next.filter(a => a.id !== SINGLES_ID || (a.tracks && a.tracks.length > 0))
+      return next
+    })
+    setMessage({ type: 'success', text: `"${track.title}" added to ${albumTitle}.` })
   }
 
   // Pull a track out of its album — it becomes a standalone single (album_id null)
@@ -695,6 +713,13 @@ useEffect(() => {
                                     <button style={s.btnSmSecondary} onClick={() => { setEditingTrackId(track.id); setEditTrack({}); resetTrackFiles() }}>Edit</button>
                                     {album.id !== SINGLES_ID && (
                                       <button style={s.btnSmSecondary} title="Remove from this album — keeps it as a standalone single" onClick={() => removeFromAlbum(track)}>↗ Make single</button>
+                                    )}
+                                    {album.id === SINGLES_ID && realAlbums.length > 0 && (
+                                      <select value="" title="Add this single to an album" onChange={e => { if (e.target.value) addToAlbum(track, e.target.value) }}
+                                        style={{ ...s.btnSmSecondary, cursor: 'pointer', maxWidth: '150px' }}>
+                                        <option value="">+ Add to album…</option>
+                                        {realAlbums.map(al => <option key={al.id} value={al.id}>{al.title}</option>)}
+                                      </select>
                                     )}
                                     <button style={s.btnSmDanger} onClick={() => setConfirmDelete({ type: 'track', id: track.id, name: track.title, albumId: album.id })}>×</button>
                                   </div>
