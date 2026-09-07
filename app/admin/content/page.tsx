@@ -109,6 +109,9 @@ export default function AdminContent() {
           <Link href="/admin/songbook" style={{ ...s.link, fontSize: '14px' }}>
             🎼 Songbook
           </Link>
+          <Link href="/admin/artist-links" style={{ ...s.link, fontSize: '14px' }}>
+            🔗 Artist Accounts
+          </Link>
           <Link href="/admin/upload" style={{ ...s.link, fontSize: '14px' }}>
             + Upload Music
           </Link>
