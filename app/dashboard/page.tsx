@@ -19,7 +19,7 @@ type Track = {
   track_type: string | null; content_origin: string | null; track_number: number | null
   cloudinary_url: string | null; track_image_url: string | null; album_id: string | null
   price: number | null; text_content: string | null; cover_welcome: boolean | null
-  music_video_welcome: boolean | null; explicit: boolean | null; tagline: string | null
+  music_video_welcome: boolean | null; explicit: boolean | null; tagline: string | null; track_canvas_url: string | null
   mood_tags: string[] | null; coach_categories: string[] | null
 }
 type Album = {
@@ -116,6 +116,7 @@ export default function Dashboard() {
 
   const [trackImageFile, setTrackImageFile]         = useState<File | null>(null)
   const [trackVideoFile, setTrackVideoFile]         = useState<File | null>(null)
+  const [trackCanvasFile, setTrackCanvasFile]       = useState<File | null>(null)
   const [trackSongStoryFile, setTrackSongStoryFile] = useState<File | null>(null)
   const [albumCoverFile, setAlbumCoverFile]         = useState<File | null>(null)
   const [albumHeroFile, setAlbumHeroFile]           = useState<File | null>(null)
@@ -153,7 +154,7 @@ useEffect(() => {
     setLoading(true)
     const { data: artistData } = await supabase.from('artists').select('id, name, bio, photo_url, stripe_account_id, stripe_onboarded').eq('id', artistId).single()
     if (artistData) setArtist(artistData)
-    const TRACK_FIELDS = 'id, title, duration, status, track_type, content_origin, track_number, cloudinary_url, track_image_url, album_id, price, text_content, cover_welcome, music_video_welcome, explicit, tagline, mood_tags, coach_categories'
+    const TRACK_FIELDS = 'id, title, duration, status, track_type, content_origin, track_number, cloudinary_url, track_image_url, track_canvas_url, album_id, price, text_content, cover_welcome, music_video_welcome, explicit, tagline, mood_tags, coach_categories'
     const { data: albumsData } = await supabase.from('albums').select('id, title, status, album_type, cover_url, hero_image_url, hero_video_url, price, description').eq('artist_id', artistId).order('title')
     const built: any[] = []
     if (albumsData) {
@@ -260,7 +261,7 @@ useEffect(() => {
   }
 
   const resetTrackFiles = () => {
-    setTrackImageFile(null); setTrackVideoFile(null); setTrackSongStoryFile(null)
+    setTrackImageFile(null); setTrackVideoFile(null); setTrackSongStoryFile(null); setTrackCanvasFile(null)
   }
 
   const handleSaveTrack = async (trackId: string) => {
@@ -282,6 +283,10 @@ useEffect(() => {
       if (trackSongStoryFile) {
         setMessage({ type: 'success', text: 'Uploading Song Story...' })
         updates.artist_message_url = await uploadVideo(trackSongStoryFile, `tracks/${trackId}/song-story`)
+      }
+      if (trackCanvasFile) {
+        setMessage({ type: 'success', text: 'Uploading Canvas...' })
+        updates.track_canvas_url = await uploadVideo(trackCanvasFile, `tracks/${trackId}/canvas`)
       }
       const { error } = await supabase.from('tracks').update(updates).eq('id', trackId)
       if (!error) {
@@ -646,6 +651,11 @@ useEffect(() => {
                                   <input type="file" accept="image/*" style={s.fileInput} onChange={e => setTrackImageFile(e.target.files?.[0] || null)} />
                                   {trackImageFile && <div style={{ fontSize: '11px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackImageFile.name} — will upload on save</div>}
                                   {track.track_image_url && !trackImageFile && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Current image set · <a href={track.track_image_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a></div>}
+
+                                  <label style={s.label}>Canvas <span style={{ fontWeight: '400', textTransform: 'none', letterSpacing: 0, color: 'var(--text-muted)' }}>— optional square looping video (≤10s, silent), plays behind the artwork in the player</span></label>
+                                  <input type="file" accept="video/*,image/gif" style={s.fileInput} onChange={e => setTrackCanvasFile(e.target.files?.[0] || null)} />
+                                  {trackCanvasFile && <div style={{ fontSize: '11px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackCanvasFile.name} — will upload on save</div>}
+                                  {track.track_canvas_url && !trackCanvasFile && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Canvas set · <a href={track.track_canvas_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a> · <button onClick={() => setEditTrack(p => ({ ...p, track_canvas_url: null }))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#dc3c3c', padding: 0 }}>remove</button></div>}
 
                                   <label style={s.label}>Song Story <span style={{ fontWeight: '400', textTransform: 'none', letterSpacing: 0, color: 'var(--text-muted)' }}>— tell the story behind this track with a video up to :30, any ratio</span></label>
                                   <input type="file" accept="video/*" style={s.fileInput} onChange={e => setTrackSongStoryFile(e.target.files?.[0] || null)} />

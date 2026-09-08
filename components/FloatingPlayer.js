@@ -4,6 +4,7 @@ import { usePlayer } from '@/context/PlayerContext'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { playableVideoUrl } from '@/components/HeroMedia'
 
 export default function FloatingPlayer() {
   const router = useRouter()
@@ -36,15 +37,15 @@ export default function FloatingPlayer() {
     setNoVolumeControl(iOS)
   }, [])
 
-  // The optional one-line tagline for the current track. Use it if the source
-  // already provided it, otherwise fetch by id so it shows wherever a track plays.
+  // The optional tagline + Canvas (looping visual) for the current track,
+  // fetched by id so they appear wherever a track is played from.
   const [tagline, setTagline] = useState('')
+  const [canvas, setCanvas] = useState('')
   useEffect(() => {
-    if (!currentTrack) { setTagline(''); return }
-    if (currentTrack.tagline != null) { setTagline(currentTrack.tagline); return }
+    if (!currentTrack?.id) { setTagline(''); setCanvas(''); return }
     let off = false
-    supabase.from('tracks').select('tagline').eq('id', currentTrack.id).maybeSingle()
-      .then(({ data }) => { if (!off) setTagline(data?.tagline || '') })
+    supabase.from('tracks').select('tagline, track_canvas_url').eq('id', currentTrack.id).maybeSingle()
+      .then(({ data }) => { if (!off) { setTagline(data?.tagline || ''); setCanvas(data?.track_canvas_url || '') } })
     return () => { off = true }
   }, [currentTrack?.id])
 
@@ -94,11 +95,14 @@ export default function FloatingPlayer() {
       {isExpanded && (
         <div style={{ padding: '20px 20px 0' }}>
 
-          {/* Album art */}
+          {/* Album art — a looping Canvas video if the artist set one, else the still */}
           <div style={{ width: '100%', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', marginBottom: '16px', background: 'var(--bg-secondary)' }}>
-            {currentTrack.track_image_url
-              ? <img src={currentTrack.track_image_url} alt={currentTrack.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px' }}>🎵</div>
+            {canvas
+              ? <video src={playableVideoUrl(canvas)} poster={currentTrack.track_image_url || undefined} autoPlay loop muted playsInline
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : currentTrack.track_image_url
+                ? <img src={currentTrack.track_image_url} alt={currentTrack.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px' }}>🎵</div>
             }
           </div>
 

@@ -29,7 +29,7 @@ async function readAudioDuration(file: File): Promise<string> {
 
 type Artist = { id: string; name: string; bio?: string; photo_url?: string; content_origin?: string; creator_type?: string[]; creator_label?: string; artist_profile_video_url?: string; hero_video_url?: string }
 type Album  = { id: string; artist_id: string; title: string; description?: string; status?: string; cover_url?: string; hero_image_url?: string; hero_video_url?: string; album_type?: string; content_origin?: string; price?: number }
-type Track  = { id: string; album_id?: string; artist_id: string; title: string; track_number?: number; track_type?: string; duration?: string; status?: string; content_origin?: string; price?: number; text_content?: string; tagline?: string; cloudinary_url?: string; track_image_url?: string }
+type Track  = { id: string; album_id?: string; artist_id: string; title: string; track_number?: number; track_type?: string; duration?: string; status?: string; content_origin?: string; price?: number; text_content?: string; tagline?: string; cloudinary_url?: string; track_image_url?: string; track_canvas_url?: string }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -170,6 +170,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
   const [editingTrackId, setEditingTrackId] = useState<string | null>(null)
   const [editTrack, setEditTrack]           = useState<Partial<Track>>({})
   const [trackImageFile, setTrackImageFile] = useState<File | null>(null)
+  const [trackCanvasFile, setTrackCanvasFile] = useState<File | null>(null)
 
   const [confirmDelete, setConfirmDelete] = useState<{ type: string; id: string; name: string } | null>(null)
 
@@ -343,11 +344,15 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
     setMessage(null)
     try {
       let updates: any = { ...editTrack }
+      const artistName = artists.find(a => a.id === selectedArtistId)?.name || 'unknown'
+      const albumTitle = albums.find(a => a.id === selectedAlbumId)?.title || 'singles'
+      const trackTitle = tracks.find(t => t.id === trackId)?.title || 'unknown'
+      const trackFolder = `${slugify(artistName)}/albums/${slugify(albumTitle)}/${slugify(trackTitle)}`
       if (trackImageFile) {
-        const artistName = artists.find(a => a.id === selectedArtistId)?.name || 'unknown'
-        const albumTitle = albums.find(a => a.id === selectedAlbumId)?.title || 'singles'
-        const trackTitle = tracks.find(t => t.id === trackId)?.title || 'unknown'
-        updates.track_image_url = (await uploadToCloudinary(trackImageFile, `${slugify(artistName)}/albums/${slugify(albumTitle)}/${slugify(trackTitle)}`, 'image')).url
+        updates.track_image_url = (await uploadToCloudinary(trackImageFile, trackFolder, 'image')).url
+      }
+      if (trackCanvasFile) {
+        updates.track_canvas_url = (await uploadToCloudinary(trackCanvasFile, `${trackFolder}/canvas`, 'video')).url
       }
       if (updates.price        !== undefined) updates.price        = updates.price        ? parseFloat(updates.price)      : null
       if (updates.track_number !== undefined) updates.track_number = updates.track_number ? parseInt(updates.track_number) : null
@@ -362,6 +367,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
       setTracks(prev => prev.map(t => t.id === trackId ? { ...t, ...updates } : t))
       setEditingTrackId(null)
       setTrackImageFile(null)
+      setTrackCanvasFile(null)
       setMessage({ type: 'success', text: 'Track updated.' })
     } catch (err) {
       setMessage({ type: 'error', text: (err as Error).message })
@@ -867,6 +873,14 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                           style={{ display: 'block', marginTop: '8px', width: '112px', height: '112px', objectFit: 'cover', borderRadius: '10px', border: '1px solid var(--border)' }} />
                       )}
                     </div>
+                    <div>
+                      <label style={s.label}>Canvas <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional square looping video (≤10s, silent) shown behind the artwork while the song plays</span></label>
+                      <input type="file" accept="video/*,image/gif" style={s.fileInput} onChange={e => setTrackCanvasFile(e.target.files?.[0] || null)} />
+                      {trackCanvasFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackCanvasFile.name}</div>}
+                      {track.track_canvas_url && !trackCanvasFile && (
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Canvas set · <a href={track.track_canvas_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a> · <button onClick={() => setEditTrack(p => ({ ...p, track_canvas_url: null as any }))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#dc3c3c', padding: 0 }}>remove</button></div>
+                      )}
+                    </div>
                   </div>
                   <div style={s.field}>
                     {(() => { const tv = (editTrack.tagline ?? track.tagline ?? '') as string; return (
@@ -901,7 +915,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button style={s.btnSave} onClick={() => handleSaveTrack(track.id)} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
-                    <button style={s.btnCancel} onClick={() => { setEditingTrackId(null); setEditTrack({}); setTrackImageFile(null) }}>Cancel</button>
+                    <button style={s.btnCancel} onClick={() => { setEditingTrackId(null); setEditTrack({}); setTrackImageFile(null); setTrackCanvasFile(null) }}>Cancel</button>
                   </div>
                 </div>
               ) : (
@@ -1002,6 +1016,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
   const [track, setTrack]                           = useState(emptyTrack)
   const [trackAudioFile, setTrackAudioFile]         = useState<File | null>(null)
   const [trackImageFile, setTrackImageFile]         = useState<File | null>(null)
+  const [trackCanvasFile, setTrackCanvasFile]       = useState<File | null>(null)
   const [trackMessageFile, setTrackMessageFile]     = useState<File | null>(null)
   const [trackMusicVideoFile, setTrackMusicVideoFile] = useState<File | null>(null)
   const [showPublishing, setShowPublishing]         = useState(false)
@@ -1128,6 +1143,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
       const image      = trackImageFile      ? await uploadToCloudinary(trackImageFile, trackFolder, 'image', (p) => setUploadProgress({ label: `Uploading image: ${track.title}`, percent: p })) : null
       const message    = trackMessageFile    ? await uploadToCloudinary(trackMessageFile, trackFolder, 'video') : null
       const musicVideo = trackMusicVideoFile ? await uploadToCloudinary(trackMusicVideoFile, trackFolder, 'video') : null
+      const canvas     = trackCanvasFile     ? await uploadToCloudinary(trackCanvasFile, `${trackFolder}/canvas`, 'video', (p) => setUploadProgress({ label: `Uploading canvas: ${track.title}`, percent: p })) : null
 
       setUploadProgress({ label: 'Saving track...', percent: 100 })
 
@@ -1138,6 +1154,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
         cloudinary_url: audio?.url ?? '', cloudinary_public_id: audio?.public_id ?? null,
         file_format: track.file_format,
         track_image_url: image?.url ?? '', music_video_url: musicVideo?.url ?? '',
+        track_canvas_url: canvas?.url ?? null,
         artist_message_url: message?.url ?? '', text_content: track.text_content,
         tagline: track.tagline?.trim() ? track.tagline.trim().slice(0, 120) : null,
         text_content_type: track.text_content_type,
@@ -1495,6 +1512,11 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                       style={{ display: 'block', marginTop: '8px', width: '112px', height: '112px', objectFit: 'cover', borderRadius: '10px', border: '1px solid var(--border)' }} />
                   )}
                 </div>
+                <div>
+                  <label style={s.label}>Canvas <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional square looping video (≤10s, silent), plays behind the artwork</span></label>
+                  <input type="file" accept="video/*,image/gif" style={s.fileInput} onChange={e => setTrackCanvasFile(e.target.files?.[0] || null)} />
+                  {trackCanvasFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackCanvasFile.name}</div>}
+                </div>
               </div>
               <div style={s.field}>
                 <label style={s.label}>Genres (up to 3)</label>
@@ -1594,7 +1616,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                       onClick={() => {
                         const nextNum = String(parseInt(track.track_number || '0') + 1)
                         setTrack({ ...emptyTrack, track_number: nextNum, content_origin: track.content_origin, status: track.status, price: track.price, publisher: track.publisher, copyright_owner: track.copyright_owner, copyright_year: track.copyright_year })
-                        setTrackAudioFile(null); setTrackImageFile(null); setTrackMessageFile(null); setTrackMusicVideoFile(null); setTrackGenres([])
+                        setTrackAudioFile(null); setTrackImageFile(null); setTrackCanvasFile(null); setTrackMessageFile(null); setTrackMusicVideoFile(null); setTrackGenres([])
                         setSavedTrackInfo(null)
                       }}
                     >

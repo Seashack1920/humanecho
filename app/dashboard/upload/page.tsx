@@ -183,6 +183,7 @@ export default function ArtistUpload() {
   const [track, setTrack]         = useState(emptyTrack)
   const [trackAudioFile, setTrackAudioFile] = useState<File | null>(null)
   const [trackImageFile, setTrackImageFile] = useState<File | null>(null)
+  const [trackCanvasFile, setTrackCanvasFile] = useState<File | null>(null)
   const [trackSongStoryFile, setTrackSongStoryFile] = useState<File | null>(null)
 const [trackMusicVideoFile, setTrackMusicVideoFile] = useState<File | null>(null) 
   const [showPublishing, setShowPublishing] = useState(false)
@@ -312,6 +313,9 @@ const songStory = trackSongStoryFile
       const musicVideo = trackMusicVideoFile
         ? await uploadToCloudinary(trackMusicVideoFile, trackFolder, 'video', (p) => setUploadProgress({ label: `Uploading Music Video: ${track.title}`, percent: p }))
         : null
+      const canvas = trackCanvasFile
+        ? await uploadToCloudinary(trackCanvasFile, `${trackFolder}/canvas`, 'video', (p) => setUploadProgress({ label: `Uploading Canvas: ${track.title}`, percent: p }))
+        : null
       setUploadProgress({ label: 'Saving track...', percent: 100 })
 
       const { data, error } = await supabase.from('tracks').insert({
@@ -325,6 +329,7 @@ const songStory = trackSongStoryFile
         cloudinary_public_id: audio?.public_id ?? null,
         file_format: track.file_format,
         track_image_url: image?.url ?? '',
+        track_canvas_url: canvas?.url ?? null,
         text_content: track.text_content,
         tagline: track.tagline?.trim() ? track.tagline.trim().slice(0, 120) : null,
         text_content_type: track.track_type === 'song' ? 'lyrics' : track.track_type === 'instrumental' ? 'description' : 'story',
@@ -630,6 +635,11 @@ const songStory = trackSongStoryFile
                 <label style={s.label}>Track Image</label>
                 <input type="file" accept="image/*" style={s.fileInput} onChange={e => setTrackImageFile(e.target.files?.[0] || null)} />
                 {trackImageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackImageFile.name}</div>}
+              </div>
+              <div>
+                <label style={s.label}>Canvas <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional square looping video (≤10s, silent), plays behind the artwork</span></label>
+                <input type="file" accept="video/*,image/gif" style={s.fileInput} onChange={e => setTrackCanvasFile(e.target.files?.[0] || null)} />
+                {trackCanvasFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackCanvasFile.name}</div>}
               </div>
             </div>
 
