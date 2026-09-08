@@ -104,7 +104,7 @@ function ArtistMessageVideo({ url, name }: { url: string; name: string }) {
         muted={muted}
         playsInline
         autoPlay
-        style={{ width: '100%', display: 'block', objectFit: 'contain', cursor: 'pointer' }}
+        style={{ width: '100%', maxHeight: '360px', display: 'block', objectFit: 'contain', cursor: 'pointer' }}
         onClick={() => {
           const v = videoRef.current; if (!v) return
           // First tap turns on sound; after that, tap toggles play/pause.
@@ -299,7 +299,7 @@ else if (profile?.artist_id === id) setIsOwner(true)
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', fontFamily: 'DM Sans, sans-serif' }}>
 
       {/* ── HERO ── */}
-      <div style={{ position: 'relative', background: '#0a0a0b', marginTop: '-70px', paddingTop: '70px', minHeight: '420px', maxHeight: '560px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+      <div style={{ position: 'relative', background: '#0a0a0b', marginTop: '-70px', paddingTop: '70px', minHeight: '500px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
 
         {/* Still image background — framed like the music hero: subject lowered,
             brighter, solid top edge, feathered bottom. Kept a touch darker than
