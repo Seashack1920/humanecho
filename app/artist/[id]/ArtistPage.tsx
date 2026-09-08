@@ -299,7 +299,7 @@ else if (profile?.artist_id === id) setIsOwner(true)
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', fontFamily: 'DM Sans, sans-serif' }}>
 
       {/* ── HERO ── */}
-      <div style={{ position: 'relative', background: '#0a0a0b', marginTop: '-70px', paddingTop: '70px', minHeight: '420px', maxHeight: '560px', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', background: '#0a0a0b', marginTop: '-70px', paddingTop: '70px', minHeight: '420px', maxHeight: '560px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
 
         {/* Still image background — framed like the music hero: subject lowered,
             brighter, solid top edge, feathered bottom. Kept a touch darker than
@@ -316,7 +316,7 @@ else if (profile?.artist_id === id) setIsOwner(true)
         )}
 
         {/* Gradient overlays */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.25) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 100%)' }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '64px', background: 'linear-gradient(to top, var(--bg-primary), transparent)' }} />
 {/* Dashboard back link — only for owner/admin */}
         {isOwner && (

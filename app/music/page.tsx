@@ -119,7 +119,7 @@ function FeaturedHero({ artists, onPlayArtist }: {
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 100%)' }} />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '56px', background: 'linear-gradient(to top, var(--bg-primary), transparent)' }} />
 
-      <div style={{ position: 'relative', zIndex: 10, height: '100%', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', textAlign: isMobile ? 'center' : 'left', padding: isMobile ? '70px 22px 64px' : '80px 64px 60px', gap: isMobile ? '20px' : '48px', opacity: animating ? 0 : 1, transition: 'opacity 0.3s' }}>
+      <div style={{ position: 'relative', zIndex: 10, height: '100%', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'center' : 'flex-end', justifyContent: isMobile ? 'flex-end' : 'center', textAlign: isMobile ? 'center' : 'left', padding: isMobile ? '70px 22px 48px' : '80px 64px 52px', gap: isMobile ? '20px' : '48px', opacity: animating ? 0 : 1, transition: 'opacity 0.3s' }}>
         {artist.photo_url && (
           <div style={{ flexShrink: 0, cursor: 'pointer' }} onClick={() => router.push(`/artist/${artist.id}`)}>
             <img src={artist.photo_url} alt={artist.name} style={{ width: isMobile ? '116px' : '180px', height: isMobile ? '116px' : '180px', borderRadius: '50%', objectFit: 'cover', border: '3px solid rgba(255,255,255,0.3)', boxShadow: '0 16px 48px rgba(0,0,0,0.6)' }} />
