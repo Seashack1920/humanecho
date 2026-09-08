@@ -299,7 +299,7 @@ else if (profile?.artist_id === id) setIsOwner(true)
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', fontFamily: 'DM Sans, sans-serif' }}>
 
       {/* ── HERO ── */}
-      <div style={{ position: 'relative', background: '#0a0a0b', marginTop: '-70px', paddingTop: '70px', minHeight: '500px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+      <div style={{ position: 'relative', background: '#0a0a0b', marginTop: '-70px', paddingTop: '70px', minHeight: '560px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
 
         {/* Still image background — framed like the music hero: subject lowered,
             brighter, solid top edge, feathered bottom. Kept a touch darker than
@@ -325,7 +325,7 @@ else if (profile?.artist_id === id) setIsOwner(true)
   </a>
 )}
 
-        <div style={{ position: 'relative', zIndex: 10, maxWidth: '1100px', margin: '0 auto', padding: '60px 48px 56px', display: 'flex', gap: '48px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', zIndex: 10, maxWidth: '1100px', margin: '0 auto', padding: '28px 48px 52px', display: 'flex', gap: '48px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
           {/* Photo */}
           <div style={{ flexShrink: 0 }}>
@@ -348,7 +348,7 @@ else if (profile?.artist_id === id) setIsOwner(true)
               {artist.name}
             </h1>
             {artist.bio && (
-              <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.85)', lineHeight: '1.7', maxWidth: '560px', marginBottom: '24px', textShadow: '0 1px 10px rgba(0,0,0,0.7)' }}>
+              <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.85)', lineHeight: '1.5', maxWidth: '560px', marginBottom: '20px', textShadow: '0 1px 10px rgba(0,0,0,0.7)' }}>
                 {artist.bio}
               </p>
             )}
