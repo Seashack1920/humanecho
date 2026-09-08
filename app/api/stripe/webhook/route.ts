@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
-import { Resend } from 'resend'
-import { ensureStoreOrder } from '@/lib/storeOrder'
-import { getStorefront } from '@/lib/storefronts'
+import { ensureStoreOrder, sendStoreDownloadEmail } from '@/lib/storeOrder'
 
 const stripe = new Stripe((process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'), { apiVersion: '2024-06-20' })
 
@@ -207,22 +205,7 @@ export async function POST(req: NextRequest) {
             const res = await ensureStoreOrder(session)
             const order = res?.order
             if (order && order.email && !order.emailed_at) {
-              const store = getStorefront(order.storefront)
-              const site = (process.env.NEXT_PUBLIC_SITE_URL || 'https://humanechomusic.com').replace(/\/$/, '')
-              const link = `${site}/api/store/download?token=${order.download_token}`
-              const brand = store?.name || 'Our Store'
-              const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder')
-              await resend.emails.send({
-                from: `${brand} <hello@humanechomusic.com>`,
-                to: order.email,
-                subject: `Your download: ${res?.productTitle || 'your purchase'}`,
-                html: `<div style="font-family:Georgia,serif;color:#2a2320;max-width:520px">
-                  <h2 style="font-family:Helvetica,Arial,sans-serif">Thank you for your purchase!</h2>
-                  <p>Your download of <strong>${res?.productTitle || 'your book'}</strong> is ready.</p>
-                  <p><a href="${link}" style="display:inline-block;padding:12px 22px;border-radius:8px;background:${store?.accent || '#e8743b'};color:#fff;text-decoration:none;font-family:Helvetica,Arial,sans-serif;font-weight:600">Download your file</a></p>
-                  <p style="font-size:13px;color:#777">Keep this email — you can use the link again anytime. Purchased from ${brand}.</p>
-                </div>`,
-              })
+              await sendStoreDownloadEmail(order, res?.productTitle || '')
               await supabase.from('store_orders').update({ emailed_at: new Date().toISOString() }).eq('id', order.id)
             }
           } catch (e) { console.error('Store order/email failed:', e) }

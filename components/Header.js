@@ -65,6 +65,7 @@ export default function Header() {
   if (isAdmin) menuItems.push({ label: '📚 Reference Library', action: () => router.push('/admin/reference-library') })
   if (isAdmin) menuItems.push({ label: '🎼 Songbook', action: () => router.push('/admin/songbook') })
   if (isAdmin) menuItems.push({ label: '🔗 Artist Accounts', action: () => router.push('/admin/artist-links') })
+  if (isAdmin) menuItems.push({ label: '🧾 Store Orders', action: () => router.push('/admin/store-orders') })
   menuItems.push({ label: 'Log out', action: () => signOut(router), danger: true })
 
   // ── The account area (right side of header) ──
