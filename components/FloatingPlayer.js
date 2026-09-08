@@ -185,12 +185,13 @@ export default function FloatingPlayer() {
       {!isExpanded && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px' }}>
 
-          {/* Thumbnail */}
-          <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-secondary)' }}>
+          {/* Thumbnail (◉ badge hints at a Canvas — expand to watch) */}
+          <div style={{ position: 'relative', width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-secondary)' }}>
             {currentTrack.track_image_url
               ? <img src={currentTrack.track_image_url} alt={currentTrack.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🎵</div>
             }
+            {canvas && <span title="Has a Canvas — expand to watch" style={{ position: 'absolute', bottom: '2px', right: '2px', fontSize: '9px', lineHeight: 1, color: '#fff', background: 'rgba(0,0,0,0.55)', borderRadius: '999px', padding: '2px 3px' }}>◉</span>}
           </div>
 
           {/* Title + artist */}

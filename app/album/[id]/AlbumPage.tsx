@@ -94,6 +94,7 @@ function TrackRow({ track, index, isPlaying, isCurrent, onPlay, owned, sellable 
           {track.tagline && <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.tagline}</div>}
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             {track.content_origin && <span>{ORIGIN_EMOJI[track.content_origin] || ''}</span>}
+            {track.track_canvas_url && <span title="Has a Canvas — open the player to watch" style={{ fontSize: '10px', fontWeight: 600, color: 'var(--accent-primary)', border: '1px solid var(--accent-primary)', borderRadius: '999px', padding: '0 6px', letterSpacing: '0.02em' }}>◉ Canvas</span>}
             {track.text_content && (
               <button onClick={e => { e.stopPropagation(); setExpanded(ex => !ex) }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: expanded ? 'var(--accent-primary)' : 'var(--text-muted)', padding: '0', fontFamily: 'DM Sans, sans-serif' }}>
@@ -156,7 +157,7 @@ export default function AlbumPage({ id }: { id: string }) {
         { data: filmsData },
         { data: albumsData },
       ] = await Promise.all([
-        supabase.from('tracks').select('id, title, track_number, duration, cloudinary_url, track_image_url, content_origin, track_type, text_content, text_content_type, price, tagline')
+        supabase.from('tracks').select('id, title, track_number, duration, cloudinary_url, track_image_url, content_origin, track_type, text_content, text_content_type, price, tagline, track_canvas_url')
           .eq('album_id', id).eq('status', 'published').order('track_number'),
         supabase.from('artists').select('id, name, photo_url, creator_label, stripe_onboarded, platform_owned').eq('id', albumData.artist_id).single(),
         supabase.from('tracks').select('id').eq('artist_id', albumData.artist_id).eq('status', 'published').is('album_id', null),

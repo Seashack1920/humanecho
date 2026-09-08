@@ -170,8 +170,9 @@ function TrackRow({ track, isPlaying, isCurrent, onPlay }: {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: '14px', fontWeight: isCurrent ? '600' : '500', color: isCurrent ? 'var(--accent-primary)' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</div>
         {track.tagline && <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.tagline}</div>}
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
           {track.content_origin && <span>{ORIGIN_EMOJI[track.content_origin] || ''}</span>}
+          {track.track_canvas_url && <span title="Has a Canvas — open the player to watch" style={{ fontSize: '10px', fontWeight: 600, color: 'var(--accent-primary)', border: '1px solid var(--accent-primary)', borderRadius: '999px', padding: '0 6px', letterSpacing: '0.02em' }}>◉ Canvas</span>}
         </div>
       </div>
       <LikeButton contentType="track" contentId={track.id} size="sm" />
@@ -231,7 +232,7 @@ else if (profile?.artist_id === id) setIsOwner(true)
         { data: storiesData },
         { data: filmsData },
       ] = await Promise.all([
-        supabase.from('tracks').select('id, title, duration, cloudinary_url, track_image_url, content_origin, track_type, album_id, tagline')
+        supabase.from('tracks').select('id, title, duration, cloudinary_url, track_image_url, content_origin, track_type, album_id, tagline, track_canvas_url')
           .eq('artist_id', id).eq('status', 'published').is('album_id', null).order('created_at', { ascending: false }),
         supabase.from('albums').select('id, title, cover_url, release_date, description, album_type')
           .eq('artist_id', id).eq('status', 'published').order('release_date', { ascending: false }),
