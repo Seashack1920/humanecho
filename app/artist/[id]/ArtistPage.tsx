@@ -297,9 +297,18 @@ else if (profile?.artist_id === id) setIsOwner(true)
       {/* ── HERO ── */}
       <div style={{ position: 'relative', background: '#0a0a0b', marginTop: '-70px', paddingTop: '70px', minHeight: '420px', maxHeight: '560px', overflow: 'hidden' }}>
 
-        {/* Still image background — centered, darkened */}
+        {/* Still image background — framed like the music hero: subject lowered,
+            brighter, solid top edge, feathered bottom. Kept a touch darker than
+            the music hero because the artist name/bio sit directly over it. */}
         {artist.photo_url && (
-          <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${artist.photo_url})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(0.45)' }} />
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: `url(${artist.photo_url})`,
+            backgroundSize: 'cover', backgroundPosition: 'center 30%',
+            filter: 'brightness(0.7)',
+            WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, #000 86%, transparent 100%)',
+            maskImage: 'linear-gradient(to bottom, #000 0%, #000 86%, transparent 100%)',
+          }} />
         )}
 
         {/* Gradient overlays */}
