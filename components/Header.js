@@ -59,6 +59,8 @@ export default function Header() {
   menuItems.push({ label: 'Your Profile', action: () => router.push('/profile') })
   if (isArtist) menuItems.push({ label: 'Your Studio', action: () => router.push('/dashboard') })
   if (isAdmin) menuItems.push({ label: 'Admin', action: () => router.push('/dashboard') })
+  if (isAdmin) menuItems.push({ label: '➕ Create / Upload', action: () => router.push('/admin/upload') })
+  if (isAdmin) menuItems.push({ label: '🗂 Manage Content', action: () => router.push('/admin/content') })
   if (isAdmin) menuItems.push({ label: '🏠 Homepage Hero', action: () => router.push('/admin/homepage') })
   if (isAdmin) menuItems.push({ label: '✨ Homepage Spotlights', action: () => router.push('/admin/homepage-features') })
   if (isAdmin) menuItems.push({ label: '📣 Share the Echo', action: () => router.push('/admin/referrals') })
