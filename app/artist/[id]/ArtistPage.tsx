@@ -307,14 +307,14 @@ else if (profile?.artist_id === id) setIsOwner(true)
             backgroundImage: `url(${artist.photo_url})`,
             backgroundSize: 'cover', backgroundPosition: 'center 30%',
             filter: 'brightness(0.9)',
-            WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, #000 86%, transparent 100%)',
-            maskImage: 'linear-gradient(to bottom, #000 0%, #000 86%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, #000 93%, transparent 100%)',
+            maskImage: 'linear-gradient(to bottom, #000 0%, #000 93%, transparent 100%)',
           }} />
         )}
 
         {/* Gradient overlays */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.25) 100%)' }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '120px', background: 'linear-gradient(to top, var(--bg-primary), transparent)' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '64px', background: 'linear-gradient(to top, var(--bg-primary), transparent)' }} />
 {/* Dashboard back link — only for owner/admin */}
         {isOwner && (
   <a href={isAdmin ? '/admin/upload' : '/dashboard'} style={{ position: 'absolute', top: '90px', left: '24px', zIndex: 20, padding: '6px 14px', borderRadius: '20px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.8)', fontSize: '12px', textDecoration: 'none', backdropFilter: 'blur(10px)', fontFamily: 'DM Sans, sans-serif' }}>
