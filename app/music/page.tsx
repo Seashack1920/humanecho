@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { usePlayer } from '@/context/PlayerContext'
 import LikeButton from '@/components/LikeButton'
 import HeroMedia from '@/components/HeroMedia'
+import { useDefaultTrackImage } from '@/lib/siteSettings'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -167,11 +168,12 @@ function TrackCard({ track, isCurrent, isPlaying, onPlay }: {
 }) {
   const router = useRouter()
   const [hovered, setHovered] = useState(false)
+  const defaultImg = useDefaultTrackImage()
 
   return (
     <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={{ cursor: 'pointer' }}>
       <div onClick={onPlay} style={{ position: 'relative', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', marginBottom: '10px', background: 'var(--bg-secondary)', transition: 'transform 0.2s', transform: hovered ? 'translateY(-4px)' : 'translateY(0)', boxShadow: hovered ? '0 12px 32px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.15)', border: isCurrent ? '2px solid var(--accent-primary)' : '2px solid transparent' }}>
-        {track.track_image_url ? <img src={track.track_image_url} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>🎵</div>}
+        {(track.track_image_url || defaultImg) ? <img src={track.track_image_url || defaultImg} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>🎵</div>}
         <div style={{ position: 'absolute', bottom: '8px', left: '8px', opacity: hovered || isCurrent ? 1 : 0, transition: 'opacity 0.2s' }}>
           {isCurrent && isPlaying ? (
             <div style={{ background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '5px 7px', display: 'flex', gap: '3px', alignItems: 'center' }}>

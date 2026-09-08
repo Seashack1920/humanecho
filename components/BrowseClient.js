@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePlayer } from '@/context/PlayerContext'
+import { useDefaultTrackImage } from '@/lib/siteSettings'
 
 export default function BrowseClient({
   type, title, emoji, description,
   albums = [], tracks = [], videos = [], books = [], stories = []
 }) {
   const { playTrack } = usePlayer()
+  const defaultImg = useDefaultTrackImage()
   const [isMobile, setIsMobile] = useState(false)
   const [filter, setFilter] = useState('all')
 
@@ -192,8 +194,8 @@ export default function BrowseClient({
                         borderRadius: '6px', overflow: 'hidden',
                         background: 'var(--bg-secondary)', flexShrink: 0,
                       }}>
-                        {track.track_image_url ? (
-                          <img src={track.track_image_url} alt={track.title}
+                        {(track.track_image_url || defaultImg) ? (
+                          <img src={track.track_image_url || defaultImg} alt={track.title}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
                           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>🎵</div>

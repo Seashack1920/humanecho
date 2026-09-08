@@ -97,6 +97,9 @@ export default function AdminContent() {
           <Link href="/admin/homepage" style={{ ...s.link, fontSize: '14px' }}>
             🏠 Homepage Hero
           </Link>
+          <Link href="/admin/settings" style={{ ...s.link, fontSize: '14px' }}>
+            ⚙️ Site Settings
+          </Link>
           <Link href="/admin/homepage-features" style={{ ...s.link, fontSize: '14px' }}>
             ✨ Homepage Spotlights
           </Link>

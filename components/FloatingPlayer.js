@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { playableVideoUrl } from '@/components/HeroMedia'
+import { useDefaultTrackImage } from '@/lib/siteSettings'
 
 export default function FloatingPlayer() {
   const router = useRouter()
@@ -39,6 +40,7 @@ export default function FloatingPlayer() {
 
   // The optional tagline + Canvas (looping visual) for the current track,
   // fetched by id so they appear wherever a track is played from.
+  const defaultImg = useDefaultTrackImage()
   const [tagline, setTagline] = useState('')
   const [canvas, setCanvas] = useState('')
   useEffect(() => {
@@ -100,8 +102,8 @@ export default function FloatingPlayer() {
             {canvas
               ? <video src={playableVideoUrl(canvas)} poster={currentTrack.track_image_url || undefined} autoPlay loop muted playsInline
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : currentTrack.track_image_url
-                ? <img src={currentTrack.track_image_url} alt={currentTrack.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : (currentTrack.track_image_url || defaultImg)
+                ? <img src={currentTrack.track_image_url || defaultImg} alt={currentTrack.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px' }}>🎵</div>
             }
           </div>
@@ -187,8 +189,8 @@ export default function FloatingPlayer() {
 
           {/* Thumbnail (◉ badge hints at a Canvas — expand to watch) */}
           <div style={{ position: 'relative', width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-secondary)' }}>
-            {currentTrack.track_image_url
-              ? <img src={currentTrack.track_image_url} alt={currentTrack.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {(currentTrack.track_image_url || defaultImg)
+              ? <img src={currentTrack.track_image_url || defaultImg} alt={currentTrack.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🎵</div>
             }
             {canvas && <span title="Has a Canvas — expand to watch" style={{ position: 'absolute', bottom: '2px', right: '2px', fontSize: '9px', lineHeight: 1, color: '#fff', background: 'rgba(0,0,0,0.55)', borderRadius: '999px', padding: '2px 3px' }}>◉</span>}

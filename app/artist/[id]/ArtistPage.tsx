@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { usePlayer } from '@/context/PlayerContext'
 import LikeButton from '@/components/LikeButton'
+import { useDefaultTrackImage } from '@/lib/siteSettings'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -146,6 +147,7 @@ function TrackRow({ track, isPlaying, isCurrent, onPlay }: {
   onPlay: () => void
 }) {
   const [hovered, setHovered] = useState(false)
+  const defaultImg = useDefaultTrackImage()
 
   return (
     <div
@@ -156,8 +158,8 @@ function TrackRow({ track, isPlaying, isCurrent, onPlay }: {
     >
       {/* Artwork / play indicator */}
       <div style={{ position: 'relative', width: '44px', height: '44px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-secondary)' }}>
-        {track.track_image_url
-          ? <img src={track.track_image_url} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {(track.track_image_url || defaultImg)
+          ? <img src={track.track_image_url || defaultImg} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🎵</div>
         }
         {(hovered || isCurrent) && (

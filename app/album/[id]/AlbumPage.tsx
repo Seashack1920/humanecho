@@ -8,6 +8,7 @@ import LikeButton from '@/components/LikeButton'
 import BuyButton from '@/components/BuyButton'
 import TipButton from '@/components/TipButton'
 import { playableVideoUrl } from '@/components/HeroMedia'
+import { useDefaultTrackImage } from '@/lib/siteSettings'
 
 type Album = {
   id: string
@@ -64,6 +65,7 @@ function TrackRow({ track, index, isPlaying, isCurrent, onPlay, owned, sellable 
 }) {
   const [hovered, setHovered]   = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const defaultImg = useDefaultTrackImage()
 
   return (
     <div>
@@ -82,8 +84,8 @@ function TrackRow({ track, index, isPlaying, isCurrent, onPlay, owned, sellable 
 
         {/* Artwork */}
         <div onClick={onPlay} style={{ position: 'relative', width: '44px', height: '44px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-secondary)', cursor: 'pointer' }}>
-          {track.track_image_url
-            ? <img src={track.track_image_url} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {(track.track_image_url || defaultImg)
+            ? <img src={track.track_image_url || defaultImg} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🎵</div>
           }
         </div>
