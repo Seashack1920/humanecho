@@ -29,7 +29,7 @@ async function readAudioDuration(file: File): Promise<string> {
 
 type Artist = { id: string; name: string; bio?: string; photo_url?: string; content_origin?: string; creator_type?: string[]; creator_label?: string; artist_profile_video_url?: string; hero_video_url?: string }
 type Album  = { id: string; artist_id: string; title: string; description?: string; status?: string; cover_url?: string; hero_image_url?: string; hero_video_url?: string; album_type?: string; content_origin?: string; price?: number }
-type Track  = { id: string; album_id?: string; artist_id: string; title: string; track_number?: number; track_type?: string; duration?: string; status?: string; content_origin?: string; price?: number; text_content?: string; cloudinary_url?: string; track_image_url?: string }
+type Track  = { id: string; album_id?: string; artist_id: string; title: string; track_number?: number; track_type?: string; duration?: string; status?: string; content_origin?: string; price?: number; text_content?: string; tagline?: string; cloudinary_url?: string; track_image_url?: string }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -864,6 +864,12 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     </div>
                   </div>
                   <div style={s.field}>
+                    {(() => { const tv = (editTrack.tagline ?? track.tagline ?? '') as string; return (
+                      <div style={s.field}>
+                        <label style={s.label}>Tagline <span style={{ fontWeight: '400', color: tv.length > 120 ? '#dc3c3c' : 'var(--text-muted)' }}>— one line shown in listings & the player, optional · {tv.length}/120</span></label>
+                        <input style={s.input} maxLength={120} value={tv} placeholder="e.g. Written the night my daughter was born" onChange={e => setEditTrack(p => ({ ...p, tagline: e.target.value.slice(0, 120) }))} />
+                      </div>
+                    ) })()}
                     <label style={s.label}>Lyrics / Description / Story Text</label>
                     <textarea style={{ ...s.textarea, minHeight: '100px' }} value={editTrack.text_content ?? track.text_content ?? ''} onChange={e => setEditTrack(p => ({ ...p, text_content: e.target.value }))} />
                     <div style={s.resizeHint}>↕ drag to resize</div>
@@ -980,7 +986,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
   const emptyTrack = {
     title: '', track_number: '', duration: '', track_type: 'song',
     price: '', status: 'draft', content_origin: '100% human',
-    text_content: '', text_content_type: 'lyrics', file_format: 'flac',
+    text_content: '', text_content_type: 'lyrics', tagline: '', file_format: 'flac',
     isrc: '', iswc: '', composer: '', lyricist: '', producer: '',
     publisher: '', catalog_number: '', bpm: '', musical_key: '',
     mood: '', theme: '', language: 'en',
@@ -1128,6 +1134,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
         file_format: track.file_format,
         track_image_url: image?.url ?? '', music_video_url: musicVideo?.url ?? '',
         artist_message_url: message?.url ?? '', text_content: track.text_content,
+        tagline: track.tagline?.trim() ? track.tagline.trim().slice(0, 120) : null,
         text_content_type: track.text_content_type,
         price: track.price ? parseFloat(track.price) : null,
         status: track.status, content_origin: track.content_origin,
@@ -1489,6 +1496,10 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                   </div>
                 )}
                 <GenrePicker genres={genres} selected={trackGenres} onChange={setTrackGenres} />
+              </div>
+              <div style={s.field}>
+                <label style={s.label}>Tagline (optional) <span style={{ fontWeight: '400', color: (track.tagline?.length || 0) > 120 ? '#dc3c3c' : 'var(--text-muted)' }}>— one line shown in listings & the player · {track.tagline?.length || 0}/120</span></label>
+                <input style={s.input} maxLength={120} value={track.tagline} placeholder="e.g. Written the night my daughter was born" onChange={e => setTrack(t => ({ ...t, tagline: e.target.value.slice(0, 120) }))} />
               </div>
               <div style={s.field}>
                 <label style={s.label}>{lyricsLabel} (optional)</label>

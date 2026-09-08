@@ -19,7 +19,7 @@ type Track = {
   track_type: string | null; content_origin: string | null; track_number: number | null
   cloudinary_url: string | null; track_image_url: string | null; album_id: string | null
   price: number | null; text_content: string | null; cover_welcome: boolean | null
-  music_video_welcome: boolean | null; explicit: boolean | null
+  music_video_welcome: boolean | null; explicit: boolean | null; tagline: string | null
   mood_tags: string[] | null; coach_categories: string[] | null
 }
 type Album = {
@@ -153,7 +153,7 @@ useEffect(() => {
     setLoading(true)
     const { data: artistData } = await supabase.from('artists').select('id, name, bio, photo_url, stripe_account_id, stripe_onboarded').eq('id', artistId).single()
     if (artistData) setArtist(artistData)
-    const TRACK_FIELDS = 'id, title, duration, status, track_type, content_origin, track_number, cloudinary_url, track_image_url, album_id, price, text_content, cover_welcome, music_video_welcome, explicit, mood_tags, coach_categories'
+    const TRACK_FIELDS = 'id, title, duration, status, track_type, content_origin, track_number, cloudinary_url, track_image_url, album_id, price, text_content, cover_welcome, music_video_welcome, explicit, tagline, mood_tags, coach_categories'
     const { data: albumsData } = await supabase.from('albums').select('id, title, status, album_type, cover_url, hero_image_url, hero_video_url, price, description').eq('artist_id', artistId).order('title')
     const built: any[] = []
     if (albumsData) {
@@ -617,7 +617,13 @@ useEffect(() => {
                                   </div>
                                   <div style={{ height: '1px', background: 'var(--border)', margin: '14px 0 4px' }} />
                                   <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '8px' }}>Content</div>
-                                  <label style={s.label}>Lyrics / Description</label>
+                                  {(() => { const tv = (editTrack.tagline ?? track.tagline ?? '') as string; return (
+                                    <>
+                                      <label style={s.label}>Tagline <span style={{ fontWeight: '400', textTransform: 'none', letterSpacing: 0, color: tv.length > 120 ? '#dc3c3c' : 'var(--text-muted)' }}>— one line shown in listings & the player, optional · {tv.length}/120</span></label>
+                                      <input style={s.input} maxLength={120} value={tv} placeholder="e.g. Written the night my daughter was born" onChange={e => setEditTrack(p => ({ ...p, tagline: e.target.value.slice(0, 120) }))} />
+                                    </>
+                                  ) })()}
+                                  <label style={{ ...s.label, marginTop: '12px' }}>Lyrics / Description</label>
                                   <textarea style={s.textarea} value={editTrack.text_content ?? track.text_content ?? ''} onChange={e => setEditTrack(p => ({ ...p, text_content: e.target.value }))} />
 
                                   <div style={{ display: 'flex', gap: '16px', marginTop: '10px', flexWrap: 'wrap' as const }}>

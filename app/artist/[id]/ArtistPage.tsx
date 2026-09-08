@@ -169,6 +169,7 @@ function TrackRow({ track, isPlaying, isCurrent, onPlay }: {
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: '14px', fontWeight: isCurrent ? '600' : '500', color: isCurrent ? 'var(--accent-primary)' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</div>
+        {track.tagline && <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.tagline}</div>}
         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
           {track.content_origin && <span>{ORIGIN_EMOJI[track.content_origin] || ''}</span>}
         </div>
@@ -230,7 +231,7 @@ else if (profile?.artist_id === id) setIsOwner(true)
         { data: storiesData },
         { data: filmsData },
       ] = await Promise.all([
-        supabase.from('tracks').select('id, title, duration, cloudinary_url, track_image_url, content_origin, track_type, album_id')
+        supabase.from('tracks').select('id, title, duration, cloudinary_url, track_image_url, content_origin, track_type, album_id, tagline')
           .eq('artist_id', id).eq('status', 'published').is('album_id', null).order('created_at', { ascending: false }),
         supabase.from('albums').select('id, title, cover_url, release_date, description, album_type')
           .eq('artist_id', id).eq('status', 'published').order('release_date', { ascending: false }),

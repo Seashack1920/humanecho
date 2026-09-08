@@ -3,6 +3,7 @@
 import { usePlayer } from '@/context/PlayerContext'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
 
 export default function FloatingPlayer() {
   const router = useRouter()
@@ -34,6 +35,18 @@ export default function FloatingPlayer() {
     const iOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document)
     setNoVolumeControl(iOS)
   }, [])
+
+  // The optional one-line tagline for the current track. Use it if the source
+  // already provided it, otherwise fetch by id so it shows wherever a track plays.
+  const [tagline, setTagline] = useState('')
+  useEffect(() => {
+    if (!currentTrack) { setTagline(''); return }
+    if (currentTrack.tagline != null) { setTagline(currentTrack.tagline); return }
+    let off = false
+    supabase.from('tracks').select('tagline').eq('id', currentTrack.id).maybeSingle()
+      .then(({ data }) => { if (!off) setTagline(data?.tagline || '') })
+    return () => { off = true }
+  }, [currentTrack?.id])
 
   if (!currentTrack) return null
   
@@ -102,6 +115,11 @@ export default function FloatingPlayer() {
                 onMouseLeave={e => e.currentTarget.style.opacity = '1'}
               >
                 {currentTrack.artist_name}
+              </div>
+            )}
+            {tagline && (
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: 1.4, marginTop: '6px' }}>
+                {tagline}
               </div>
             )}
           </div>

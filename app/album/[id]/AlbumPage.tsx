@@ -91,6 +91,7 @@ function TrackRow({ track, index, isPlaying, isCurrent, onPlay, owned, sellable 
         {/* Info */}
         <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={onPlay}>
           <div style={{ fontSize: '14px', fontWeight: isCurrent ? '600' : '500', color: isCurrent ? 'var(--accent-primary)' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</div>
+          {track.tagline && <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.tagline}</div>}
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             {track.content_origin && <span>{ORIGIN_EMOJI[track.content_origin] || ''}</span>}
             {track.text_content && (
@@ -155,7 +156,7 @@ export default function AlbumPage({ id }: { id: string }) {
         { data: filmsData },
         { data: albumsData },
       ] = await Promise.all([
-        supabase.from('tracks').select('id, title, track_number, duration, cloudinary_url, track_image_url, content_origin, track_type, text_content, text_content_type, price')
+        supabase.from('tracks').select('id, title, track_number, duration, cloudinary_url, track_image_url, content_origin, track_type, text_content, text_content_type, price, tagline')
           .eq('album_id', id).eq('status', 'published').order('track_number'),
         supabase.from('artists').select('id, name, photo_url, creator_label, stripe_onboarded, platform_owned').eq('id', albumData.artist_id).single(),
         supabase.from('tracks').select('id').eq('artist_id', albumData.artist_id).eq('status', 'published').is('album_id', null),

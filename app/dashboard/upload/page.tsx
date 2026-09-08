@@ -170,7 +170,7 @@ export default function ArtistUpload() {
   const emptyTrack = {
     title: '', track_number: '', duration: '', track_type: 'song',
     price: '', status: 'draft', content_origin: '100% human',
-    text_content: '', file_format: 'flac',
+    text_content: '', tagline: '', file_format: 'flac',
     composer: '', lyricist: '', producer: '', publisher: '',
     bpm: '', musical_key: '', mood: '', theme: '', language: 'en',
     copyright_year: String(new Date().getFullYear()), copyright_owner: '',
@@ -326,6 +326,7 @@ const songStory = trackSongStoryFile
         file_format: track.file_format,
         track_image_url: image?.url ?? '',
         text_content: track.text_content,
+        tagline: track.tagline?.trim() ? track.tagline.trim().slice(0, 120) : null,
         text_content_type: track.track_type === 'song' ? 'lyrics' : track.track_type === 'instrumental' ? 'description' : 'story',
         price: track.price ? parseFloat(track.price) : null,
         status: track.status,
@@ -641,6 +642,11 @@ const songStory = trackSongStoryFile
                 </div>
               )}
               <GenrePicker genres={genres} selected={trackGenres} onChange={setTrackGenres} />
+            </div>
+
+            <div style={s.field}>
+              <label style={s.label}>Tagline (optional) <span style={{ fontWeight: '400', color: (track.tagline?.length || 0) > 120 ? '#dc3c3c' : 'var(--text-muted)' }}>— one line shown in listings & the player · {track.tagline?.length || 0}/120</span></label>
+              <input style={s.input} maxLength={120} value={track.tagline} placeholder="e.g. Written the night my daughter was born" onChange={e => setTrack(t => ({ ...t, tagline: e.target.value.slice(0, 120) }))} />
             </div>
 
             <div style={s.field}>
