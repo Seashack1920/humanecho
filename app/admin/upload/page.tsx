@@ -861,6 +861,11 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                       <label style={s.label}>Replace Track Image — square, min 600×600px</label>
                       <input type="file" accept="image/*" style={s.fileInput} onChange={e => setTrackImageFile(e.target.files?.[0] || null)} />
                       {trackImageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackImageFile.name}</div>}
+                      {(trackImageFile || track.track_image_url) && (
+                        <img src={trackImageFile ? URL.createObjectURL(trackImageFile) : track.track_image_url}
+                          alt="Track image preview"
+                          style={{ display: 'block', marginTop: '8px', width: '112px', height: '112px', objectFit: 'cover', borderRadius: '10px', border: '1px solid var(--border)' }} />
+                      )}
                     </div>
                   </div>
                   <div style={s.field}>
@@ -1485,6 +1490,10 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                   <label style={s.label}>Track Image <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— square, min 600×600px</span></label>
                   <input type="file" accept="image/*" style={s.fileInput} onChange={e => setTrackImageFile(e.target.files?.[0] || null)} />
                   {trackImageFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackImageFile.name}</div>}
+                  {trackImageFile && (
+                    <img src={URL.createObjectURL(trackImageFile)} alt="Track image preview"
+                      style={{ display: 'block', marginTop: '8px', width: '112px', height: '112px', objectFit: 'cover', borderRadius: '10px', border: '1px solid var(--border)' }} />
+                  )}
                 </div>
               </div>
               <div style={s.field}>
