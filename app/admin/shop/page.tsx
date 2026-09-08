@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useCurrentUser } from '@/lib/useCurrentUser'
+import { STOREFRONTS } from '@/lib/storefronts'
 
 const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 
@@ -31,6 +32,7 @@ type Product = {
   status: string
   display_order: number
   is_featured: boolean
+  storefront?: string
 }
 
 const BLANK = {
@@ -38,6 +40,7 @@ const BLANK = {
   title: '', description: '', image_url: '', price: '',
   product_type: 'ebook', file_path: '', file_name: '',
   status: 'draft', display_order: 0, is_featured: false,
+  storefront: 'human_echo',
 }
 
 const PRODUCT_TYPES = ['ebook', 'audiobook', 'sheet_music', 'art', 'other']
@@ -75,6 +78,7 @@ export default function AdminShopPage() {
       file_path: p.file_path || '', file_name: p.file_name || '',
       status: p.status || 'draft', display_order: p.display_order || 0,
       is_featured: !!p.is_featured,
+      storefront: p.storefront || 'human_echo',
     })
     setMsg(null); setErr(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -120,6 +124,7 @@ export default function AdminShopPage() {
       status: form.status,
       display_order: Number(form.display_order) || 0,
       is_featured: form.is_featured,
+      storefront: form.storefront || 'human_echo',
       updated_at: new Date().toISOString(),
     }
     const res = form.id
@@ -179,6 +184,13 @@ export default function AdminShopPage() {
           <div style={{ flex: '1 1 120px' }}>
             <label style={lbl}>Sort order</label>
             <input style={input} type="number" value={form.display_order} onChange={e => setForm(f => ({ ...f, display_order: Number(e.target.value) }))} />
+          </div>
+          <div style={{ flex: '1 1 180px' }}>
+            <label style={lbl}>Storefront</label>
+            <select style={input} value={form.storefront} onChange={e => setForm(f => ({ ...f, storefront: e.target.value }))}>
+              <option value="human_echo">Human Echo (main shop)</option>
+              {Object.values(STOREFRONTS).map(sf => <option key={sf.slug} value={sf.slug}>{sf.name} (/store/{sf.slug})</option>)}
+            </select>
           </div>
         </div>
 

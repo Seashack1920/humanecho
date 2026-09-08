@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 
 const SOCIAL_LINKS = [
   {
@@ -67,7 +67,11 @@ const LEGAL_LINKS = [
 
 export default function Footer() {
   const router = useRouter()
+  const pathname = usePathname()
   const year = new Date().getFullYear()
+
+  // Standalone storefronts (/store/*) have their own footer.
+  if (pathname?.startsWith('/store')) return null
 
   return (
     <footer style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border)', fontFamily: 'DM Sans, sans-serif', marginTop: 'auto' }}>

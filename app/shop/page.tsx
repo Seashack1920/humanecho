@@ -33,6 +33,7 @@ export default function ShopPage() {
         .from('products')
         .select('id, title, description, image_url, price, product_type')
         .eq('status', 'published')
+        .eq('storefront', 'human_echo')
         .order('display_order', { ascending: true })
         .order('created_at', { ascending: false })
       setProducts((prods as Product[]) || [])

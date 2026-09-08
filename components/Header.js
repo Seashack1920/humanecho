@@ -1,12 +1,13 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import { signOut } from '@/lib/signOut'
 
 export default function Header() {
   const router = useRouter()
+  const pathname = usePathname()
   const [theme, setTheme] = useState('light')
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -133,6 +134,9 @@ export default function Header() {
       </div>
     )
   }
+
+  // Standalone storefronts (/store/*) run outside the Human Echo umbrella — no HE chrome.
+  if (pathname?.startsWith('/store')) return null
 
   return (
     <>

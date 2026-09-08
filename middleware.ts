@@ -51,6 +51,7 @@ export function middleware(req: NextRequest) {
   const isAllowed =
     pathname === '/holding' ||
     pathname === '/beta' ||
+    pathname.startsWith('/store') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname === '/favicon.ico' ||
