@@ -472,7 +472,7 @@ useEffect(() => {
               <div style={s.section}>
                 <div style={s.sectionHead}>
                   <div style={s.sectionTitle}>Albums & Tracks</div>
-                  <button style={s.btn} onClick={() => router.push(uploadPath)}>+ Add Music</button>
+                  <button style={s.btn} onClick={() => router.push(`${uploadPath}?artist=${artist?.id || adminViewArtistId}`)}>+ Add Music</button>
                 </div>
 
                 {confirmDelete && (
@@ -489,7 +489,7 @@ useEffect(() => {
                   <div style={s.emptyState}>
                     No albums yet.
                     <div style={{ marginTop: '12px' }}>
-                      <button style={s.btn} onClick={() => router.push(uploadPath)}>Upload your first track →</button>
+                      <button style={s.btn} onClick={() => router.push(`${uploadPath}?mode=track&artist=${artist?.id || adminViewArtistId}`)}>Upload your first track →</button>
                     </div>
                   </div>
                 ) : (
@@ -579,7 +579,7 @@ useEffect(() => {
                         <div style={s.albumActions}>
                           <button style={s.btnSmSecondary} onClick={() => { setEditingAlbumId(album.id); setEditAlbum({}) }}>Edit album</button>
                           <button style={s.btnSm} onClick={() => toggleAlbumStatus(album)}>{statusNext(album.status || 'draft')}</button>
-                          <button style={s.btnSmSecondary} onClick={() => router.push(uploadPath)}>+ Add track</button>
+                          <button style={s.btnSmSecondary} onClick={() => router.push(`${uploadPath}?mode=track&artist=${artist?.id || adminViewArtistId}`)}>+ Add track</button>
                           <button style={s.btnSmDanger} onClick={() => setConfirmDelete({ type: 'album', id: album.id, name: album.title })}>Delete album</button>
                         </div>
                       )}
