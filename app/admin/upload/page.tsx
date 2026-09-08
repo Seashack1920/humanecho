@@ -909,8 +909,8 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <input type="checkbox" checked={selectedTrackIds.has(track.id)} onChange={() => toggleTrackSelect(track.id)} style={{ width: '16px', height: '16px', flexShrink: 0, cursor: 'pointer' }} />
                     {track.track_image_url
-                      ? <img src={track.track_image_url} alt={track.title} style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }} />
-                      : <div style={{ width: '40px', height: '40px', borderRadius: '6px', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>🎵</div>
+                      ? <img src={track.track_image_url} alt={track.title} style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
+                      : <div style={{ width: '60px', height: '60px', borderRadius: '8px', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0 }}>🎵</div>
                     }
                     <div>
                       <div style={s.manageLabel}>{track.track_number ? `${track.track_number}. ` : ''}{track.title}</div>
