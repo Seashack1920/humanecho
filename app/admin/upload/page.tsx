@@ -874,7 +874,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                       )}
                     </div>
                     <div>
-                      <label style={s.label}>Canvas <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional square looping video (≤10s, silent) shown behind the artwork while the song plays</span></label>
+                      <label style={s.label}>Canvas <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional: a short square clip (4–8s) that loops silently behind the artwork. Keep it calm & seamless — slow motion, no text, no flashing.</span></label>
                       <input type="file" accept="video/*,image/gif" style={s.fileInput} onChange={e => setTrackCanvasFile(e.target.files?.[0] || null)} />
                       {trackCanvasFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackCanvasFile.name}</div>}
                       {track.track_canvas_url && !trackCanvasFile && (
@@ -1513,7 +1513,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                   )}
                 </div>
                 <div>
-                  <label style={s.label}>Canvas <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional square looping video (≤10s, silent), plays behind the artwork</span></label>
+                  <label style={s.label}>Canvas <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional: a short square clip (4–8s) that loops silently behind the artwork. Keep it calm & seamless — slow motion, no text, no flashing.</span></label>
                   <input type="file" accept="video/*,image/gif" style={s.fileInput} onChange={e => setTrackCanvasFile(e.target.files?.[0] || null)} />
                   {trackCanvasFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackCanvasFile.name}</div>}
                 </div>
