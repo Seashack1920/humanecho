@@ -564,14 +564,14 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     {artist.hero_video_url && !heroVideoFile && editArtist.hero_video_url !== null && (
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                         Current: {artist.hero_video_url.split('/').pop()}
-                        <button onClick={() => setEditArtist(p => ({ ...p, hero_video_url: null }))} style={{ marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#dc3c3c' }}>Remove (use default)</button>
+                        <button onClick={() => setEditArtist(p => ({ ...p, hero_video_url: null }))} style={{ marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#dc3c3c' }}>Remove (use photo)</button>
                       </div>
                     )}
                     {editArtist.hero_video_url === null && !heroVideoFile && (
-                      <div style={{ fontSize: '11px', color: '#dc3c3c', marginTop: '4px', fontStyle: 'italic' }}>Hero video will be removed on save (a platform default will play)</div>
+                      <div style={{ fontSize: '11px', color: '#dc3c3c', marginTop: '4px', fontStyle: 'italic' }}>Hero video will be removed on save (the artist photo will be used instead)</div>
                     )}
                     {!artist.hero_video_url && !heroVideoFile && (
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontStyle: 'italic' }}>None set — a platform default will play on this artist's page</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontStyle: 'italic' }}>None set — the artist photo is used as the hero background</div>
                     )}
                   </div>
 

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { usePlayer } from '@/context/PlayerContext'
 import LikeButton from '@/components/LikeButton'
+import HeroMedia from '@/components/HeroMedia'
 import { useDefaultTrackImage } from '@/lib/siteSettings'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -301,19 +302,21 @@ else if (profile?.artist_id === id) setIsOwner(true)
       {/* ── HERO ── */}
       <div style={{ position: 'relative', background: '#0a0a0b', marginTop: '-70px', paddingTop: '70px', minHeight: '560px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
 
-        {/* Still image background — framed like the music hero: subject lowered,
-            brighter, solid top edge, feathered bottom. Kept a touch darker than
-            the music hero because the artist name/bio sit directly over it. */}
-        {artist.photo_url && (
-          <div style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: `url(${artist.photo_url})`,
-            backgroundSize: 'cover', backgroundPosition: 'center 30%',
+        {/* Hero background — a wide 16:9 video when set, otherwise the still
+            photo. HeroMedia fades the video in with no photo-flash. Framed like
+            the music hero: subject lowered, brighter, solid top edge, feathered
+            bottom. Kept a touch darker than the music hero because the artist
+            name/bio sit directly over it. */}
+        <HeroMedia
+          videoUrl={artist.hero_video_url}
+          imageUrl={artist.photo_url}
+          position="center 30%"
+          style={{
             filter: 'brightness(0.9)',
             WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, #000 93%, transparent 100%)',
             maskImage: 'linear-gradient(to bottom, #000 0%, #000 93%, transparent 100%)',
-          }} />
-        )}
+          }}
+        />
 
         {/* Gradient overlays */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 100%)' }} />
