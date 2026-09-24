@@ -683,14 +683,14 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     {albumCoverFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumCoverFile.name}</div>}
                   </div>
                   <div style={s.field}>
-                    <label style={s.label}>Hero Image <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— wide landscape, shown as album page background</span></label>
+                    <label style={s.label}>Hero Image <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— wide 16:9 landscape, shown as the album page hero</span></label>
                     <input type="file" accept="image/*" style={s.fileInput} onChange={e => setAlbumHeroFile(e.target.files?.[0] || null)} />
                     {albumHeroFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumHeroFile.name}</div>}
                     {album.hero_image_url && !albumHeroFile && editAlbum.hero_image_url !== null && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Current hero set · <a href={album.hero_image_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a> · <button onClick={() => setEditAlbum(p => ({ ...p, hero_image_url: null }))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#dc3c3c', padding: 0 }}>remove</button></div>}
                     {editAlbum.hero_image_url === null && !albumHeroFile && <div style={{ fontSize: '11px', color: '#dc3c3c', marginTop: '4px', fontStyle: 'italic' }}>Hero image will be removed on save</div>}
                   </div>
                   <div style={s.field}>
-                    <label style={s.label}>Hero Video <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional; loops silently behind the homepage hero (overrides the image)</span></label>
+                    <label style={s.label}>Hero Video <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional 16:9; loops silently on the album page (overrides the image)</span></label>
                     <input type="file" accept="video/*" style={s.fileInput} onChange={e => setAlbumHeroVideoFile(e.target.files?.[0] || null)} />
                     {albumHeroVideoFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {albumHeroVideoFile.name}</div>}
                     {album.hero_video_url && !albumHeroVideoFile && editAlbum.hero_video_url !== null && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Current video set · <a href={album.hero_video_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a> · <button onClick={() => setEditAlbum(p => ({ ...p, hero_video_url: null }))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#dc3c3c', padding: 0 }}>remove</button></div>}
