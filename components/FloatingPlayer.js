@@ -76,6 +76,10 @@ export default function FloatingPlayer() {
     if (currentTrack.artist_id) router.push(`/artist/${currentTrack.artist_id}`)
   }
 
+  const goToSong = () => {
+    if (currentTrack.id) router.push(`/song/${currentTrack.id}`)
+  }
+
   // Share the song someone's listening to right now: native share sheet on
   // mobile (one tap to any app), copy-link fallback on desktop.
   const shareSong = async () => {
@@ -114,8 +118,9 @@ export default function FloatingPlayer() {
       {isExpanded && (
         <div style={{ padding: '20px 20px 0' }}>
 
-          {/* Album art — a looping Canvas video if the artist set one, else the still */}
-          <div style={{ width: '100%', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', marginBottom: '16px', background: 'var(--bg-secondary)' }}>
+          {/* Album art — a looping Canvas video if the artist set one, else the still.
+              Tapping it opens the song page. */}
+          <div onClick={goToSong} title="Open song page" style={{ width: '100%', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', marginBottom: '16px', background: 'var(--bg-secondary)', cursor: 'pointer' }}>
             {canvas
               ? <video src={playableVideoUrl(canvas)} poster={currentTrack.track_image_url || undefined} autoPlay loop muted playsInline
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -127,7 +132,13 @@ export default function FloatingPlayer() {
 
           {/* Track info */}
           <div style={{ marginBottom: '12px' }}>
-            <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div
+              onClick={goToSong}
+              title="Open song page"
+              style={{ fontFamily: 'Playfair Display, serif', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-primary)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-primary)'}
+            >
               {currentTrack.title}
             </div>
             {currentTrack.artist_name && (
@@ -209,8 +220,8 @@ export default function FloatingPlayer() {
       {!isExpanded && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px' }}>
 
-          {/* Thumbnail (◉ badge hints at a Canvas — expand to watch) */}
-          <div style={{ position: 'relative', width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-secondary)' }}>
+          {/* Thumbnail (◉ badge hints at a Canvas — expand to watch). Opens the song page. */}
+          <div onClick={goToSong} title="Open song page" style={{ position: 'relative', width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-secondary)', cursor: 'pointer' }}>
             {(currentTrack.track_image_url || defaultImg)
               ? <img src={currentTrack.track_image_url || defaultImg} alt={currentTrack.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🎵</div>
@@ -220,7 +231,13 @@ export default function FloatingPlayer() {
 
           {/* Title + artist */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div
+              onClick={goToSong}
+              title="Open song page"
+              style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-primary)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-primary)'}
+            >
               {currentTrack.title}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
