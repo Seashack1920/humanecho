@@ -76,7 +76,7 @@ function TrackCard({ track, isCurrent, isPlaying, onPlay }: {
         {track.duration && <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', borderRadius: '4px', padding: '2px 6px', fontSize: '11px', color: 'white' }}>{track.duration}</div>}
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '4px' }}>
-        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '14px', fontWeight: '600', color: isCurrent ? 'var(--accent-primary)' : 'var(--text-primary)', lineHeight: '1.3', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>{track.title}</div>
+        <div onClick={e => { e.stopPropagation(); router.push(`/song/${track.id}`) }} title="Open song page" style={{ fontFamily: 'Playfair Display, serif', fontSize: '14px', fontWeight: '600', color: isCurrent ? 'var(--accent-primary)' : 'var(--text-primary)', lineHeight: '1.3', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}>{track.title}</div>
         <LikeButton contentType="track" contentId={track.id} size="sm" />
       </div>
       {track.artist && (

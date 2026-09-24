@@ -66,6 +66,7 @@ function TrackRow({ track, index, isPlaying, isCurrent, onPlay, owned, sellable 
   const [hovered, setHovered]   = useState(false)
   const [expanded, setExpanded] = useState(false)
   const defaultImg = useDefaultTrackImage()
+  const router = useRouter()
 
   return (
     <div>
@@ -92,7 +93,13 @@ function TrackRow({ track, index, isPlaying, isCurrent, onPlay, owned, sellable 
 
         {/* Info */}
         <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={onPlay}>
-          <div style={{ fontSize: '14px', fontWeight: isCurrent ? '600' : '500', color: isCurrent ? 'var(--accent-primary)' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</div>
+          <div
+            onClick={(e) => { e.stopPropagation(); router.push(`/song/${track.id}`) }}
+            title="Open song page"
+            style={{ fontSize: '14px', fontWeight: isCurrent ? '600' : '500', color: isCurrent ? 'var(--accent-primary)' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: 'fit-content', maxWidth: '100%' }}
+            onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
+            onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
+          >{track.title}</div>
           {track.tagline && <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.tagline}</div>}
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             {track.content_origin && <span>{ORIGIN_EMOJI[track.content_origin] || ''}</span>}
