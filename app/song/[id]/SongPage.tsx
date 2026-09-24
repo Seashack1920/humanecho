@@ -7,7 +7,7 @@ import { usePlayer } from '@/context/PlayerContext'
 import LikeButton from '@/components/LikeButton'
 import BuyButton from '@/components/BuyButton'
 import TipButton from '@/components/TipButton'
-import HeroMedia from '@/components/HeroMedia'
+import HeroMedia, { playableVideoUrl } from '@/components/HeroMedia'
 import { useDefaultTrackImage } from '@/lib/siteSettings'
 
 type Track = {
@@ -26,6 +26,21 @@ type Track = {
   price: number | null
   album_id: string | null
   artist_id: string
+  music_video_url: string | null
+  music_video_thumb_url: string | null
+}
+
+// A video tied to this song (subscriber/contest submission from the `videos`
+// table). The artist's own official video lives on the track (music_video_url).
+type SongVideo = {
+  id: string
+  title: string | null
+  cloudinary_url: string | null
+  thumbnail_url: string | null
+  video_image_url: string | null
+  video_type: string | null
+  filmmaker_name: string | null
+  content_origin: string | null
 }
 
 type Artist = {
@@ -55,6 +70,13 @@ const ORIGIN_EMOJI: Record<string, string> = {
   'ai generated': '🤖',
 }
 
+const VIDEO_TYPE_LABEL: Record<string, string> = {
+  music_video: 'Music Video',
+  lyric: 'Lyric Video',
+  live: 'Live',
+  cover: 'Cover',
+}
+
 export default function SongPage({ id }: { id: string }) {
   const router = useRouter()
   const { playTrack, togglePlay, currentTrack, isPlaying } = usePlayer()
@@ -73,13 +95,14 @@ export default function SongPage({ id }: { id: string }) {
   const [isAdmin, setIsAdmin]   = useState(false)
   const [owned, setOwned]       = useState(false)
   const [copied, setCopied]     = useState(false)
+  const [videos, setVideos]     = useState<SongVideo[]>([])
 
   useEffect(() => {
     const load = async () => {
       setLoading(true)
       const { data: trackData } = await supabase
         .from('tracks')
-        .select('id, title, track_number, duration, cloudinary_url, track_image_url, track_canvas_url, content_origin, track_type, text_content, text_content_type, tagline, price, album_id, artist_id')
+        .select('id, title, track_number, duration, cloudinary_url, track_image_url, track_canvas_url, content_origin, track_type, text_content, text_content_type, tagline, price, album_id, artist_id, music_video_url, music_video_thumb_url')
         .eq('id', id)
         .eq('status', 'published')
         .single()
@@ -94,6 +117,7 @@ export default function SongPage({ id }: { id: string }) {
         { data: albumsData },
         { data: storiesData },
         { data: filmsData },
+        { data: videosData },
       ] = await Promise.all([
         supabase.from('artists').select('id, name, photo_url, creator_label, stripe_onboarded, platform_owned').eq('id', trackData.artist_id).single(),
         trackData.album_id
@@ -104,11 +128,15 @@ export default function SongPage({ id }: { id: string }) {
         supabase.from('albums').select('id').eq('artist_id', trackData.artist_id).eq('status', 'published'),
         supabase.from('stories').select('id').eq('artist_id', trackData.artist_id).eq('status', 'published'),
         supabase.from('films').select('id').eq('artist_id', trackData.artist_id).eq('status', 'published'),
+        // Videos submitted for this song (subscriber/contest); only published ones show.
+        supabase.from('videos').select('id, title, cloudinary_url, thumbnail_url, video_image_url, video_type, filmmaker_name, content_origin')
+          .eq('track_id', id).eq('status', 'published').order('created_at'),
       ])
 
       if (artistData) setArtist(artistData)
       if (albumData) setAlbum(albumData as Album)
       setOthers(othersData || [])
+      setVideos(videosData || [])
       setArtistAlbums(albumsData || [])
       setArtistStories(storiesData || [])
       setArtistFilms(filmsData || [])
@@ -188,6 +216,23 @@ export default function SongPage({ id }: { id: string }) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch { /* clipboard blocked */ }
+  }
+
+  // Admin takedown. A submitted video is hidden (status → 'removed', reversible);
+  // the artist's own official video is cleared from the track.
+  const removeSubmittedVideo = async (videoId: string) => {
+    if (!window.confirm('Hide this video from the song page? (Admins can restore it later.)')) return
+    const { error } = await supabase.from('videos').update({ status: 'removed' }).eq('id', videoId)
+    if (error) { alert('Could not remove: ' + error.message); return }
+    setVideos(prev => prev.filter(v => v.id !== videoId))
+  }
+
+  const removeOfficialVideo = async () => {
+    if (!track) return
+    if (!window.confirm('Remove the official music video from this song?')) return
+    const { error } = await supabase.from('tracks').update({ music_video_url: null, music_video_thumb_url: null }).eq('id', track.id)
+    if (error) { alert('Could not remove: ' + error.message); return }
+    setTrack({ ...track, music_video_url: null, music_video_thumb_url: null })
   }
 
   if (loading) return (
@@ -330,6 +375,61 @@ export default function SongPage({ id }: { id: string }) {
             </a>
           ))}
         </div>
+
+        {/* ── VIDEO ── the artist's official music video, plus any published
+            submissions (subscriber / contest) tied to this song. */}
+        {(track.music_video_url || videos.length > 0) && (
+          <div style={{ marginBottom: '48px' }}>
+            <div style={{ fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '14px', fontWeight: '600' }}>
+              {((track.music_video_url ? 1 : 0) + videos.length) > 1 ? 'Videos' : 'Video'}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+
+              {/* Official music video (the artist's own) */}
+              {track.music_video_url && (
+                <div>
+                  <div style={{ width: '100%', aspectRatio: '16 / 9', borderRadius: '12px', overflow: 'hidden', background: '#0a0a0b' }}>
+                    <video src={playableVideoUrl(track.music_video_url)} poster={track.music_video_thumb_url || undefined} controls playsInline preload="metadata"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#0a0a0b' }} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', gap: '10px' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Official music video</div>
+                    {isAdmin && (
+                      <button onClick={removeOfficialVideo} title="Admin: remove this video"
+                        style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '4px 10px', fontSize: '12px', color: '#dc3c3c', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', flexShrink: 0 }}>Remove</button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Submitted videos (subscriber / contest) */}
+              {videos.map(v => (
+                <div key={v.id}>
+                  <div style={{ width: '100%', aspectRatio: '16 / 9', borderRadius: '12px', overflow: 'hidden', background: '#0a0a0b' }}>
+                    {v.cloudinary_url
+                      ? <video src={playableVideoUrl(v.cloudinary_url)} poster={v.thumbnail_url || v.video_image_url || undefined} controls playsInline preload="metadata"
+                          style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#0a0a0b' }} />
+                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>🎬</div>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', gap: '10px' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.title || 'Music video'}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        {VIDEO_TYPE_LABEL[v.video_type || ''] || 'Video'}
+                        {v.filmmaker_name ? ` · ${v.filmmaker_name}` : ''}
+                        {v.content_origin ? ` · ${ORIGIN_EMOJI[v.content_origin] || ''}` : ''}
+                      </div>
+                    </div>
+                    {isAdmin && (
+                      <button onClick={() => removeSubmittedVideo(v.id)} title="Admin: remove this video"
+                        style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '4px 10px', fontSize: '12px', color: '#dc3c3c', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', flexShrink: 0 }}>Remove</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Lyrics / text */}
         {track.text_content && (
