@@ -43,6 +43,7 @@ export default function FloatingPlayer() {
   const defaultImg = useDefaultTrackImage()
   const [tagline, setTagline] = useState('')
   const [canvas, setCanvas] = useState('')
+  const [copied, setCopied] = useState(false)
   useEffect(() => {
     if (!currentTrack?.id) { setTagline(''); setCanvas(''); return }
     let off = false
@@ -73,6 +74,22 @@ export default function FloatingPlayer() {
 
   const goToArtist = () => {
     if (currentTrack.artist_id) router.push(`/artist/${currentTrack.artist_id}`)
+  }
+
+  // Share the song someone's listening to right now: native share sheet on
+  // mobile (one tap to any app), copy-link fallback on desktop.
+  const shareSong = async () => {
+    const url = `${window.location.origin}/song/${currentTrack.id}`
+    const text = `${currentTrack.title}${currentTrack.artist_name ? ' — ' + currentTrack.artist_name : ''} on Human Echo`
+    if (navigator.share) {
+      try { await navigator.share({ title: currentTrack.title, text, url }) } catch { /* dismissed */ }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch { /* clipboard blocked */ }
+    }
   }
 
   return (
@@ -169,6 +186,11 @@ export default function FloatingPlayer() {
 
           {/* Collapse button */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', paddingBottom: '16px' }}>
+            <button onClick={shareSong} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: copied ? 'var(--accent-primary)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '500' }}
+              onMouseEnter={e => { if (!copied) e.currentTarget.style.color = 'var(--accent-primary)' }}
+              onMouseLeave={e => { if (!copied) e.currentTarget.style.color = 'var(--text-secondary)' }}>
+              {copied ? '✓ Copied' : '↗ Share'}
+            </button>
             <button onClick={() => setIsExpanded(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '500' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}>
