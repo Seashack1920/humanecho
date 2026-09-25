@@ -96,6 +96,7 @@ export default function SongPage({ id }: { id: string }) {
   const [owned, setOwned]       = useState(false)
   const [copied, setCopied]     = useState(false)
   const [videos, setVideos]     = useState<SongVideo[]>([])
+  const [lyricsOpen, setLyricsOpen] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -431,17 +432,33 @@ export default function SongPage({ id }: { id: string }) {
           </div>
         )}
 
-        {/* Lyrics / text */}
-        {track.text_content && (
-          <div style={{ marginBottom: '48px' }}>
-            <div style={{ fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '14px', fontWeight: '600' }}>
-              {track.text_content_type === 'lyrics' ? 'Lyrics' : 'Words'}
+        {/* Lyrics / text — long ones collapse to a peek so they don't bury the
+            rest of the page; short ones show in full with no toggle. */}
+        {track.text_content && (() => {
+          const isLong = (track.text_content?.length || 0) > 400
+          const collapsed = isLong && !lyricsOpen
+          return (
+            <div style={{ marginBottom: '48px' }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '14px', fontWeight: '600' }}>
+                {track.text_content_type === 'lyrics' ? 'Lyrics' : 'Words'}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <div style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: '1.9', whiteSpace: 'pre-wrap', fontFamily: track.text_content_type === 'lyrics' ? 'Playfair Display, serif' : 'DM Sans, sans-serif', maxWidth: '620px', maxHeight: collapsed ? '150px' : 'none', overflow: 'hidden' }}>
+                  {track.text_content}
+                </div>
+                {collapsed && (
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '70px', background: 'linear-gradient(to bottom, transparent, var(--bg-primary))', pointerEvents: 'none' }} />
+                )}
+              </div>
+              {isLong && (
+                <button onClick={() => setLyricsOpen(o => !o)}
+                  style={{ marginTop: '12px', background: 'none', border: '1px solid var(--border)', borderRadius: '20px', padding: '7px 16px', fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                  {lyricsOpen ? 'Hide lyrics ▴' : 'Show full lyrics ▾'}
+                </button>
+              )}
             </div>
-            <div style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: '1.9', whiteSpace: 'pre-wrap', fontFamily: track.text_content_type === 'lyrics' ? 'Playfair Display, serif' : 'DM Sans, sans-serif', maxWidth: '620px' }}>
-              {track.text_content}
-            </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* More from this artist — the body of work */}
         {others.length > 0 && artist && (

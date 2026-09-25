@@ -185,6 +185,13 @@ function TrackRow({ track, isPlaying, isCurrent, onPlay }: {
           {track.track_canvas_url && <span title="Has a Canvas — open the player to watch" style={{ fontSize: '10px', fontWeight: 600, color: 'var(--accent-primary)', border: '1px solid var(--accent-primary)', borderRadius: '999px', padding: '0 6px', letterSpacing: '0.02em' }}>◉ Canvas</span>}
         </div>
       </div>
+      {/* Open the song page (always visible so it's discoverable on touch too) */}
+      <button onClick={(e) => { e.stopPropagation(); router.push(`/song/${track.id}`) }} title="Open song page" aria-label="Open song page"
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '20px', lineHeight: 1, flexShrink: 0, padding: '2px 4px' }}
+        onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-primary)'}
+        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+        ›
+      </button>
       <LikeButton contentType="track" contentId={track.id} size="sm" />
       <div style={{ fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0 }}>{track.duration || '—'}</div>
     </div>

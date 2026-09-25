@@ -113,6 +113,14 @@ function TrackRow({ track, index, isPlaying, isCurrent, onPlay, owned, sellable 
           </div>
         </div>
 
+        {/* Open the song page (always visible so it's discoverable on touch too) */}
+        <button onClick={() => router.push(`/song/${track.id}`)} title="Open song page" aria-label="Open song page"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '20px', lineHeight: 1, flexShrink: 0, padding: '2px 4px' }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-primary)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+          ›
+        </button>
+
         {/* Like + duration + buy */}
         <LikeButton contentType="track" contentId={track.id} size="md" />
         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0, minWidth: '36px', textAlign: 'right' }}>{track.duration || '—'}</div>
