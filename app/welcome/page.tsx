@@ -1,33 +1,62 @@
 'use client'
 
 // The "front porch" — a simple, cinematic first impression for newcomers.
-// Primary goal: capture an email. Secondary: a small taste of the artists,
-// NOT the full catalog. Built standalone at /welcome; wiring it in as the true
-// entry (and gating the catalog) is a separate, later decision.
+// Primary goal: capture an email. Secondary: a small taste — a few hand-picked
+// songs (set in Admin → Site Settings → Front porch songs), NOT the full catalog.
+// Built standalone at /welcome; wiring it in as the true entry (and gating the
+// catalog) is a separate, later decision.
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { useDefaultTrackImage } from '@/lib/siteSettings'
 
-type FeaturedArtist = { id: string; name: string; photo_url: string | null; creator_label: string | null }
+type PorchSong = { id: string; title: string; track_image_url: string | null; artist_id: string | null; artist_name?: string }
 
 export default function WelcomePage() {
   const router = useRouter()
+  const defaultImg = useDefaultTrackImage()
   const [name, setName]   = useState('')
   const [email, setEmail] = useState('')
   const [loading, setLoading]     = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError]         = useState('')
-  const [artists, setArtists]     = useState<FeaturedArtist[]>([])
+  const [songs, setSongs]         = useState<PorchSong[]>([])
 
   useEffect(() => {
-    supabase.from('artists')
-      .select('id, name, photo_url, creator_label')
-      .eq('is_featured', true)
-      .not('photo_url', 'is', null)
-      .order('featured_order')
-      .limit(5)
-      .then(({ data }) => setArtists(data || []))
+    const load = async () => {
+      const sel = 'id, title, track_image_url, artist_id'
+
+      // 1) Admin's hand-picked porch songs (ordered), from site_settings.
+      const { data: pp } = await supabase.from('site_settings').select('value').eq('key', 'porch_picks').maybeSingle()
+      let ids: string[] = []
+      try { ids = pp?.value ? JSON.parse(pp.value) : [] } catch { ids = [] }
+
+      let rows: PorchSong[] = []
+      if (ids.length) {
+        const { data } = await supabase.from('tracks').select(sel).in('id', ids).eq('status', 'published')
+        const byId = Object.fromEntries((data || []).map(t => [t.id, t as PorchSong]))
+        rows = ids.map(id => byId[id]).filter(Boolean) as PorchSong[]  // preserve admin's order
+      }
+      // 2) Fallback so the porch is never empty: featured tracks, then most recent.
+      if (!rows.length) {
+        const { data: feat } = await supabase.from('tracks').select(sel).eq('status', 'published').eq('is_featured', true).limit(5)
+        rows = (feat || []) as PorchSong[]
+      }
+      if (!rows.length) {
+        const { data: recent } = await supabase.from('tracks').select(sel).eq('status', 'published').order('created_at', { ascending: false }).limit(5)
+        rows = (recent || []) as PorchSong[]
+      }
+
+      const aids = [...new Set(rows.map(r => r.artist_id).filter(Boolean))] as string[]
+      let names: Record<string, string> = {}
+      if (aids.length) {
+        const { data: arts } = await supabase.from('artists').select('id, name').in('id', aids)
+        names = Object.fromEntries((arts || []).map(a => [a.id, a.name]))
+      }
+      setSongs(rows.map(r => ({ ...r, artist_name: r.artist_id ? names[r.artist_id] : undefined })))
+    }
+    load()
   }, [])
 
   const handleSubmit = async () => {
@@ -51,7 +80,7 @@ export default function WelcomePage() {
     <div style={{ minHeight: '100vh', background: '#0a0a0b', color: 'white', fontFamily: 'DM Sans, sans-serif' }}>
 
       {/* ── HERO ── */}
-      <div style={{ maxWidth: '640px', margin: '0 auto', padding: '120px 24px 72px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ maxWidth: '640px', margin: '0 auto', padding: '120px 24px 64px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{ fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: '14px', fontWeight: '500' }}>
           A new music platform
         </div>
@@ -96,19 +125,24 @@ export default function WelcomePage() {
         </a>
       </div>
 
-      {/* ── A FEW ARTISTS ── */}
-      {artists.length > 0 && (
+      {/* ── A FEW SONGS ── a taste, not the catalog */}
+      {songs.length > 0 && (
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 24px 100px', textAlign: 'center' }}>
           <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)', marginBottom: '28px', fontWeight: '500' }}>
-            A few of the voices
+            A few songs to start
           </div>
-          <div style={{ display: 'flex', gap: '28px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            {artists.map(a => (
-              <button key={a.id} onClick={() => router.push(`/artist/${a.id}`)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '120px', fontFamily: 'DM Sans, sans-serif' }}>
-                <img src={a.photo_url || ''} alt={a.name} style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.15)' }} />
-                <div style={{ fontSize: '14px', fontWeight: '600', color: 'white', lineHeight: '1.2' }}>{a.name}</div>
-                {a.creator_label && <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>{a.creator_label}</div>}
+          <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {songs.map(song => (
+              <button key={song.id} onClick={() => router.push(`/song/${song.id}`)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '150px', fontFamily: 'DM Sans, sans-serif' }}>
+                <div style={{ position: 'relative', width: '150px', height: '150px', borderRadius: '12px', overflow: 'hidden', background: 'rgba(255,255,255,0.06)' }}>
+                  <img src={song.track_image_url || defaultImg || ''} alt={song.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', color: '#0a0a0b' }}>▶</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: 'white', lineHeight: '1.25', textAlign: 'center' }}>{song.title}</div>
+                {song.artist_name && <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{song.artist_name}</div>}
               </button>
             ))}
           </div>
