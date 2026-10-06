@@ -606,6 +606,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <a href={`/artist/${artist.id}`} target="_blank" rel="noreferrer" style={{ ...s.btnEdit, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>View ↗</a>
                     <button style={featBtn(!!(artist as any).is_featured)} title={(artist as any).is_featured ? 'Featured — click to unfeature' : 'Feature this artist'} onClick={() => toggleFeatured('artist', artist.id, !!(artist as any).is_featured)}>{(artist as any).is_featured ? '★ Featured' : '☆ Feature'}</button>
                     <button style={s.btnEdit} onClick={() => { setEditingArtistId(artist.id); setEditArtist({}) }}>Edit</button>
                     <button style={s.btnDanger} onClick={() => setConfirmDelete({ type: 'artist', id: artist.id, name: artist.name })}>Delete</button>
@@ -718,6 +719,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <a href={`/album/${album.id}`} target="_blank" rel="noreferrer" style={{ ...s.btnEdit, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>View ↗</a>
                     <button style={featBtn(!!(album as any).is_featured)} title={(album as any).is_featured ? 'Featured — click to unfeature' : 'Feature this album'} onClick={() => toggleFeatured('album', album.id, !!(album as any).is_featured)}>{(album as any).is_featured ? '★ Featured' : '☆ Feature'}</button>
                     <button style={s.btnEdit} onClick={async () => { setEditingAlbumId(album.id); setEditAlbum({}); const g = await loadContentGenres('album', album.id); setEditingGenres(g) }}>Edit</button>
                     <button style={s.btnDanger} onClick={() => setConfirmDelete({ type: 'album', id: album.id, name: album.title })}>Delete</button>
@@ -950,6 +952,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     >
                       {currentTrack?.id === track.id && isPlaying ? '⏸' : '▶'}
                     </button>
+                    <a href={`/song/${track.id}`} target="_blank" rel="noreferrer" style={{ ...s.btnEdit, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>View ↗</a>
                     <button style={featBtn(!!(track as any).is_featured)} title={(track as any).is_featured ? 'Featured — click to unfeature' : 'Feature this track'} onClick={() => toggleFeatured('track', track.id, !!(track as any).is_featured)}>{(track as any).is_featured ? '★ Featured' : '☆ Feature'}</button>
                     <button style={s.btnEdit} onClick={async () => { setEditingTrackId(track.id); setEditTrack({}); const g = await loadContentGenres('track', track.id); setEditingGenres(g) }}>Edit</button>
                     <button style={s.btnDanger} onClick={() => setConfirmDelete({ type: 'track', id: track.id, name: track.title })}>Delete</button>
