@@ -123,6 +123,9 @@ export default function WelcomePage() {
         <a href="/login" style={{ marginTop: '28px', fontSize: '13px', color: 'rgba(255,255,255,0.5)', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.25)', paddingBottom: '2px' }}>
           Already a member? Sign in
         </a>
+        <a href="/beta" style={{ marginTop: '14px', fontSize: '12px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '2px' }}>
+          Official Beta Tester? Enter here →
+        </a>
       </div>
 
       {/* ── A FEW SONGS ── a taste, not the catalog */}
