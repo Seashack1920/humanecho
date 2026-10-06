@@ -109,6 +109,11 @@ export default function SongPage({ id }: { id: string }) {
   const [uploadingImg, setUploadingImg] = useState(false)
   const [savingNotes, setSavingNotes]   = useState(false)
 
+  // Official music video (admin-editable, inline) — paste a YouTube or video URL
+  const [editingVideo, setEditingVideo] = useState(false)
+  const [videoUrlDraft, setVideoUrlDraft] = useState('')
+  const [savingVideo, setSavingVideo]   = useState(false)
+
   useEffect(() => {
     const load = async () => {
       setLoading(true)
@@ -245,6 +250,18 @@ export default function SongPage({ id }: { id: string }) {
     const { error } = await supabase.from('tracks').update({ music_video_url: null, music_video_thumb_url: null }).eq('id', track.id)
     if (error) { alert('Could not remove: ' + error.message); return }
     setTrack({ ...track, music_video_url: null, music_video_thumb_url: null })
+  }
+
+  const startEditVideo = () => { setVideoUrlDraft(track?.music_video_url || ''); setEditingVideo(true) }
+  const saveVideo = async () => {
+    if (!track) return
+    setSavingVideo(true)
+    const url = videoUrlDraft.trim() || null
+    const { error } = await supabase.from('tracks').update({ music_video_url: url }).eq('id', track.id)
+    setSavingVideo(false)
+    if (error) { alert('Could not save: ' + error.message); return }
+    setTrack({ ...track, music_video_url: url })
+    setEditingVideo(false)
   }
 
   // ── Song Notes editing (admin, inline) ──
@@ -417,26 +434,49 @@ export default function SongPage({ id }: { id: string }) {
 
         {/* ── VIDEO ── the artist's official music video, plus any published
             submissions (subscriber / contest) tied to this song. */}
-        {(track.music_video_url || videos.length > 0) && (
+        {(track.music_video_url || videos.length > 0 || isAdmin) && (
           <div style={{ marginBottom: '48px' }}>
             <div style={{ fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '14px', fontWeight: '600' }}>
               {((track.music_video_url ? 1 : 0) + videos.length) > 1 ? 'Videos' : 'Video'}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
-              {/* Official music video (the artist's own) */}
-              {track.music_video_url && (
+              {/* Official music video (the artist's own) — admins paste a YouTube or video URL inline */}
+              {editingVideo ? (
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>Music video link — paste a YouTube link, or a direct video file URL</label>
+                  <input value={videoUrlDraft} onChange={e => setVideoUrlDraft(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px', fontFamily: 'DM Sans, sans-serif', boxSizing: 'border-box' }} />
+                  {videoUrlDraft.trim() && (
+                    <div style={{ marginTop: '12px' }}><VideoEmbed url={videoUrlDraft.trim()} title={track.title} /></div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
+                    <div style={{ flex: 1 }} />
+                    <button onClick={() => setEditingVideo(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
+                    <button onClick={saveVideo} disabled={savingVideo} style={{ padding: '9px 20px', borderRadius: '8px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, fontFamily: 'DM Sans, sans-serif' }}>{savingVideo ? 'Saving…' : 'Save video'}</button>
+                  </div>
+                </div>
+              ) : track.music_video_url ? (
                 <div>
                   <VideoEmbed url={track.music_video_url} poster={track.music_video_thumb_url} title={track.title} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', gap: '10px' }}>
                     <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Official music video</div>
                     {isAdmin && (
-                      <button onClick={removeOfficialVideo} title="Admin: remove this video"
-                        style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '4px 10px', fontSize: '12px', color: '#dc3c3c', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', flexShrink: 0 }}>Remove</button>
+                      <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                        <button onClick={startEditVideo} title="Admin: replace the video link"
+                          style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '4px 10px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Replace</button>
+                        <button onClick={removeOfficialVideo} title="Admin: remove this video"
+                          style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '4px 10px', fontSize: '12px', color: '#dc3c3c', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Remove</button>
+                      </div>
                     )}
                   </div>
                 </div>
-              )}
+              ) : isAdmin ? (
+                <button onClick={startEditVideo}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', aspectRatio: '16 / 9', borderRadius: '12px', border: '1px dashed var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '14px', fontFamily: 'DM Sans, sans-serif' }}>
+                  ＋ Add music video <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(paste a YouTube link)</span>
+                </button>
+              ) : null}
 
               {/* Submitted videos (subscriber / contest) */}
               {videos.map(v => (
