@@ -9,12 +9,14 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDefaultTrackImage } from '@/lib/siteSettings'
+import { youTubeThumb } from '@/components/VideoEmbed'
 
 type VideoItem = {
   id: string
   title: string
   track_image_url: string | null
   music_video_thumb_url: string | null
+  music_video_url: string | null
   artist_id: string
   artist_name?: string
 }
@@ -23,7 +25,7 @@ function VideoCard({ item }: { item: VideoItem }) {
   const router = useRouter()
   const defaultImg = useDefaultTrackImage()
   const [hovered, setHovered] = useState(false)
-  const poster = item.music_video_thumb_url || item.track_image_url || defaultImg || ''
+  const poster = item.music_video_thumb_url || youTubeThumb(item.music_video_url) || item.track_image_url || defaultImg || ''
 
   return (
     <button
@@ -53,7 +55,7 @@ export default function MusicVideosPage() {
     const load = async () => {
       const { data: tracks } = await supabase
         .from('tracks')
-        .select('id, title, track_image_url, music_video_thumb_url, artist_id')
+        .select('id, title, track_image_url, music_video_thumb_url, music_video_url, artist_id')
         .eq('status', 'published')
         .not('music_video_url', 'is', null)
         .neq('music_video_url', '')

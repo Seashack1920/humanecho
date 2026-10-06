@@ -7,7 +7,8 @@ import { usePlayer } from '@/context/PlayerContext'
 import LikeButton from '@/components/LikeButton'
 import BuyButton from '@/components/BuyButton'
 import TipButton from '@/components/TipButton'
-import HeroMedia, { playableVideoUrl } from '@/components/HeroMedia'
+import HeroMedia from '@/components/HeroMedia'
+import VideoEmbed from '@/components/VideoEmbed'
 import { useDefaultTrackImage } from '@/lib/siteSettings'
 
 type Track = {
@@ -389,10 +390,7 @@ export default function SongPage({ id }: { id: string }) {
               {/* Official music video (the artist's own) */}
               {track.music_video_url && (
                 <div>
-                  <div style={{ width: '100%', aspectRatio: '16 / 9', borderRadius: '12px', overflow: 'hidden', background: '#0a0a0b' }}>
-                    <video src={playableVideoUrl(track.music_video_url)} poster={track.music_video_thumb_url || undefined} controls playsInline preload="metadata"
-                      style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#0a0a0b' }} />
-                  </div>
+                  <VideoEmbed url={track.music_video_url} poster={track.music_video_thumb_url} title={track.title} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', gap: '10px' }}>
                     <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Official music video</div>
                     {isAdmin && (
@@ -406,12 +404,9 @@ export default function SongPage({ id }: { id: string }) {
               {/* Submitted videos (subscriber / contest) */}
               {videos.map(v => (
                 <div key={v.id}>
-                  <div style={{ width: '100%', aspectRatio: '16 / 9', borderRadius: '12px', overflow: 'hidden', background: '#0a0a0b' }}>
-                    {v.cloudinary_url
-                      ? <video src={playableVideoUrl(v.cloudinary_url)} poster={v.thumbnail_url || v.video_image_url || undefined} controls playsInline preload="metadata"
-                          style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#0a0a0b' }} />
-                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>🎬</div>}
-                  </div>
+                  {v.cloudinary_url
+                    ? <VideoEmbed url={v.cloudinary_url} poster={v.thumbnail_url || v.video_image_url} title={v.title || 'Music video'} />
+                    : <div style={{ width: '100%', aspectRatio: '16 / 9', borderRadius: '12px', background: '#0a0a0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>🎬</div>}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', gap: '10px' }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.title || 'Music video'}</div>
