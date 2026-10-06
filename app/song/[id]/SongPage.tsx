@@ -10,6 +10,7 @@ import TipButton from '@/components/TipButton'
 import HeroMedia from '@/components/HeroMedia'
 import VideoEmbed from '@/components/VideoEmbed'
 import { useDefaultTrackImage } from '@/lib/siteSettings'
+import { uploadToCloudinary } from '@/lib/cloudinaryUpload'
 
 type Track = {
   id: string
@@ -29,6 +30,8 @@ type Track = {
   artist_id: string
   music_video_url: string | null
   music_video_thumb_url: string | null
+  song_notes: string | null
+  song_notes_images: string[] | null
 }
 
 // A video tied to this song (subscriber/contest submission from the `videos`
@@ -99,12 +102,19 @@ export default function SongPage({ id }: { id: string }) {
   const [videos, setVideos]     = useState<SongVideo[]>([])
   const [lyricsOpen, setLyricsOpen] = useState(false)
 
+  // Song Notes (admin-editable, inline)
+  const [editingNotes, setEditingNotes] = useState(false)
+  const [notesDraft, setNotesDraft]     = useState('')
+  const [imagesDraft, setImagesDraft]   = useState<string[]>([])
+  const [uploadingImg, setUploadingImg] = useState(false)
+  const [savingNotes, setSavingNotes]   = useState(false)
+
   useEffect(() => {
     const load = async () => {
       setLoading(true)
       const { data: trackData } = await supabase
         .from('tracks')
-        .select('id, title, track_number, duration, cloudinary_url, track_image_url, track_canvas_url, content_origin, track_type, text_content, text_content_type, tagline, price, album_id, artist_id, music_video_url, music_video_thumb_url')
+        .select('id, title, track_number, duration, cloudinary_url, track_image_url, track_canvas_url, content_origin, track_type, text_content, text_content_type, tagline, price, album_id, artist_id, music_video_url, music_video_thumb_url, song_notes, song_notes_images')
         .eq('id', id)
         .eq('status', 'published')
         .single()
@@ -235,6 +245,33 @@ export default function SongPage({ id }: { id: string }) {
     const { error } = await supabase.from('tracks').update({ music_video_url: null, music_video_thumb_url: null }).eq('id', track.id)
     if (error) { alert('Could not remove: ' + error.message); return }
     setTrack({ ...track, music_video_url: null, music_video_thumb_url: null })
+  }
+
+  // ── Song Notes editing (admin, inline) ──
+  const startEditNotes = () => {
+    setNotesDraft(track?.song_notes || '')
+    setImagesDraft(track?.song_notes_images || [])
+    setEditingNotes(true)
+  }
+  const addNotesImage = async (file: File | null) => {
+    if (!file || !track) return
+    setUploadingImg(true)
+    try {
+      const { url } = await uploadToCloudinary(file, `song-notes/${track.id}`, 'image')
+      setImagesDraft(prev => [...prev, url])
+    } catch (e) { alert('Upload failed: ' + (e as Error).message) }
+    setUploadingImg(false)
+  }
+  const saveNotes = async () => {
+    if (!track) return
+    setSavingNotes(true)
+    const notes = notesDraft.trim() || null
+    const imgs = imagesDraft
+    const { error } = await supabase.from('tracks').update({ song_notes: notes, song_notes_images: imgs }).eq('id', track.id)
+    setSavingNotes(false)
+    if (error) { alert('Could not save: ' + error.message); return }
+    setTrack({ ...track, song_notes: notes, song_notes_images: imgs })
+    setEditingNotes(false)
   }
 
   if (loading) return (
@@ -450,6 +487,72 @@ export default function SongPage({ id }: { id: string }) {
                   style={{ marginTop: '12px', background: 'none', border: '1px solid var(--border)', borderRadius: '20px', padding: '7px 16px', fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
                   {lyricsOpen ? 'Hide lyrics ▴' : 'Show full lyrics ▾'}
                 </button>
+              )}
+            </div>
+          )
+        })()}
+
+        {/* ── SONG NOTES ── expansion text + images. Shows only when populated;
+            admins see Edit/Add controls even when empty. */}
+        {(() => {
+          const notesImages = track.song_notes_images || []
+          const hasNotes = !!(track.song_notes && track.song_notes.trim()) || notesImages.length > 0
+          if (!hasNotes && !isAdmin) return null
+          return (
+            <div style={{ marginBottom: '48px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div style={{ fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: '600' }}>Song Notes</div>
+                {isAdmin && !editingNotes && (
+                  <button onClick={startEditNotes} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '4px 12px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                    {hasNotes ? 'Edit' : '+ Add song notes'}
+                  </button>
+                )}
+              </div>
+
+              {editingNotes ? (
+                <div>
+                  <textarea value={notesDraft} onChange={e => setNotesDraft(e.target.value)} rows={6}
+                    placeholder="The story behind this song, context, credits — anything that enriches it."
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '15px', lineHeight: '1.7', fontFamily: 'DM Sans, sans-serif', boxSizing: 'border-box', resize: 'vertical' }} />
+                  {imagesDraft.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '12px' }}>
+                      {imagesDraft.map(url => (
+                        <div key={url} style={{ position: 'relative', width: '96px', height: '96px', borderRadius: '8px', overflow: 'hidden', background: 'var(--bg-secondary)' }}>
+                          <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button onClick={() => setImagesDraft(prev => prev.filter(u => u !== url))}
+                            style={{ position: 'absolute', top: '4px', right: '4px', width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0,0,0,0.65)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', lineHeight: 1 }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px', flexWrap: 'wrap' }}>
+                    <label style={{ fontSize: '13px', color: 'var(--accent-primary)', cursor: uploadingImg ? 'default' : 'pointer', fontWeight: 500 }}>
+                      {uploadingImg ? 'Uploading…' : '+ Add image'}
+                      <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingImg} onChange={e => { addNotesImage(e.target.files?.[0] || null); e.target.value = '' }} />
+                    </label>
+                    <div style={{ flex: 1 }} />
+                    <button onClick={() => setEditingNotes(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
+                    <button onClick={saveNotes} disabled={savingNotes} style={{ padding: '9px 20px', borderRadius: '8px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, fontFamily: 'DM Sans, sans-serif' }}>{savingNotes ? 'Saving…' : 'Save notes'}</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {track.song_notes && track.song_notes.trim() && (
+                    <div style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: '1.8', whiteSpace: 'pre-wrap', maxWidth: '620px', marginBottom: notesImages.length ? '20px' : 0 }}>
+                      {track.song_notes}
+                    </div>
+                  )}
+                  {notesImages.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '14px' }}>
+                      {notesImages.map((url, i) => (
+                        <img key={i} src={url} alt="" style={{ width: '100%', borderRadius: '12px', display: 'block' }} />
+                      ))}
+                    </div>
+                  )}
+                  {!hasNotes && isAdmin && (
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No notes yet — add text and/or images to enrich this song's page.</div>
+                  )}
+                </>
               )}
             </div>
           )
