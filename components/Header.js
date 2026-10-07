@@ -14,8 +14,18 @@ export default function Header() {
   const [isMobile, setIsMobile] = useState(false)
   const [acctOpen, setAcctOpen] = useState(false)
   const acctRef = useRef(null)
+  const [hideNav, setHideNav] = useState(false)
 
   const { loading, signedIn, profile, isAdmin, isArtist, isMember } = useCurrentUser()
+
+  // Under the subscriber gate, hide the catalog nav from visitors without access
+  // (anonymous porch viewers). Members, admins and beta testers keep it.
+  useEffect(() => {
+    if (loading) return
+    if (process.env.NEXT_PUBLIC_LAUNCH_MODE !== 'subscribers') { setHideNav(false); return }
+    const beta = typeof document !== 'undefined' && /(?:^|;\s*)he_beta=1(?:;|$)/.test(document.cookie)
+    setHideNav(!(isMember || isAdmin || beta))
+  }, [loading, isMember, isAdmin])
 
   useEffect(() => {
     const saved = localStorage.getItem('theme') || 'light'
@@ -50,6 +60,7 @@ export default function Header() {
   }
 
   const navLinks = ['Music', 'Stories', 'Cinema', 'Escapes']
+  const links = hideNav ? [] : navLinks
 
   // Build the account-menu items based on derived role
   const displayName = profile?.full_name || 'Account'
@@ -165,7 +176,7 @@ export default function Header() {
         {/* Desktop nav */}
         {!isMobile && (
           <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-            {navLinks.map((item) => (
+            {links.map((item) => (
               <Link key={item} href={`/${item.toLowerCase()}`} style={{
                 fontSize: '14px', fontWeight: '400', color: 'var(--text-secondary)',
                 letterSpacing: '0.5px', transition: 'color 0.2s ease', textDecoration: 'none',
@@ -242,7 +253,7 @@ export default function Header() {
           WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--border)',
           padding: '16px 24px 24px',
         }}>
-          {navLinks.map((item) => (
+          {links.map((item) => (
             <Link key={item} href={`/${item.toLowerCase()}`} onClick={() => setMenuOpen(false)} style={{
               display: 'block', padding: '14px 0', fontSize: '18px',
               fontFamily: 'Playfair Display, serif', fontWeight: '500',
