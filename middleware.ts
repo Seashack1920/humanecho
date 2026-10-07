@@ -41,8 +41,10 @@ export function middleware(req: NextRequest) {
     const url = req.nextUrl.clone()
     url.searchParams.delete('beta')
     const res = NextResponse.redirect(url)
+    // Not httpOnly: client code (e.g. the song-page carve-out) reads this to
+    // know a beta tester has full access. It's only a soft-gate bypass token.
     res.cookies.set(BETA_COOKIE, '1', {
-      httpOnly: true, sameSite: 'lax', path: '/',
+      httpOnly: false, sameSite: 'lax', path: '/',
       maxAge: 60 * 60 * 24 * 90, // 90 days
     })
     return res

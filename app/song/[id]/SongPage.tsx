@@ -101,6 +101,9 @@ export default function SongPage({ id }: { id: string }) {
   const [copied, setCopied]     = useState(false)
   const [videos, setVideos]     = useState<SongVideo[]>([])
   const [lyricsOpen, setLyricsOpen] = useState(false)
+  // Under the subscriber gate, an anonymous visitor may see a porch-pick song
+  // but with the catalog-y links (nav pills, "More from artist") hidden.
+  const [restricted, setRestricted] = useState(false)
 
   // Song Notes (admin-editable, inline)
   const [editingNotes, setEditingNotes] = useState(false)
@@ -126,6 +129,21 @@ export default function SongPage({ id }: { id: string }) {
 
       if (!trackData) { setNotFound(true); setLoading(false); return }
       setTrack(trackData)
+
+      // ── Access gate (LAUNCH_MODE=subscribers) ──
+      // Members/beta (he_member/he_beta cookie) see everything. Anonymous
+      // visitors may see a porch-pick song (restricted view) or are sent to the
+      // porch. When the gate is off, this whole block is skipped.
+      if (process.env.NEXT_PUBLIC_LAUNCH_MODE === 'subscribers') {
+        const hasAccess = typeof document !== 'undefined' && /(?:^|;\s*)he_(member|beta)=1(?:;|$)/.test(document.cookie)
+        if (!hasAccess) {
+          const { data: pp } = await supabase.from('site_settings').select('value').eq('key', 'porch_picks').maybeSingle()
+          let picks: string[] = []
+          try { picks = pp?.value ? JSON.parse(pp.value) : [] } catch { picks = [] }
+          if (!picks.includes(id)) { router.replace('/welcome'); return }
+          setRestricted(true)
+        }
+      }
 
       const [
         { data: artistData },
@@ -374,7 +392,7 @@ export default function SongPage({ id }: { id: string }) {
       </div>
 
       {/* ── ARTIST NAV PILLS ── */}
-      {navPills.length > 1 && (
+      {!restricted && navPills.length > 1 && (
         <div style={{ position: 'sticky', top: '70px', zIndex: 40, background: 'var(--bg-primary)', borderBottom: '1px solid var(--border)', padding: '0 48px' }}>
           <div style={{ maxWidth: '860px', margin: '0 auto', display: 'flex', gap: '4px', padding: '12px 0' }}>
             {navPills.map(pill => (
@@ -599,7 +617,7 @@ export default function SongPage({ id }: { id: string }) {
         })()}
 
         {/* More from this artist — the body of work */}
-        {others.length > 0 && artist && (
+        {!restricted && others.length > 0 && artist && (
           <div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '18px' }}>
               <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)' }}>
