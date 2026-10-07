@@ -63,12 +63,14 @@ export default function WelcomePage() {
     if (!email || !email.includes('@')) { setError('Please enter a valid email'); return }
     setLoading(true); setError('')
     try {
-      const { error: dbError } = await supabase.from('email_captures').insert({
-        email: email.trim().toLowerCase(),
-        name: name.trim() || null,
-        source: 'porch',
+      // Server route stores the lead, adds them to the Resend Audience, and
+      // fires the welcome-Automation trigger (Resend secret key is server-only).
+      const res = await fetch('/api/email-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), name: name.trim(), source: 'porch' }),
       })
-      if (dbError && !dbError.message.includes('duplicate')) throw dbError
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'failed') }
       setSubmitted(true)
     } catch {
       setError('Something went wrong. Please try again.')
