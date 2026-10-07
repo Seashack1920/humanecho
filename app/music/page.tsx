@@ -100,7 +100,7 @@ function FeaturedHero({ artists, onPlayArtist }: {
   const artist = artists[current]
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', height: '500px', marginTop: '-70px' }}
+    <div style={{ position: 'relative', overflow: 'hidden', height: '560px', marginTop: '-70px' }}
       onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <HeroMedia
         imageUrl={artist.photo_url}
@@ -112,12 +112,12 @@ function FeaturedHero({ artists, onPlayArtist }: {
           filter: 'brightness(0.9)',
           transition: 'opacity 0.3s',
           opacity: animating ? 0 : 1,
-          WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, #000 93%, transparent 100%)',
-          maskImage: 'linear-gradient(to bottom, #000 0%, #000 93%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 93%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 93%, transparent 100%)',
         }}
       />
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 100%)' }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '56px', background: 'linear-gradient(to top, var(--bg-primary), transparent)' }} />
+      {/* Legibility gradient — bottom-weighted (shared hero finish) */}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,10,11,0.92) 0%, rgba(10,10,11,0.25) 30%, rgba(10,10,11,0) 60%)' }} />
 
       <div style={{ position: 'relative', zIndex: 10, height: '100%', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'center' : 'flex-end', justifyContent: isMobile ? 'flex-end' : 'center', textAlign: isMobile ? 'center' : 'left', padding: isMobile ? '70px 22px 48px' : '80px 64px 52px', gap: isMobile ? '20px' : '48px', opacity: animating ? 0 : 1, transition: 'opacity 0.3s' }}>
         {artist.photo_url && (

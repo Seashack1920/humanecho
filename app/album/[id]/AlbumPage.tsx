@@ -252,17 +252,17 @@ export default function AlbumPage({ id }: { id: string }) {
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', fontFamily: 'DM Sans, sans-serif' }}>
 
       {/* ── ALBUM HERO ── */}
-      <div style={{ position: 'relative', background: '#0a0a0b', marginTop: '-70px', paddingTop: '70px', minHeight: '500px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+      <div style={{ position: 'relative', background: '#0a0a0b', marginTop: '-70px', paddingTop: '70px', minHeight: '560px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
         {isOwner && (
           <a href={isAdmin ? '/admin/upload' : '/dashboard'} style={{ position: 'absolute', top: '90px', left: '24px', zIndex: 20, padding: '6px 14px', borderRadius: '20px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.8)', fontSize: '12px', textDecoration: 'none', backdropFilter: 'blur(10px)', fontFamily: 'DM Sans, sans-serif' }}>
             {isAdmin ? '← Admin Portal' : '← Dashboard'}
           </a>
         )}
 
-        {/* Hero media — a wide 16:9 video or still image, framed like the artist
-            hero: bright, solid top edge, feathered bottom that melts into the
-            page. HeroMedia fades the video in with no photo-flash. When no hero
-            is set, fall back to a blurred dark wash of the square cover. */}
+        {/* Hero media — a wide 16:9 video or still image. Shared hero finish:
+            feathers in under the header and out at the bottom. HeroMedia fades
+            the video in with no photo-flash. When no hero is set, fall back to a
+            blurred dark wash of the square cover. */}
         {(album.hero_video_url || album.hero_image_url) ? (
           <HeroMedia
             videoUrl={album.hero_video_url}
@@ -270,17 +270,16 @@ export default function AlbumPage({ id }: { id: string }) {
             position="center"
             style={{
               filter: 'brightness(0.9)',
-              WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, #000 88%, transparent 100%)',
-              maskImage: 'linear-gradient(to bottom, #000 0%, #000 88%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 93%, transparent 100%)',
+              maskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 93%, transparent 100%)',
             }}
           />
         ) : album.cover_url ? (
           <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${album.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(40px) brightness(0.3)' }} />
         ) : null}
 
-        {/* Gradient overlays — keep text legible, then melt the bottom into the page */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 100%)' }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px', background: 'linear-gradient(to top, var(--bg-primary), transparent)' }} />
+        {/* Legibility gradient — bottom-weighted (shared hero finish) */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,10,11,0.92) 0%, rgba(10,10,11,0.25) 30%, rgba(10,10,11,0) 60%)' }} />
 
         <div style={{ position: 'relative', zIndex: 10, maxWidth: '860px', margin: '0 auto', width: '100%', padding: '48px 48px 52px', display: 'flex', gap: '40px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           {album.cover_url ? (
