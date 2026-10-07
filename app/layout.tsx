@@ -5,6 +5,7 @@ import FloatingPlayer from '@/components/FloatingPlayer'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ReferralTracker from '@/components/ReferralTracker'
+import MemberCookieSync from '@/components/MemberCookieSync'
 
 export const metadata = {
   title: 'Human Echo',
@@ -19,6 +20,7 @@ export default function RootLayout({ children }) {
           <BrowsingMusicProvider>
             <Header />
             <ReferralTracker />
+            <MemberCookieSync />
             <main style={{ paddingTop: '70px', paddingBottom: '100px' }}>
               {children}
             </main>

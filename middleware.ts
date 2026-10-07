@@ -2,12 +2,17 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // ── Launch gate ──────────────────────────────────────────────────────────────
-// During the private beta, set LAUNCH_MODE=holding in the environment. The public
-// then sees only the /holding (coming-soon) page; you and beta testers unlock the
-// full site by visiting any URL with ?beta=<BETA_ACCESS_CODE> once, which drops a
-// cookie granting access. To go fully public, set LAUNCH_MODE=live (or remove it)
-// and redeploy — no code change required.
+// LAUNCH_MODE controls who can see the site (set it in the environment, redeploy —
+// no code change needed):
+//   unset / 'live'  → fully public.
+//   'holding'       → private beta: the public sees only /holding (coming-soon);
+//                     beta testers unlock via ?beta=<BETA_ACCESS_CODE>.
+//   'subscribers'   → paid model: the public sees only the porch (/welcome); paid
+//                     members (he_member cookie) and beta testers (he_beta) get the
+//                     full site. Song pages pass through and self-gate so the porch's
+//                     few public songs stay playable while the catalog stays private.
 const BETA_COOKIE = 'he_beta'
+const MEMBER_COOKIE = 'he_member'
 const REF_COOKIE = 'he_ref'
 
 export function middleware(req: NextRequest) {
@@ -23,13 +28,14 @@ export function middleware(req: NextRequest) {
     return res
   }
 
-  // Off unless explicitly in holding mode → site behaves normally (public).
-  if (process.env.LAUNCH_MODE !== 'holding') return withRef(NextResponse.next())
+  // Off unless gated → site behaves normally (public).
+  const mode = process.env.LAUNCH_MODE
+  if (mode !== 'holding' && mode !== 'subscribers') return withRef(NextResponse.next())
 
   const { pathname, searchParams } = req.nextUrl
   const code = process.env.BETA_ACCESS_CODE
 
-  // Redeem an access code: ?beta=CODE → set cookie, then strip the param.
+  // Redeem an access code: ?beta=CODE → set cookie, then strip the param. (Both modes.)
   const provided = searchParams.get('beta')
   if (code && provided && provided === code) {
     const url = req.nextUrl.clone()
@@ -42,29 +48,58 @@ export function middleware(req: NextRequest) {
     return res
   }
 
-  // Already a beta tester → full access.
-  if (req.cookies.get(BETA_COOKIE)?.value === '1') return withRef(NextResponse.next())
+  const hasBeta = req.cookies.get(BETA_COOKIE)?.value === '1'
 
-  // Public visitor: allow only the holding page, framework internals, API
-  // routes (Stripe webhooks etc.), and static asset files. Everything else is
-  // rewritten to the holding page so the real site stays private.
+  // ── Holding (private beta) ──
+  if (mode === 'holding') {
+    if (hasBeta) return withRef(NextResponse.next())
+    const isAllowed =
+      pathname === '/holding' ||
+      pathname === '/beta' ||
+      pathname.startsWith('/store') ||
+      pathname.startsWith('/_next') ||
+      pathname.startsWith('/api') ||
+      pathname === '/favicon.ico' ||
+      pathname === '/robots.txt' ||
+      pathname === '/sitemap.xml' ||
+      /\.[a-zA-Z0-9]+$/.test(pathname)
+    if (isAllowed) return NextResponse.next()
+    const url = req.nextUrl.clone()
+    url.pathname = '/holding'
+    url.search = ''
+    return NextResponse.rewrite(url)
+  }
+
+  // ── Subscribers (paid model) ──
+  // Full site for paid members (he_member) and beta testers (he_beta). Everyone
+  // else gets the porch, except the public allowlist. Song pages pass through and
+  // self-gate (the porch's chosen songs stay public; the rest redirect to /welcome).
+  const hasMember = req.cookies.get(MEMBER_COOKIE)?.value === '1'
+  if (hasBeta || hasMember) return withRef(NextResponse.next())
+
   const isAllowed =
-    pathname === '/holding' ||
+    pathname === '/welcome' ||
     pathname === '/beta' ||
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/reset-password' ||
+    pathname.startsWith('/subscribe') ||
+    pathname.startsWith('/auth') ||          // Supabase auth callback
+    pathname.startsWith('/song/') ||          // song pages self-gate (porch songs public)
     pathname.startsWith('/store') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname === '/favicon.ico' ||
     pathname === '/robots.txt' ||
     pathname === '/sitemap.xml' ||
-    /\.[a-zA-Z0-9]+$/.test(pathname) // any file with an extension (.png, .css, .mp4…)
+    /\.[a-zA-Z0-9]+$/.test(pathname)
 
-  if (isAllowed) return NextResponse.next()
+  if (isAllowed) return withRef(NextResponse.next())
 
   const url = req.nextUrl.clone()
-  url.pathname = '/holding'
+  url.pathname = '/welcome'
   url.search = ''
-  return NextResponse.rewrite(url)
+  return withRef(NextResponse.redirect(url))
 }
 
 export const config = {
