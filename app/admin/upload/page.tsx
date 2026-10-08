@@ -169,6 +169,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
   const [albumHeroVideoFile, setAlbumHeroVideoFile] = useState<File | null>(null)
   const [editingTrackId, setEditingTrackId] = useState<string | null>(null)
   const [editTrack, setEditTrack]           = useState<Partial<Track>>({})
+  const [editTrackAudioFile, setEditTrackAudioFile] = useState<File | null>(null)
   const [trackImageFile, setTrackImageFile] = useState<File | null>(null)
   const [trackCanvasFile, setTrackCanvasFile] = useState<File | null>(null)
 
@@ -354,6 +355,14 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
       if (trackCanvasFile) {
         updates.track_canvas_url = (await uploadToCloudinary(trackCanvasFile, `${trackFolder}/canvas`, 'video')).url
       }
+      if (editTrackAudioFile) {
+        // Swap the audio file; keep the same track row (likes/purchases/pages intact).
+        // Cloudinary stores audio under the 'video' resource type.
+        const up = await uploadToCloudinary(editTrackAudioFile, trackFolder, 'video')
+        updates.cloudinary_url = up.url
+        updates.cloudinary_public_id = up.public_id
+        try { updates.duration = await readAudioDuration(editTrackAudioFile) } catch { /* keep existing duration */ }
+      }
       if (updates.price        !== undefined) updates.price        = updates.price        ? parseFloat(updates.price)      : null
       if (updates.track_number !== undefined) updates.track_number = updates.track_number ? parseInt(updates.track_number) : null
       const { error } = await supabase.from('tracks').update(updates).eq('id', trackId)
@@ -368,6 +377,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
       setEditingTrackId(null)
       setTrackImageFile(null)
       setTrackCanvasFile(null)
+      setEditTrackAudioFile(null)
       setMessage({ type: 'success', text: 'Track updated.' })
     } catch (err) {
       setMessage({ type: 'error', text: (err as Error).message })
@@ -915,9 +925,14 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                       {albums.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
                     </select>
                   </div>
+                  <div>
+                    <label style={s.label}>Replace audio <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional; leave empty to keep the current file. Swapping keeps the same song (likes, purchases, links all stay).</span></label>
+                    <input type="file" accept="audio/*" style={{ fontSize: '13px', color: 'var(--text-secondary)' }} onChange={e => setEditTrackAudioFile(e.target.files?.[0] || null)} />
+                    {editTrackAudioFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {editTrackAudioFile.name} — replaces the audio on save</div>}
+                  </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button style={s.btnSave} onClick={() => handleSaveTrack(track.id)} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
-                    <button style={s.btnCancel} onClick={() => { setEditingTrackId(null); setEditTrack({}); setTrackImageFile(null); setTrackCanvasFile(null) }}>Cancel</button>
+                    <button style={s.btnCancel} onClick={() => { setEditingTrackId(null); setEditTrack({}); setTrackImageFile(null); setTrackCanvasFile(null); setEditTrackAudioFile(null) }}>Cancel</button>
                   </div>
                 </div>
               ) : (
@@ -954,7 +969,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     </button>
                     <a href={`/song/${track.id}`} target="_blank" rel="noreferrer" style={{ ...s.btnEdit, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>View ↗</a>
                     <button style={featBtn(!!(track as any).is_featured)} title={(track as any).is_featured ? 'Featured — click to unfeature' : 'Feature this track'} onClick={() => toggleFeatured('track', track.id, !!(track as any).is_featured)}>{(track as any).is_featured ? '★ Featured' : '☆ Feature'}</button>
-                    <button style={s.btnEdit} onClick={async () => { setEditingTrackId(track.id); setEditTrack({}); const g = await loadContentGenres('track', track.id); setEditingGenres(g) }}>Edit</button>
+                    <button style={s.btnEdit} onClick={async () => { setEditingTrackId(track.id); setEditTrack({}); setEditTrackAudioFile(null); const g = await loadContentGenres('track', track.id); setEditingGenres(g) }}>Edit</button>
                     <button style={s.btnDanger} onClick={() => setConfirmDelete({ type: 'track', id: track.id, name: track.title })}>Delete</button>
                   </div>
                 </div>
