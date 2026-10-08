@@ -103,7 +103,7 @@ export default function CinemaPage() {
       {/* ── HERO / FEATURED FILM ── */}
       {featuredFilm ? (
         <section style={{
-          position: 'relative', minHeight: '85vh',
+          position: 'relative', minHeight: '80vh',
           display: 'flex', alignItems: 'flex-end',
           overflow: 'hidden', background: '#0a0a0b',
           marginTop: '-70px', paddingTop: '70px',
@@ -113,12 +113,18 @@ export default function CinemaPage() {
             <HeroMedia
               imageUrl={featuredFilm.poster_url}
               videoUrl={featuredFilm.hero_video_url}
-              style={{ filter: 'brightness(0.45)' }}
+              position="center 30%"
+              style={{
+                filter: 'brightness(0.9)',
+                WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 93%, transparent 100%)',
+                maskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 93%, transparent 100%)',
+              }}
             />
           ) : (
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #0d1f2d 0%, #0a0a0b 100%)' }} />
           )}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.1) 100%)' }} />
+          {/* Legibility gradient — bottom-weighted (shared hero finish) */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,10,11,0.92) 0%, rgba(10,10,11,0.25) 30%, rgba(10,10,11,0) 60%)' }} />
 
           <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '0 48px 80px' }}>
             <div style={{ fontSize: '11px', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'var(--accent-primary)', marginBottom: '16px', fontWeight: '600' }}>

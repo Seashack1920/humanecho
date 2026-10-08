@@ -177,7 +177,7 @@ export default function StoriesPage() {
       {/* ── HERO ── */}
       {heroStory && (
         <section style={{
-          position: 'relative', minHeight: '70vh',
+          position: 'relative', minHeight: '80vh',
           display: 'flex', alignItems: 'flex-end',
           overflow: 'hidden', background: '#0a0a0b',
           marginTop: '-70px', paddingTop: '70px',
@@ -186,12 +186,18 @@ export default function StoriesPage() {
             <HeroMedia
               imageUrl={heroStory.cover_image_url}
               videoUrl={heroStory.hero_video_url}
-              style={{ filter: 'blur(2px) brightness(0.45)', transform: 'scale(1.05)' }}
+              position="center 30%"
+              style={{
+                filter: 'brightness(0.9)',
+                WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 93%, transparent 100%)',
+                maskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 93%, transparent 100%)',
+              }}
             />
           ) : (
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #1a0d2e 0%, #0a0a0b 60%, #0d1a2e 100%)' }} />
           )}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,10,11,0.98) 0%, rgba(10,10,11,0.4) 55%, rgba(10,10,11,0.1) 100%)' }} />
+          {/* Legibility gradient — bottom-weighted (shared hero finish) */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,10,11,0.92) 0%, rgba(10,10,11,0.25) 30%, rgba(10,10,11,0) 60%)' }} />
           <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '0 40px 72px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: '40px' }}>
               {heroStory.artist?.photo_url && (
