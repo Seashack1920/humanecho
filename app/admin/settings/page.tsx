@@ -29,21 +29,41 @@ export default function SiteSettingsAdmin() {
   const [filter, setFilter] = useState('')
   const [savingPorch, setSavingPorch] = useState(false)
 
+  // Merch shop (hosted storefront link)
+  const [merchUrl, setMerchUrl]     = useState('')
+  const [merchBlurb, setMerchBlurb] = useState('')
+  const [savingMerch, setSavingMerch] = useState(false)
+
   useEffect(() => {
     ;(async () => {
-      const [{ data: dti }, { data: pp }, { data: trk }, { data: arts }] = await Promise.all([
+      const [{ data: dti }, { data: pp }, { data: trk }, { data: arts }, { data: merch }] = await Promise.all([
         supabase.from('site_settings').select('value').eq('key', 'default_track_image').maybeSingle(),
         supabase.from('site_settings').select('value').eq('key', 'porch_picks').maybeSingle(),
         supabase.from('tracks').select('id, title, track_image_url, artist_id').eq('status', 'published').order('title'),
         supabase.from('artists').select('id, name'),
+        supabase.from('site_settings').select('key, value').in('key', ['merch_store_url', 'merch_blurb']),
       ])
       setDefaultTrackImage(dti?.value || null)
       const names: Record<string, string> = Object.fromEntries(((arts as any[]) || []).map(a => [a.id, a.name]))
       setTracks(((trk as any[]) || []).map(t => ({ ...t, artist_name: t.artist_id ? names[t.artist_id] : undefined })))
       try { setPicks(pp?.value ? JSON.parse(pp.value) : []) } catch { setPicks([]) }
+      const mmap = Object.fromEntries(((merch as any[]) || []).map(r => [r.key, r.value]))
+      setMerchUrl(mmap.merch_store_url || '')
+      setMerchBlurb(mmap.merch_blurb || '')
       setLoading(false)
     })()
   }, [])
+
+  const saveMerch = async () => {
+    setSavingMerch(true); setMsg(null)
+    const rows = [
+      { key: 'merch_store_url', value: merchUrl.trim() || null, updated_at: new Date().toISOString() },
+      { key: 'merch_blurb', value: merchBlurb.trim() || null, updated_at: new Date().toISOString() },
+    ]
+    const { error } = await supabase.from('site_settings').upsert(rows, { onConflict: 'key' })
+    setSavingMerch(false)
+    setMsg(error ? { type: 'error', text: error.message } : { type: 'success', text: merchUrl.trim() ? 'Merch shop link saved — the Shop link is now live.' : 'Merch link cleared.' })
+  }
 
   const save = async (value: string | null) => {
     setMsg(null)
@@ -157,6 +177,24 @@ export default function SiteSettingsAdmin() {
         <div style={{ marginTop: '16px', display: 'flex', gap: '12px', alignItems: 'center' }}>
           <button onClick={savePorch} disabled={savingPorch} style={s.saveBtn}>{savingPorch ? 'Saving…' : 'Save front porch'}</button>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{picks.length}/{MAX_PORCH} selected</span>
+        </div>
+      </div>
+
+      {/* ── Merch shop ── */}
+      <div style={{ ...s.card, marginBottom: '20px' }}>
+        <h2 style={s.h2}>Merch shop</h2>
+        <p style={s.help}>Paste the link to your hosted merch store (your Printful-connected Shopify / Big Cartel / Payhip, etc.). When set, a <strong>Shop</strong> link appears on the porch and the <code>/merch</code> page sends people to it. Leave empty to show “coming soon.”</p>
+        <div style={{ marginBottom: '14px' }}>
+          <label style={s.label}>Store link (URL)</label>
+          <input value={merchUrl} onChange={e => setMerchUrl(e.target.value)} placeholder="https://shop.humanechomusic.com or your store URL" style={s.filter} />
+        </div>
+        <div style={{ marginBottom: '14px' }}>
+          <label style={s.label}>Short blurb <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>— optional, shown on the /merch page</span></label>
+          <textarea value={merchBlurb} onChange={e => setMerchBlurb(e.target.value)} rows={2} style={{ ...s.filter, resize: 'vertical', lineHeight: 1.5 }} placeholder="Shirts, prints and more — made on demand, shipped to your door." />
+        </div>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <button onClick={saveMerch} disabled={savingMerch} style={s.saveBtn}>{savingMerch ? 'Saving…' : 'Save merch link'}</button>
+          {merchUrl.trim() && <a href="/merch" target="_blank" rel="noreferrer" style={{ fontSize: '13px', color: 'var(--accent-primary)' }}>View /merch ↗</a>}
         </div>
       </div>
 

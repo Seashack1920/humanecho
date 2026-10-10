@@ -59,6 +59,7 @@ export function middleware(req: NextRequest) {
       pathname === '/holding' ||
       pathname === '/beta' ||
       pathname.startsWith('/store') ||
+      pathname.startsWith('/merch') ||
       pathname.startsWith('/_next') ||
       pathname.startsWith('/api') ||
       pathname === '/favicon.ico' ||
@@ -89,6 +90,7 @@ export function middleware(req: NextRequest) {
     pathname.startsWith('/auth') ||          // Supabase auth callback
     pathname.startsWith('/song/') ||          // song pages self-gate (porch songs public)
     pathname.startsWith('/store') ||
+    pathname.startsWith('/merch') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname === '/favicon.ico' ||
