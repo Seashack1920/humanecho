@@ -81,6 +81,7 @@ export default function Header() {
   if (isAdmin) menuItems.push({ label: '🧾 Store Orders', action: () => router.push('/admin/store-orders') })
   if (isAdmin) menuItems.push({ label: '⚙️ Site Settings', action: () => router.push('/admin/settings') })
   if (isAdmin) menuItems.push({ label: '📄 About Page', action: () => router.push('/admin/about') })
+  if (isAdmin) menuItems.push({ label: '🛍 Merch Shop', action: () => router.push('/admin/merch') })
   menuItems.push({ label: 'Log out', action: () => signOut(router), danger: true })
 
   // ── The account area (right side of header) ──

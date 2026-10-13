@@ -22,16 +22,18 @@ export default function WelcomePage() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError]         = useState('')
   const [songs, setSongs]         = useState<PorchSong[]>([])
-  const [shopUrl, setShopUrl]     = useState<string | null>(null)
+  const [showShop, setShowShop]   = useState(false)
 
   useEffect(() => {
     const load = async () => {
       const sel = 'id, title, track_image_url, artist_id'
 
       // 1) Admin settings: hand-picked porch songs (ordered) + the merch link.
-      const { data: settingsRows } = await supabase.from('site_settings').select('key, value').in('key', ['porch_picks', 'merch_store_url'])
+      const { data: settingsRows } = await supabase.from('site_settings').select('key, value').in('key', ['porch_picks', 'merch_store_url', 'merch_items'])
       const sMap = Object.fromEntries((settingsRows || []).map(r => [r.key, r.value]))
-      setShopUrl((sMap.merch_store_url || '').trim() || null)
+      let merchItemCount = 0
+      try { merchItemCount = sMap.merch_items ? (JSON.parse(sMap.merch_items) as any[]).length : 0 } catch { merchItemCount = 0 }
+      setShowShop(!!(sMap.merch_store_url || '').trim() || merchItemCount > 0)
       let ids: string[] = []
       try { ids = sMap.porch_picks ? JSON.parse(sMap.porch_picks) : [] } catch { ids = [] }
 
@@ -131,7 +133,7 @@ export default function WelcomePage() {
         <a href="/beta" style={{ marginTop: '14px', fontSize: '12px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '2px' }}>
           Official Beta Tester? Enter here →
         </a>
-        {shopUrl && (
+        {showShop && (
           <a href="/merch" style={{ marginTop: '14px', fontSize: '13px', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.04em', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.3)', paddingBottom: '2px' }}>
             🛍 Shop the merch →
           </a>
