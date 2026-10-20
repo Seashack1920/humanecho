@@ -267,7 +267,7 @@ export default function AlbumPage({ id }: { id: string }) {
           <HeroMedia
             videoUrl={album.hero_video_url}
             imageUrl={album.hero_image_url}
-            position="center"
+            position="center top"
             style={{
               filter: 'brightness(0.9)',
               WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 93%, transparent 100%)',

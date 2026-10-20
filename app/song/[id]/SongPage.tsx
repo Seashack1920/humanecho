@@ -345,7 +345,7 @@ export default function SongPage({ id }: { id: string }) {
           <HeroMedia
             videoUrl={track.track_canvas_url}
             imageUrl={track.track_image_url || album?.cover_url}
-            position="center"
+            position="center top"
             style={{
               filter: 'brightness(0.9)',
               WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 8%, #000 93%, transparent 100%)',
@@ -370,17 +370,28 @@ export default function SongPage({ id }: { id: string }) {
               <div style={{ fontSize: '15px', color: 'rgba(255,255,255,0.85)', fontStyle: 'italic', marginBottom: '12px', textShadow: '0 1px 10px rgba(0,0,0,0.7)' }}>{track.tagline}</div>
             )}
             {artist && (
-              <button onClick={() => router.push(`/artist/${artist.id}`)}
-                style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px' }}>
-                {artist.photo_url && <img src={artist.photo_url} alt={artist.name} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />}
-                <span style={{ fontSize: '15px', color: 'rgba(255,255,255,0.9)', fontWeight: '500', textShadow: '0 1px 10px rgba(0,0,0,0.7)' }}>{artist.name}</span>
-              </button>
+              // Restricted (non-subscriber on a porch song): show the artist as
+              // plain text — the link would only bounce them to the porch.
+              restricted ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                  {artist.photo_url && <img src={artist.photo_url} alt={artist.name} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />}
+                  <span style={{ fontSize: '15px', color: 'rgba(255,255,255,0.9)', fontWeight: '500', textShadow: '0 1px 10px rgba(0,0,0,0.7)' }}>{artist.name}</span>
+                </div>
+              ) : (
+                <button onClick={() => router.push(`/artist/${artist.id}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px' }}>
+                  {artist.photo_url && <img src={artist.photo_url} alt={artist.name} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />}
+                  <span style={{ fontSize: '15px', color: 'rgba(255,255,255,0.9)', fontWeight: '500', textShadow: '0 1px 10px rgba(0,0,0,0.7)' }}>{artist.name}</span>
+                </button>
+              )
             )}
             <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', textShadow: '0 1px 8px rgba(0,0,0,0.7)' }}>
               {album && (
-                <button onClick={() => router.push(`/album/${album.id}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', fontSize: '13px', textDecoration: 'underline', padding: 0, fontFamily: 'DM Sans, sans-serif' }}>
-                  {album.title}
-                </button>
+                restricted
+                  ? <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>{album.title}</span>
+                  : <button onClick={() => router.push(`/album/${album.id}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', fontSize: '13px', textDecoration: 'underline', padding: 0, fontFamily: 'DM Sans, sans-serif' }}>
+                      {album.title}
+                    </button>
               )}
               {track.content_origin && <span>{ORIGIN_EMOJI[track.content_origin] || ''} {track.content_origin}</span>}
               {track.duration && <span>{track.duration}</span>}
