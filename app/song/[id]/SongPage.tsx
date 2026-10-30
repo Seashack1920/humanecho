@@ -32,6 +32,7 @@ type Track = {
   music_video_thumb_url: string | null
   song_notes: string | null
   song_notes_images: string[] | null
+  artist_message_url: string | null
 }
 
 // A video tied to this song (subscriber/contest submission from the `videos`
@@ -117,12 +118,17 @@ export default function SongPage({ id }: { id: string }) {
   const [videoUrlDraft, setVideoUrlDraft] = useState('')
   const [savingVideo, setSavingVideo]   = useState(false)
 
+  // Artist message / "song story" video (admin-editable, inline)
+  const [editingMsg, setEditingMsg] = useState(false)
+  const [msgUrlDraft, setMsgUrlDraft] = useState('')
+  const [savingMsg, setSavingMsg]   = useState(false)
+
   useEffect(() => {
     const load = async () => {
       setLoading(true)
       const { data: trackData } = await supabase
         .from('tracks')
-        .select('id, title, track_number, duration, cloudinary_url, track_image_url, track_canvas_url, content_origin, track_type, text_content, text_content_type, tagline, price, album_id, artist_id, music_video_url, music_video_thumb_url, song_notes, song_notes_images')
+        .select('id, title, track_number, duration, cloudinary_url, track_image_url, track_canvas_url, content_origin, track_type, text_content, text_content_type, tagline, price, album_id, artist_id, music_video_url, music_video_thumb_url, song_notes, song_notes_images, artist_message_url')
         .eq('id', id)
         .eq('status', 'published')
         .single()
@@ -280,6 +286,26 @@ export default function SongPage({ id }: { id: string }) {
     if (error) { alert('Could not save: ' + error.message); return }
     setTrack({ ...track, music_video_url: url })
     setEditingVideo(false)
+  }
+
+  // ── Artist message / song-story video (admin, inline) ──
+  const startEditMsg = () => { setMsgUrlDraft(track?.artist_message_url || ''); setEditingMsg(true) }
+  const saveMsg = async () => {
+    if (!track) return
+    setSavingMsg(true)
+    const url = msgUrlDraft.trim() || null
+    const { error } = await supabase.from('tracks').update({ artist_message_url: url }).eq('id', track.id)
+    setSavingMsg(false)
+    if (error) { alert('Could not save: ' + error.message); return }
+    setTrack({ ...track, artist_message_url: url })
+    setEditingMsg(false)
+  }
+  const removeMsg = async () => {
+    if (!track) return
+    if (!window.confirm('Remove the artist message from this song?')) return
+    const { error } = await supabase.from('tracks').update({ artist_message_url: null }).eq('id', track.id)
+    if (error) { alert('Could not remove: ' + error.message); return }
+    setTrack({ ...track, artist_message_url: null })
   }
 
   // ── Song Notes editing (admin, inline) ──
@@ -529,6 +555,45 @@ export default function SongPage({ id }: { id: string }) {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ── A WORD FROM THE ARTIST ── the song-story / message video. Shows for
+            everyone when present; admins add/replace/remove inline. */}
+        {(track.artist_message_url || isAdmin) && (
+          <div style={{ marginBottom: '48px', maxWidth: '560px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', gap: '10px' }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: '600' }}>A word from the artist</div>
+              {isAdmin && !editingMsg && track.artist_message_url && (
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                  <button onClick={startEditMsg} title="Admin: replace the message link"
+                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '4px 10px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Replace</button>
+                  <button onClick={removeMsg} title="Admin: remove this message"
+                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '4px 10px', fontSize: '12px', color: '#dc3c3c', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Remove</button>
+                </div>
+              )}
+            </div>
+
+            {editingMsg ? (
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>Message video link — paste a YouTube link, or a direct video file URL</label>
+                <input value={msgUrlDraft} onChange={e => setMsgUrlDraft(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px', fontFamily: 'DM Sans, sans-serif', boxSizing: 'border-box' }} />
+                {msgUrlDraft.trim() && (<div style={{ marginTop: '12px' }}><VideoEmbed url={msgUrlDraft.trim()} title="Artist message" /></div>)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
+                  <div style={{ flex: 1 }} />
+                  <button onClick={() => setEditingMsg(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
+                  <button onClick={saveMsg} disabled={savingMsg} style={{ padding: '9px 20px', borderRadius: '8px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, fontFamily: 'DM Sans, sans-serif' }}>{savingMsg ? 'Saving…' : 'Save message'}</button>
+                </div>
+              </div>
+            ) : track.artist_message_url ? (
+              <VideoEmbed url={track.artist_message_url} title={`${artist?.name || 'The artist'} on ${track.title}`} />
+            ) : isAdmin ? (
+              <button onClick={startEditMsg}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', aspectRatio: '16 / 9', borderRadius: '12px', border: '1px dashed var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '14px', fontFamily: 'DM Sans, sans-serif' }}>
+                ＋ Add artist message <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(paste a YouTube link)</span>
+              </button>
+            ) : null}
           </div>
         )}
 
