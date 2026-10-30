@@ -82,6 +82,39 @@ const VIDEO_TYPE_LABEL: Record<string, string> = {
   cover: 'Cover',
 }
 
+// A row of non-playable "locked" cards (dimmed cover + lock badge). Any click
+// goes to /subscribe — these exist to show the depth of the catalog, not to play.
+function LockedTeaserRow({ heading, items, defaultImg, onUnlock }: {
+  heading: React.ReactNode
+  items: OtherTrack[]
+  defaultImg: string
+  onUnlock: () => void
+}) {
+  if (!items.length) return null
+  return (
+    <div>
+      <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '18px' }}>
+        {heading}
+      </h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '20px' }}>
+        {items.map(o => (
+          <button key={o.id} onClick={onUnlock} aria-label={`Unlock ${o.title} — members only`}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+            <div style={{ position: 'relative', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', marginBottom: '10px', background: 'var(--bg-secondary)' }}>
+              <img src={o.track_image_url || defaultImg || ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.5)' }} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🔒</div>
+              </div>
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>Members only</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function SongPage({ id }: { id: string }) {
   const router = useRouter()
   const { playTrack, togglePlay, currentTrack, isPlaying } = usePlayer()
@@ -103,8 +136,15 @@ export default function SongPage({ id }: { id: string }) {
   const [videos, setVideos]     = useState<SongVideo[]>([])
   const [lyricsOpen, setLyricsOpen] = useState(false)
   // Under the subscriber gate, an anonymous visitor may see a porch-pick song
-  // but with the catalog-y links (nav pills, "More from artist") hidden.
+  // but with the catalog turned into locked teasers + a join funnel.
   const [restricted, setRestricted] = useState(false)
+  const [genreTeasers, setGenreTeasers] = useState<OtherTrack[]>([])
+  const [genreLabel, setGenreLabel]     = useState('')
+  // Email capture on the song page (for people who arrived via a shared link).
+  const [leadName, setLeadName]     = useState('')
+  const [leadEmail, setLeadEmail]   = useState('')
+  const [leadLoading, setLeadLoading] = useState(false)
+  const [leadDone, setLeadDone]     = useState(false)
 
   // Song Notes (admin-editable, inline)
   const [editingNotes, setEditingNotes] = useState(false)
@@ -140,6 +180,7 @@ export default function SongPage({ id }: { id: string }) {
       // Members/beta (he_member/he_beta cookie) see everything. Anonymous
       // visitors may see a porch-pick song (restricted view) or are sent to the
       // porch. When the gate is off, this whole block is skipped.
+      let isRestricted = false
       if (process.env.NEXT_PUBLIC_LAUNCH_MODE === 'subscribers') {
         const hasAccess = typeof document !== 'undefined' && /(?:^|;\s*)he_(member|beta)=1(?:;|$)/.test(document.cookie)
         if (!hasAccess) {
@@ -148,6 +189,7 @@ export default function SongPage({ id }: { id: string }) {
           try { picks = pp?.value ? JSON.parse(pp.value) : [] } catch { picks = [] }
           if (!picks.includes(id)) { router.replace('/welcome'); return }
           setRestricted(true)
+          isRestricted = true
         }
       }
 
@@ -182,6 +224,31 @@ export default function SongPage({ id }: { id: string }) {
       setArtistStories(storiesData || [])
       setArtistFilms(filmsData || [])
       setLoading(false)
+
+      // For the restricted funnel only: build a "More like this in [genre]" row
+      // from OTHER artists sharing a genre with this song. Data-driven (reads the
+      // song's own genre tags), so new monthly porch picks need no extra setup.
+      if (isRestricted) {
+        const { data: myGenres } = await supabase
+          .from('content_genres').select('genre_id')
+          .eq('content_type', 'track').eq('content_id', id)
+        const gids = Array.from(new Set((myGenres || []).map((g: any) => g.genre_id)))
+        if (gids.length) {
+          const { data: gname } = await supabase
+            .from('genres').select('name').eq('id', gids[0]).maybeSingle()
+          if (gname?.name) setGenreLabel(gname.name)
+          const { data: links } = await supabase
+            .from('content_genres').select('content_id')
+            .eq('content_type', 'track').in('genre_id', gids).neq('content_id', id).limit(80)
+          const tids = Array.from(new Set((links || []).map((l: any) => l.content_id)))
+          if (tids.length) {
+            const { data: gtracks } = await supabase
+              .from('tracks').select('id, title, track_image_url, content_origin, duration')
+              .in('id', tids).eq('status', 'published').neq('artist_id', trackData.artist_id).limit(6)
+            setGenreTeasers(gtracks || [])
+          }
+        }
+      }
 
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
@@ -306,6 +373,35 @@ export default function SongPage({ id }: { id: string }) {
     const { error } = await supabase.from('tracks').update({ artist_message_url: null }).eq('id', track.id)
     if (error) { alert('Could not remove: ' + error.message); return }
     setTrack({ ...track, artist_message_url: null })
+  }
+
+  // ── Email capture on the song page (restricted funnel) ──
+  // If they've already joined (on any song), the cookie hides the module so we
+  // don't nag them from one porch song to the next.
+  useEffect(() => {
+    if (typeof document !== 'undefined' && /(?:^|;\s*)he_lead=1(?:;|$)/.test(document.cookie)) {
+      setLeadDone(true)
+    }
+  }, [])
+  const submitLead = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const email = leadEmail.trim()
+    if (!email || leadLoading) return
+    setLeadLoading(true)
+    try {
+      const res = await fetch('/api/email-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: leadName.trim(), email, source: `song:${id}` }),
+      })
+      if (!res.ok) throw new Error('signup failed')
+      // 1-year cookie so it doesn't reappear on the next porch song.
+      document.cookie = `he_lead=1; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`
+      setLeadDone(true)
+    } catch {
+      alert('Something went wrong — please try again.')
+    }
+    setLeadLoading(false)
   }
 
   // ── Song Notes editing (admin, inline) ──
@@ -716,6 +812,64 @@ export default function SongPage({ id }: { id: string }) {
                   </div>
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Restricted-visitor funnel: locked teasers + join band. Data-driven, so
+            every monthly porch pick gets this automatically — no per-song setup. */}
+        {restricted && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '44px' }}>
+            {artist && (
+              <LockedTeaserRow
+                heading={<>More from {artist.name}</>}
+                items={others}
+                defaultImg={defaultImg || ''}
+                onUnlock={() => router.push('/subscribe')}
+              />
+            )}
+            <LockedTeaserRow
+              heading={genreLabel ? `More like this in ${genreLabel}` : 'More like this'}
+              items={genreTeasers}
+              defaultImg={defaultImg || ''}
+              onUnlock={() => router.push('/subscribe')}
+            />
+
+            {/* Join band — become a member, or leave an email */}
+            <div style={{ borderRadius: '18px', padding: '34px 28px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color, rgba(128,128,128,0.18))', textAlign: 'center' }}>
+              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>
+                Hear the whole thing
+              </h2>
+              <p style={{ fontSize: '15px', color: 'var(--text-muted)', maxWidth: '460px', margin: '0 auto 22px', lineHeight: 1.55 }}>
+                This is one song off the front porch. Members get the full catalog — every track, album, story and film. Join us, or leave your email and we&rsquo;ll keep you posted.
+              </p>
+              <button onClick={() => router.push('/subscribe')}
+                style={{ background: 'var(--accent-primary)', color: '#fff', border: 'none', borderRadius: '999px', padding: '13px 32px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                Become a member
+              </button>
+
+              {!leadDone ? (
+                <form onSubmit={submitLead} style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '360px', margin: '24px auto 0' }}>
+                  <input
+                    type="text" value={leadName} onChange={e => setLeadName(e.target.value)}
+                    placeholder="Your name (optional)"
+                    style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1px solid var(--border-color, rgba(128,128,128,0.3))', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', fontFamily: 'DM Sans, sans-serif', boxSizing: 'border-box' }}
+                  />
+                  <input
+                    type="email" required value={leadEmail} onChange={e => setLeadEmail(e.target.value)}
+                    placeholder="you@email.com"
+                    style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1px solid var(--border-color, rgba(128,128,128,0.3))', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', fontFamily: 'DM Sans, sans-serif', boxSizing: 'border-box' }}
+                  />
+                  <button type="submit" disabled={leadLoading}
+                    style={{ background: 'none', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)', borderRadius: '999px', padding: '11px 24px', fontSize: '14px', fontWeight: 600, cursor: leadLoading ? 'default' : 'pointer', opacity: leadLoading ? 0.6 : 1, fontFamily: 'DM Sans, sans-serif' }}>
+                    {leadLoading ? 'Joining…' : 'Join the list'}
+                  </button>
+                </form>
+              ) : (
+                <p style={{ marginTop: '22px', fontSize: '14px', color: 'var(--text-muted)' }}>
+                  ✓ You&rsquo;re on the list — thanks for joining us.
+                </p>
+              )}
             </div>
           </div>
         )}
