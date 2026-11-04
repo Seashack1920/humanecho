@@ -54,7 +54,7 @@ const NAV_LINKS = [
   { label: 'Music', href: '/music' },
   { label: 'Stories', href: '/stories' },
   { label: 'Cinema', href: '/cinema' },
-  { label: 'Escapes', href: '/escapes' },
+  { label: 'Shops', href: '/shop' },
   { label: 'Our Team', href: '/team' },
 ]
 
@@ -84,7 +84,7 @@ export default function Footer() {
           <div style={{ flex: '1 1 240px', minWidth: '200px' }}>
             <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '10px' }}>Human Echo</div>
             <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.7', maxWidth: '280px', marginBottom: '20px' }}>
-              Music · Stories · Cinema · Escapes — a multimedia platform celebrating human creativity.
+              Music · Stories · Cinema · Shops — a multimedia platform celebrating human creativity.
             </div>
             {/* Social icons */}
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -136,7 +136,7 @@ export default function Footer() {
           <div style={{ flex: '1 1 240px', minWidth: '200px' }}>
             <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Stay in the loop</div>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '14px' }}>
-              New artists, new stories, new escapes — delivered to your inbox.
+              New artists, new stories, new shops — delivered to your inbox.
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input

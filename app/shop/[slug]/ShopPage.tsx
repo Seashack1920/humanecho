@@ -20,7 +20,10 @@ type Issue = {
   theme: string
   status: string
   published_at: string | null
+  artist_id: string | null
 }
+
+type ShopArtist = { id: string; name: string; photo_url: string | null }
 
 type Block = {
   id: string
@@ -430,12 +433,36 @@ function BlockRenderer({ block, theme, artists, tracks, stories }: {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function EscapesIssuePage({ slug }: { slug: string }) {
+// The "{Artist}'s Shop" kicker — replaces the old "Issue #N" label and ties the
+// shop to its artist (photo + name, clicks through to the artist page).
+function ShopKicker({ artist, theme, onOpen }: { artist: ShopArtist | null; theme: typeof THEMES[string]; onOpen: () => void }) {
+  if (!artist) {
+    return (
+      <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: theme.accent, marginBottom: '16px', fontFamily: 'DM Sans, sans-serif', fontWeight: '600' }}>
+        Shop
+      </div>
+    )
+  }
+  return (
+    <button onClick={onOpen}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '16px', padding: 0 }}>
+      {artist.photo_url && (
+        <img src={artist.photo_url} alt={artist.name} style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover', border: `1px solid ${theme.border}` }} />
+      )}
+      <span style={{ fontSize: '12px', letterSpacing: '0.18em', textTransform: 'uppercase', color: theme.accent, fontFamily: 'DM Sans, sans-serif', fontWeight: 600 }}>
+        {artist.name}&rsquo;s Shop
+      </span>
+    </button>
+  )
+}
+
+export default function ShopPage({ slug }: { slug: string }) {
   const router = useRouter()
   const { stop: stopBrowsingMusic, tracks: browsingTracks, setTracks } = useBrowsingMusic()
   const { stop: stopPlayer } = usePlayer()
 
   const [issue, setIssue]     = useState<Issue | null>(null)
+  const [shopArtist, setShopArtist] = useState<ShopArtist | null>(null)
   const [blocks, setBlocks]   = useState<Block[]>([])
   const [artists, setArtists] = useState<Artist[]>([])
   const [tracks, setTrackList] = useState<Track[]>([])
@@ -447,16 +474,21 @@ export default function EscapesIssuePage({ slug }: { slug: string }) {
     stopPlayer()
 
     const load = async () => {
-const { data: issueData, error } = await supabase
-  .from('issues')
-  .select('*')
-  .eq('slug', slug)
-  .single()
-
-console.log('issueData:', issueData, 'error:', error)
+      const { data: issueData } = await supabase
+        .from('issues')
+        .select('*')
+        .eq('slug', slug)
+        .single()
 
       if (!issueData) { setNotFound(true); setLoading(false); return }
       setIssue(issueData)
+
+      // The artist this shop belongs to — drives the "{Artist}'s Shop" kicker.
+      if (issueData.artist_id) {
+        const { data: artistData } = await supabase
+          .from('artists').select('id, name, photo_url').eq('id', issueData.artist_id).single()
+        if (artistData) setShopArtist(artistData)
+      }
 
       const { data: blocksData } = await supabase
         .from('issue_blocks')
@@ -506,11 +538,11 @@ console.log('issueData:', issueData, 'error:', error)
   if (notFound) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📰</div>
-        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', color: 'var(--text-primary)', marginBottom: '8px' }}>Issue not found</div>
-        <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>This issue may not be published yet.</div>
-        <button onClick={() => router.push('/escapes')} style={{ padding: '10px 24px', borderRadius: '8px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
-          ← Back to Escapes
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🛍</div>
+        <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '24px', color: 'var(--text-primary)', marginBottom: '8px' }}>Shop not found</div>
+        <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>This shop may not be published yet.</div>
+        <button onClick={() => router.push('/shop')} style={{ padding: '10px 24px', borderRadius: '8px', background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
+          ← Back to Shop
         </button>
       </div>
     </div>
@@ -529,13 +561,13 @@ console.log('issueData:', issueData, 'error:', error)
       {/* ── TOP BAR ── */}
       <div style={{ position: 'fixed', top: '70px', left: 0, right: 0, zIndex: 50, background: theme.bg, borderBottom: `1px solid ${theme.border}`, padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'background 0.3s ease', fontFamily: 'DM Sans, sans-serif' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button onClick={() => router.push('/escapes')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: theme.muted }}>
-            ← Escapes
+          <button onClick={() => router.push('/shop')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: theme.muted }}>
+            ← Shop
           </button>
           {browsingTracks.length > 0 && <BrowsingMusicBar tracks={browsingTracks} />}
         </div>
         <div style={{ fontSize: '12px', color: theme.muted, letterSpacing: '0.08em' }}>
-          Issue #{issue.issue_number} · {theme.label}
+          {shopArtist ? `${shopArtist.name}'s Shop` : 'Shop'}
         </div>
       </div>
 
@@ -549,9 +581,7 @@ console.log('issueData:', issueData, 'error:', error)
       {/* ── ISSUE HEADER (if no hero) ── */}
       {!isFirstHero && (
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '140px 48px 64px', textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: theme.accent, marginBottom: '16px', fontFamily: 'DM Sans, sans-serif', fontWeight: '600' }}>
-            Issue #{issue.issue_number}
-          </div>
+          <ShopKicker artist={shopArtist} theme={theme} onOpen={() => shopArtist && router.push(`/artist/${shopArtist.id}`)} />
           <h1 style={{ fontFamily: theme.headingFont, fontSize: 'clamp(36px, 6vw, 72px)', fontWeight: '700', color: theme.text, lineHeight: '1.1', marginBottom: '16px' }}>
             {issue.title}
           </h1>
@@ -571,9 +601,7 @@ console.log('issueData:', issueData, 'error:', error)
       {/* ── ISSUE META (after hero) ── */}
       {isFirstHero && (
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 48px 0', textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: theme.accent, marginBottom: '12px', fontFamily: 'DM Sans, sans-serif', fontWeight: '600' }}>
-            Issue #{issue.issue_number}
-          </div>
+          <ShopKicker artist={shopArtist} theme={theme} onOpen={() => shopArtist && router.push(`/artist/${shopArtist.id}`)} />
           <h1 style={{ fontFamily: theme.headingFont, fontSize: 'clamp(28px, 4vw, 52px)', fontWeight: '700', color: theme.text, lineHeight: '1.15', marginBottom: '12px' }}>
             {issue.title}
           </h1>
@@ -610,13 +638,13 @@ console.log('issueData:', issueData, 'error:', error)
 
         {/* ── FOOTER ── */}
         <div style={{ marginTop: '96px', paddingTop: '40px', borderTop: `1px solid ${theme.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', fontFamily: 'DM Sans, sans-serif' }}>
-          <button onClick={() => router.push('/escapes')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: theme.muted, textDecoration: 'underline' }}>
-            ← Back to Escapes
+          <button onClick={() => router.push('/shop')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: theme.muted, textDecoration: 'underline' }}>
+            ← Back to Shop
           </button>
           {browsingTracks.length > 0 && <BrowsingMusicBar tracks={browsingTracks} />}
           <div style={{ display: 'flex', gap: '8px' }}>
             {[
-              { label: '𝕏', href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&text=${encodeURIComponent(`${issue.title} — Human Echo Escapes`)}` },
+              { label: '𝕏', href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&text=${encodeURIComponent(`${shopArtist ? shopArtist.name + "'s Shop" : issue.title} — Human Echo`)}` },
               { label: 'f', href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}` },
               { label: '💬', href: `https://wa.me/?text=${encodeURIComponent(`${issue.title} — ${typeof window !== 'undefined' ? window.location.href : ''}`)}` },
             ].map(item => (

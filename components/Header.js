@@ -59,8 +59,10 @@ export default function Header() {
     localStorage.setItem('theme', next)
   }
 
-  const navLinks = ['Music', 'Stories', 'Cinema', 'Escapes']
+  const navLinks = ['Music', 'Stories', 'Cinema', 'Shops']
   const links = hideNav ? [] : navLinks
+  // "Shops" (plural) is the menu label, but the section lives at /shop.
+  const navHref = (item) => (item === 'Shops' ? '/shop' : `/${item.toLowerCase()}`)
 
   // Build the account-menu items based on derived role
   const displayName = profile?.full_name || 'Account'
@@ -179,7 +181,7 @@ export default function Header() {
         {!isMobile && (
           <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
             {links.map((item) => (
-              <Link key={item} href={`/${item.toLowerCase()}`} style={{
+              <Link key={item} href={navHref(item)} style={{
                 fontSize: '14px', fontWeight: '400', color: 'var(--text-secondary)',
                 letterSpacing: '0.5px', transition: 'color 0.2s ease', textDecoration: 'none',
               }}
@@ -256,7 +258,7 @@ export default function Header() {
           padding: '16px 24px 24px',
         }}>
           {links.map((item) => (
-            <Link key={item} href={`/${item.toLowerCase()}`} onClick={() => setMenuOpen(false)} style={{
+            <Link key={item} href={navHref(item)} onClick={() => setMenuOpen(false)} style={{
               display: 'block', padding: '14px 0', fontSize: '18px',
               fontFamily: 'Playfair Display, serif', fontWeight: '500',
               color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', textDecoration: 'none',
