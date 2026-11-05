@@ -212,6 +212,30 @@ export async function POST(req: NextRequest) {
           break
         }
 
+        // Shop product (artist shops, guest checkout): finalise the pre-recorded
+        // order — mark it paid and capture the buyer's email + shipping. The email
+        // is the funnel entry point (buying = joining). Printify fulfilment is a
+        // later pass; the order sits 'unfulfilled' until then.
+        if (session.mode === 'payment' && md.kind === 'shop_product') {
+          try {
+            const email = session.customer_details?.email || session.customer_email || null
+            const ship  = (session as any).shipping_details || (session as any).shipping || null
+            const { error: shopErr } = await supabase.from('shop_orders').update({
+              status:            'paid',
+              email,
+              shipping:          ship ? (ship.address ? ship : { address: ship }) : null,
+              amount:            (session.amount_total || 0) / 100,
+              stripe_payment_id: session.payment_intent as string,
+              updated_at:        new Date().toISOString(),
+            }).eq('stripe_session_id', session.id)
+            if (shopErr) console.error('SHOP ORDER UPDATE FAILED:', shopErr)
+            else console.log(`Shop order paid: ${md.product_name} (${email})`)
+            // TODO (fulfilment pass): if md.printify_* present and PRINTIFY_API_KEY
+            // is configured, submit the order to Printify here and store printify_order_id.
+          } catch (e) { console.error('Shop order finalise failed:', e) }
+          break
+        }
+
         // Tip (free-content support): 100% to the artist, no platform fee.
         // Tips may be anonymous, so user id is optional here.
         if (session.mode === 'payment' && md.kind === 'tip') {

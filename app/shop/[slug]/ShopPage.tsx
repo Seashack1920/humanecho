@@ -211,6 +211,87 @@ function VideoRenderer({ content, settings, theme }: { content: Record<string, a
   )
 }
 
+// ─── Product Block ──────────────────────────────────────────────────────────
+// A shoppable product presented as story first. Buying runs through Stripe
+// Checkout (guest — no account needed); Stripe collects the email, which is the
+// funnel entry point. An external_url, if set, overrides checkout.
+
+function ProductBlock({ block, theme }: { block: Block; theme: typeof THEMES[string] }) {
+  const c = block.content
+  const set = block.settings
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  const price = Number(c.price)
+  const hasPrice = !!price && price > 0
+  const priceLabel = hasPrice ? `$${price.toFixed(2).replace(/\.00$/, '')}` : ''
+  const buttonLabel = c.button_label || (hasPrice ? `Buy — ${priceLabel}` : 'Buy')
+  const stack = set.layout === 'stack'
+
+  const buy = async () => {
+    setErr('')
+    if (c.external_url) { window.open(c.external_url, '_blank', 'noopener'); return }
+    if (!hasPrice) { setErr('Not available yet.'); return }
+    setBusy(true)
+    try {
+      const res = await fetch('/api/stripe/shop-product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blockId: block.id, returnUrl: window.location.href }),
+      })
+      const data = await res.json()
+      if (data.url) { window.location.href = data.url }
+      else { setErr(data.error || 'Could not start checkout.'); setBusy(false) }
+    } catch {
+      setErr('Something went wrong. Please try again.'); setBusy(false)
+    }
+  }
+
+  return (
+    <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: stack ? '1fr' : 'minmax(0, 420px) 1fr',
+        gap: '32px', alignItems: 'center',
+        padding: '28px', borderRadius: '18px',
+        background: theme.surface, border: `1px solid ${theme.border}`,
+      }}>
+        {c.image_url && (
+          <img src={c.image_url} alt={c.name || ''} style={{ width: '100%', borderRadius: '12px', objectFit: 'cover', aspectRatio: stack ? '16/9' : '1/1', display: 'block' }} />
+        )}
+        <div>
+          {c.name && (
+            <h3 style={{ fontFamily: theme.headingFont, fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 700, color: theme.text, margin: '0 0 12px', lineHeight: 1.2 }}>
+              {c.name}
+            </h3>
+          )}
+          {c.story && (
+            <div
+              style={{ fontFamily: theme.bodyFont, fontSize: '15px', lineHeight: 1.7, color: theme.muted, marginBottom: '20px' }}
+              dangerouslySetInnerHTML={{ __html: c.story }}
+            />
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <button onClick={buy} disabled={busy} style={{
+              padding: '12px 28px', borderRadius: '10px', background: theme.accent, color: '#fff',
+              border: 'none', cursor: busy ? 'default' : 'pointer', fontSize: '15px', fontWeight: 600,
+              fontFamily: theme.bodyFont, opacity: busy ? 0.6 : 1,
+            }}>
+              {busy ? 'Starting…' : buttonLabel}
+            </button>
+            {hasPrice && !c.button_label && (
+              <span style={{ fontFamily: theme.bodyFont, fontSize: '13px', color: theme.muted }}>
+                {c.product_type === 'digital' ? 'Instant download' : 'Ships worldwide'}
+              </span>
+            )}
+          </div>
+          {err && <div style={{ fontFamily: theme.bodyFont, fontSize: '13px', color: '#e0736a', marginTop: '10px' }}>{err}</div>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Block Renderer ───────────────────────────────────────────────────────────
 
 function BlockRenderer({ block, theme, artists, tracks, stories }: {
@@ -353,6 +434,10 @@ function BlockRenderer({ block, theme, artists, tracks, stories }: {
           <InlineAudioPlayer url={audioUrl} title={audioTitle} theme={theme} />
         </div>
       )
+    }
+
+    case 'product': {
+      return <ProductBlock block={block} theme={theme} />
     }
 
     case 'artist_card': {

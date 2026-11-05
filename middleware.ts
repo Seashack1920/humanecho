@@ -60,6 +60,8 @@ export function middleware(req: NextRequest) {
       pathname === '/beta' ||
       pathname.startsWith('/store') ||
       pathname.startsWith('/merch') ||
+      pathname.startsWith('/shop') ||      // artist shops are shoppable on the porch
+      pathname.startsWith('/escapes') ||   // legacy shop links → redirect to /shop
       pathname.startsWith('/_next') ||
       pathname.startsWith('/api') ||
       pathname === '/favicon.ico' ||
@@ -91,6 +93,8 @@ export function middleware(req: NextRequest) {
     pathname.startsWith('/song/') ||          // song pages self-gate (porch songs public)
     pathname.startsWith('/store') ||
     pathname.startsWith('/merch') ||
+    pathname.startsWith('/shop') ||           // artist shops are shoppable pre-subscription
+    pathname.startsWith('/escapes') ||        // legacy shop links → redirect to /shop
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname === '/favicon.ico' ||

@@ -23,6 +23,7 @@ export default function WelcomePage() {
   const [error, setError]         = useState('')
   const [songs, setSongs]         = useState<PorchSong[]>([])
   const [showShop, setShowShop]   = useState(false)
+  const [showShops, setShowShops] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -34,6 +35,13 @@ export default function WelcomePage() {
       let merchItemCount = 0
       try { merchItemCount = sMap.merch_items ? (JSON.parse(sMap.merch_items) as any[]).length : 0 } catch { merchItemCount = 0 }
       setShowShop(!!(sMap.merch_store_url || '').trim() || merchItemCount > 0)
+
+      // Artist shops (the block-based /shop pages) — show the porch link as soon
+      // as one is published, so visitors can browse & buy before leaving an email.
+      const { count: shopCount } = await supabase
+        .from('issues').select('id', { count: 'exact', head: true }).eq('status', 'published')
+      setShowShops((shopCount || 0) > 0)
+
       let ids: string[] = []
       try { ids = sMap.porch_picks ? JSON.parse(sMap.porch_picks) : [] } catch { ids = [] }
 
@@ -133,6 +141,11 @@ export default function WelcomePage() {
         <a href="/beta" style={{ marginTop: '14px', fontSize: '12px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '2px' }}>
           Official Beta Tester? Enter here →
         </a>
+        {showShops && (
+          <a href="/shop" style={{ marginTop: '14px', fontSize: '13px', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.04em', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.3)', paddingBottom: '2px' }}>
+            🛍 Visit the artist shops →
+          </a>
+        )}
         {showShop && (
           <a href="/merch" style={{ marginTop: '14px', fontSize: '13px', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.04em', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.3)', paddingBottom: '2px' }}>
             🛍 Shop the merch →

@@ -121,8 +121,11 @@ export default function AdminContent() {
           <Link href="/admin/stories/new" style={{ ...s.link, fontSize: '14px' }}>
             + New Story
           </Link>
+          <Link href="/admin/escapes" style={{ ...s.link, fontSize: '14px' }}>
+            🛍 Shops (artist)
+          </Link>
           <Link href="/admin/shop" style={{ ...s.link, fontSize: '14px' }}>
-            🛍 Shop
+            📦 Digital Downloads
           </Link>
           <Link href="/admin/store-orders" style={{ ...s.link, fontSize: '14px' }}>
             🧾 Store Orders

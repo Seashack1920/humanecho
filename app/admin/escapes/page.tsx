@@ -21,6 +21,7 @@ type Issue = {
   status: string
   published_at: string | null
   created_at: string
+  artist_id: string | null
 }
 
 type Block = {
@@ -86,6 +87,7 @@ const BLOCK_TYPES = [
   { value: 'section_header', label: '📌 Section Header', desc: 'Named section break' },
   { value: 'video',          label: '🎬 Video',          desc: 'Upload or embed video' },
   { value: 'audio',          label: '🎵 Audio',          desc: 'Upload audio or link to track' },
+  { value: 'product',        label: '🛍 Product',        desc: 'A shoppable product — story + price + buy button' },
   { value: 'artist_card',    label: '🎤 Artist Card',    desc: 'Artist profile card' },
   { value: 'story_teaser',   label: '📖 Story Teaser',   desc: 'Link to a story' },
   { value: 'divider',        label: '— Divider',         desc: 'Visual section break' },
@@ -664,6 +666,67 @@ function BlockFields({ block, artists, tracks, stories, onChange }: {
         </div>
       )
 
+    case 'product':
+      return (
+        <div>
+          <div style={s.field}>
+            <ImageUploader label="Product Image" value={c.image_url || ''} onChange={url => upd({ image_url: url })} folder="escapes/products" />
+          </div>
+          <div style={s.field}>
+            <label style={s.label}>Product Name</label>
+            <input style={s.input} value={c.name || ''} onChange={e => upd({ name: e.target.value })} placeholder="Cheyenne's Tour Tee" />
+          </div>
+          <div style={s.field}>
+            <label style={s.label}>The Story <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>— why this exists in the artist's world</span></label>
+            <MiniRichEditor value={c.story || ''} onChange={html => upd({ story: html })} />
+          </div>
+          <div style={s.row}>
+            <div>
+              <label style={s.label}>Price (USD)</label>
+              <input type="number" min="0" step="0.01" style={s.input} value={c.price ?? ''} onChange={e => upd({ price: e.target.value })} placeholder="29.00" />
+            </div>
+            <div>
+              <label style={s.label}>Type</label>
+              <select style={s.select} value={c.product_type || 'physical'} onChange={e => upd({ product_type: e.target.value })}>
+                <option value="physical">Physical (shipped / POD)</option>
+                <option value="digital">Digital (download)</option>
+              </select>
+            </div>
+          </div>
+          <div style={s.field}>
+            <label style={s.label}>Button Label <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>— optional</span></label>
+            <input style={s.input} value={c.button_label || ''} onChange={e => upd({ button_label: e.target.value })} placeholder="Buy — $29" />
+          </div>
+          <div style={{ padding: '14px 16px', borderRadius: '8px', background: 'var(--bg-card)', border: '1px solid var(--border)', marginBottom: '16px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Fulfilment (Printify)</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+              Optional now. Checkout runs through Stripe and records the order; linking Printify IDs lets a later pass auto-submit the order to Printify.
+            </div>
+            <div style={s.row}>
+              <div>
+                <label style={s.label}>Printify Product ID</label>
+                <input style={s.input} value={c.printify_product_id || ''} onChange={e => upd({ printify_product_id: e.target.value })} placeholder="optional" />
+              </div>
+              <div>
+                <label style={s.label}>Printify Variant ID</label>
+                <input style={s.input} value={c.printify_variant_id || ''} onChange={e => upd({ printify_variant_id: e.target.value })} placeholder="optional" />
+              </div>
+            </div>
+            <div style={{ marginTop: '12px' }}>
+              <label style={s.label}>External buy URL <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>— optional; overrides checkout, opens this link instead</span></label>
+              <input style={s.input} value={c.external_url || ''} onChange={e => upd({ external_url: e.target.value })} placeholder="https://..." />
+            </div>
+          </div>
+          <div style={s.field}>
+            <label style={s.label}>Layout</label>
+            <select style={s.select} value={set.layout || 'side'} onChange={e => upd({}, { layout: e.target.value })}>
+              <option value="side">Image beside story</option>
+              <option value="stack">Image above story</option>
+            </select>
+          </div>
+        </div>
+      )
+
     case 'artist_card':
       return (
         <div>
@@ -748,8 +811,10 @@ function BlockRow({ block, index, total, artists, tracks, stories, onMove, onDel
   }
 
   const preview = block.content.title
+    || block.content.name
     || block.content.quote
     || block.content.html?.replace(/<[^>]+>/g, '').slice(0, 60)
+    || block.content.story?.replace(/<[^>]+>/g, '').slice(0, 60)
     || (block.content.cloudinary_url || block.content.image_url ? '📷 Image uploaded' : '')
     || (block.content.upload_url ? '🎵 Audio uploaded' : '')
     || (block.content.track_id ? '🎵 Platform track linked' : '')
@@ -823,8 +888,9 @@ function AddBlockPanel({ onAdd, onClose }: { onAdd: (type: string) => void; onCl
 
 // ─── Issue Form ───────────────────────────────────────────────────────────────
 
-function IssueForm({ issue, onSave, onCancel }: {
+function IssueForm({ issue, artists, onSave, onCancel }: {
   issue?: Issue | null
+  artists: Artist[]
   onSave: (id: string) => void
   onCancel: () => void
 }) {
@@ -842,6 +908,7 @@ function IssueForm({ issue, onSave, onCancel }: {
     status:          issue?.status || 'draft',
     cover_image_url: issue?.cover_image_url || '',
     hero_video_url:  issue?.hero_video_url || '',
+    artist_id:       issue?.artist_id || '',
   })
 
   const handleTitleChange = (title: string) => {
@@ -851,7 +918,7 @@ function IssueForm({ issue, onSave, onCancel }: {
   const handleSave = async () => {
     if (!form.title)        return setMessage({ type: 'error', text: 'Title is required' })
     if (!form.slug)         return setMessage({ type: 'error', text: 'Slug is required' })
-    if (!form.issue_number) return setMessage({ type: 'error', text: 'Issue number is required' })
+    if (!form.issue_number) return setMessage({ type: 'error', text: 'Shop number is required' })
     setLoading(true); setMessage(null)
     try {
       const payload: any = {
@@ -864,6 +931,7 @@ function IssueForm({ issue, onSave, onCancel }: {
         status:          form.status,
         cover_image_url: form.cover_image_url || null,
         hero_video_url:  form.hero_video_url || null,
+        artist_id:       form.artist_id || null,
         updated_at:      new Date().toISOString(),
       }
       if (form.status === 'published' && !issue?.published_at) {
@@ -878,7 +946,7 @@ function IssueForm({ issue, onSave, onCancel }: {
         if (error) throw error
         id = data.id
       }
-      setMessage({ type: 'success', text: `✓ Issue "${form.title}" saved!` })
+      setMessage({ type: 'success', text: `✓ Shop "${form.title}" saved!` })
       setLoading(false)
       setTimeout(() => onSave(id!), 1500)
     } catch (err) {
@@ -890,7 +958,7 @@ function IssueForm({ issue, onSave, onCancel }: {
   return (
     <div style={s.card}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <div style={s.sectionTitle}>{issue?.id ? 'Edit Issue Details' : 'New Issue'}</div>
+        <div style={s.sectionTitle}>{issue?.id ? 'Edit Shop Details' : 'New Shop'}</div>
         <button style={s.btnCancel} onClick={onCancel}>Cancel</button>
       </div>
 
@@ -902,7 +970,7 @@ function IssueForm({ issue, onSave, onCancel }: {
 
       <div style={s.row}>
         <div>
-          <label style={s.label}>Issue Number *</label>
+          <label style={s.label}>Shop Number * <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>— internal ordering</span></label>
           <input type="number" style={s.input} value={form.issue_number} onChange={e => setForm(f => ({ ...f, issue_number: e.target.value }))} placeholder="1" />
         </div>
         <div>
@@ -916,12 +984,21 @@ function IssueForm({ issue, onSave, onCancel }: {
       </div>
 
       <div style={s.field}>
-        <label style={s.label}>Title *</label>
-        <input style={s.input} value={form.title} onChange={e => handleTitleChange(e.target.value)} placeholder="The Quiet Issue" />
+        <label style={s.label}>Artist <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— whose shop is this? Shows as "{`{Artist}'s Shop`}" and links to their page</span></label>
+        <select style={s.select} value={form.artist_id} onChange={e => setForm(f => ({ ...f, artist_id: e.target.value }))}>
+          <option value="">— No artist (generic shop) —</option>
+          {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
       </div>
 
       <div style={s.field}>
-        <label style={s.label}>Slug * <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— URL: /escapes/your-slug</span></label>
+        <label style={s.label}>Shop Handle (Title) *</label>
+        <input style={s.input} value={form.title} onChange={e => handleTitleChange(e.target.value)} placeholder="Quiet Beginnings" />
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>The big headline — a distinctive name for this shop.</div>
+      </div>
+
+      <div style={s.field}>
+        <label style={s.label}>Slug * <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— URL: /shop/your-slug</span></label>
         <input style={s.input} value={form.slug} onChange={e => { setSlugManuallyEdited(true); setForm(f => ({ ...f, slug: slugify(e.target.value) })) }} placeholder="the-quiet-issue" />
         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Auto-generated from title. Edit to customise.</div>
       </div>
@@ -945,7 +1022,7 @@ function IssueForm({ issue, onSave, onCancel }: {
           </div>
         </div>
         <div>
-          <label style={s.label}>Issue Theme</label>
+          <label style={s.label}>Shop Theme</label>
           <select style={s.select} value={form.theme} onChange={e => setForm(f => ({ ...f, theme: e.target.value }))}>
             {THEMES.map(t => <option key={t.value} value={t.value}>{t.label} — {t.desc}</option>)}
           </select>
@@ -956,7 +1033,7 @@ function IssueForm({ issue, onSave, onCancel }: {
       </div>
 
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' as const }}>
-        <button style={s.btn} onClick={handleSave} disabled={loading}>{loading ? 'Saving...' : issue?.id ? 'Save Changes' : 'Create Issue →'}</button>
+        <button style={s.btn} onClick={handleSave} disabled={loading}>{loading ? 'Saving...' : issue?.id ? 'Save Changes' : 'Create Shop →'}</button>
         <button style={s.btnSecondary} onClick={onCancel}>Cancel</button>
       </div>
     </div>
@@ -1029,12 +1106,12 @@ function BlockEditor({ issue, artists, tracks, stories, onDone }: {
         <div>
           <div style={s.sectionTitle}>Block Editor — {issue.title}</div>
           <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            Issue #{issue.issue_number} · {issue.theme} theme · {blocks.length} block{blocks.length !== 1 ? 's' : ''}
+            {issue.theme} theme · {blocks.length} block{blocks.length !== 1 ? 's' : ''}
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <a href={`/escapes/${issue.slug}`} target="_blank" rel="noopener noreferrer" style={{ ...s.btnEdit, textDecoration: 'none', display: 'inline-block' }}>Preview →</a>
-          <button style={s.btnSecondary} onClick={onDone}>← All Issues</button>
+          <a href={`/shop/${issue.slug}`} target="_blank" rel="noopener noreferrer" style={{ ...s.btnEdit, textDecoration: 'none', display: 'inline-block' }}>Preview →</a>
+          <button style={s.btnSecondary} onClick={onDone}>← All Shops</button>
         </div>
       </div>
 
@@ -1052,7 +1129,7 @@ function BlockEditor({ issue, artists, tracks, stories, onDone }: {
         <>
           {blocks.length === 0 && (
             <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>📰</div>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🛍</div>
               <div style={{ fontSize: '15px', marginBottom: '16px' }}>No blocks yet — add your first block below.</div>
             </div>
           )}
@@ -1134,28 +1211,28 @@ export default function AdminEscapes() {
 
   return (
     <div style={s.page}>
-      <h1 style={s.h1}>Escapes</h1>
-      <p style={s.subtitle}>Create and publish magazine-style issues</p>
+      <h1 style={s.h1}>Shops</h1>
+      <p style={s.subtitle}>Create and publish artist-connected shops</p>
 
       <div style={s.topRow}>
         <button style={{ padding: '8px 20px', borderRadius: '20px', fontSize: '13px', fontWeight: '500', border: 'none', cursor: 'pointer', background: mode === 'new' ? 'var(--accent-primary)' : 'var(--bg-secondary)', color: mode === 'new' ? 'white' : 'var(--text-muted)' }}
           onClick={() => { setMode('new'); setSelectedIssue(null) }}>
-          + New Issue
+          + New Shop
         </button>
-        <button style={s.manageBtn(mode === 'list')} onClick={() => setMode('list')}>All Issues</button>
+        <button style={s.manageBtn(mode === 'list')} onClick={() => setMode('list')}>All Shops</button>
       </div>
 
-      {mode === 'new' && <IssueForm onSave={handleIssueSaved} onCancel={() => setMode('list')} />}
+      {mode === 'new' && <IssueForm artists={artists} onSave={handleIssueSaved} onCancel={() => setMode('list')} />}
 
       {mode === 'edit-details' && selectedIssue && (
-        <IssueForm issue={selectedIssue} onSave={async () => { await loadAll(); setMode('list') }} onCancel={() => setMode('list')} />
+        <IssueForm issue={selectedIssue} artists={artists} onSave={async () => { await loadAll(); setMode('list') }} onCancel={() => setMode('list')} />
       )}
 
       {mode === 'edit-blocks' && selectedIssue && (
         <>
           <div style={{ marginBottom: '16px' }}>
             <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-primary)', fontSize: '13px', padding: 0 }}
-              onClick={() => setMode('edit-details')}>← Edit issue details</button>
+              onClick={() => setMode('edit-details')}>← Edit shop details</button>
           </div>
           <BlockEditor issue={selectedIssue} artists={artists} tracks={tracks} stories={stories} onDone={() => { setMode('list'); loadAll() }} />
         </>
@@ -1164,7 +1241,7 @@ export default function AdminEscapes() {
       {mode === 'list' && (
         <div style={s.card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
-            <div style={s.sectionTitle}>All Issues</div>
+            <div style={s.sectionTitle}>All Shops</div>
             <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{issues.length} total</div>
           </div>
 
@@ -1180,18 +1257,20 @@ export default function AdminEscapes() {
 
           {issues.length === 0 && (
             <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>📰</div>
-              <div style={{ fontSize: '15px', marginBottom: '16px' }}>No issues yet.</div>
-              <button style={s.btn} onClick={() => setMode('new')}>Create your first issue</button>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🛍</div>
+              <div style={{ fontSize: '15px', marginBottom: '16px' }}>No shops yet.</div>
+              <button style={s.btn} onClick={() => setMode('new')}>Create your first shop</button>
             </div>
           )}
 
           {issues.map(issue => (
             <div key={issue.id} style={s.manageRow}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={s.manageLabel}>Issue #{issue.issue_number} — {issue.title}</div>
+                <div style={s.manageLabel}>
+                  {(() => { const a = artists.find(ar => ar.id === issue.artist_id); return a ? `${a.name}'s Shop` : 'Shop' })()} — {issue.title}
+                </div>
                 <div style={s.manageMeta}>
-                  /{issue.slug} · {issue.theme} theme
+                  /shop/{issue.slug} · {issue.theme} theme
                   {issue.published_at ? ` · Published ${new Date(issue.published_at).toLocaleDateString()}` : ''}
                 </div>
               </div>
@@ -1199,7 +1278,7 @@ export default function AdminEscapes() {
                 {statusBadge(issue.status)}
                 <button style={s.btnEdit} onClick={() => { setSelectedIssue(issue); setMode('edit-blocks') }}>Edit Blocks</button>
                 <button style={{ ...s.btnEdit, marginRight: 0 }} onClick={() => { setSelectedIssue(issue); setMode('edit-details') }}>Details</button>
-                <a href={`/escapes/${issue.slug}`} target="_blank" rel="noopener noreferrer" style={{ ...s.btnEdit, textDecoration: 'none', display: 'inline-block', marginRight: 0 }}>View →</a>
+                <a href={`/shop/${issue.slug}`} target="_blank" rel="noopener noreferrer" style={{ ...s.btnEdit, textDecoration: 'none', display: 'inline-block', marginRight: 0 }}>View →</a>
                 <button style={s.btnDanger} onClick={() => setConfirmDelete({ id: issue.id, title: issue.title })}>Delete</button>
               </div>
             </div>
