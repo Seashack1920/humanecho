@@ -79,6 +79,22 @@ const CREATOR_TYPE_LABELS: Record<string, string> = {
 
 const originEmoji = (o?: string) => o === '100% human' ? '🧑' : o === 'human+ai' ? '🧑🤖' : o === 'ai generated' ? '🤖' : ''
 
+// Force-download a Cloudinary-hosted audio file with a clean filename, by
+// inserting the `fl_attachment` delivery flag after `/upload/`. No backend
+// needed — the browser downloads the original file instead of streaming it.
+// Non-Cloudinary URLs are returned unchanged (still downloadable via the link).
+const downloadUrl = (url?: string, title?: string): string => {
+  if (!url) return ''
+  const name = (title || 'track').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'track'
+  const flag = `fl_attachment:${name}`
+  if (url.includes('/upload/') && url.includes('res.cloudinary.com')) {
+    // Avoid double-inserting if a flag is somehow already present.
+    if (/\/upload\/fl_attachment/.test(url)) return url
+    return url.replace('/upload/', `/upload/${flag}/`)
+  }
+  return url
+}
+
 function ProgressBar({ label, percent }: { label: string; percent: number }) {
   return (
     <div style={{ padding: '16px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border)', marginBottom: '16px' }}>
@@ -967,6 +983,10 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                     >
                       {currentTrack?.id === track.id && isPlaying ? '⏸' : '▶'}
                     </button>
+                    {track.cloudinary_url && (
+                      <a href={downloadUrl(track.cloudinary_url, track.title)} download title="Download the audio file"
+                        style={{ ...s.btnEdit, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>⬇ Download</a>
+                    )}
                     <a href={`/song/${track.id}`} target="_blank" rel="noreferrer" style={{ ...s.btnEdit, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>View ↗</a>
                     <button style={featBtn(!!(track as any).is_featured)} title={(track as any).is_featured ? 'Featured — click to unfeature' : 'Feature this track'} onClick={() => toggleFeatured('track', track.id, !!(track as any).is_featured)}>{(track as any).is_featured ? '★ Featured' : '☆ Feature'}</button>
                     <button style={s.btnEdit} onClick={async () => { setEditingTrackId(track.id); setEditTrack({}); setEditTrackAudioFile(null); const g = await loadContentGenres('track', track.id); setEditingGenres(g) }}>Edit</button>
