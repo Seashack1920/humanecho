@@ -19,6 +19,7 @@ type Track = {
   duration: string | null
   cloudinary_url: string | null
   track_image_url: string | null
+  track_hero_image_url: string | null
   track_canvas_url: string | null
   content_origin: string | null
   track_type: string | null
@@ -57,7 +58,7 @@ type Artist = {
   platform_owned: boolean | null
 }
 
-type Album = { id: string; title: string; cover_url: string | null }
+type Album = { id: string; title: string; cover_url: string | null; hero_image_url: string | null }
 
 type OtherTrack = {
   id: string
@@ -168,7 +169,7 @@ export default function SongPage({ id }: { id: string }) {
       setLoading(true)
       const { data: trackData } = await supabase
         .from('tracks')
-        .select('id, title, track_number, duration, cloudinary_url, track_image_url, track_canvas_url, content_origin, track_type, text_content, text_content_type, tagline, price, album_id, artist_id, music_video_url, music_video_thumb_url, song_notes, song_notes_images, artist_message_url')
+        .select('id, title, track_number, duration, cloudinary_url, track_image_url, track_hero_image_url, track_canvas_url, content_origin, track_type, text_content, text_content_type, tagline, price, album_id, artist_id, music_video_url, music_video_thumb_url, song_notes, song_notes_images, artist_message_url')
         .eq('id', id)
         .eq('status', 'published')
         .single()
@@ -204,7 +205,7 @@ export default function SongPage({ id }: { id: string }) {
       ] = await Promise.all([
         supabase.from('artists').select('id, name, photo_url, creator_label, stripe_onboarded, platform_owned').eq('id', trackData.artist_id).single(),
         trackData.album_id
-          ? supabase.from('albums').select('id, title, cover_url').eq('id', trackData.album_id).single()
+          ? supabase.from('albums').select('id, title, cover_url, hero_image_url').eq('id', trackData.album_id).single()
           : Promise.resolve({ data: null }),
         supabase.from('tracks').select('id, title, track_image_url, content_origin, duration')
           .eq('artist_id', trackData.artist_id).eq('status', 'published').neq('id', id).order('track_number').limit(12),
@@ -463,10 +464,10 @@ export default function SongPage({ id }: { id: string }) {
 
         {/* Hero media — the song's Canvas (looping visual) or its artwork. Shared
             hero finish: feathers in under the header and out at the bottom. */}
-        {(track.track_canvas_url || track.track_image_url || album?.cover_url) ? (
+        {(track.track_canvas_url || track.track_hero_image_url || track.track_image_url || album?.hero_image_url || album?.cover_url) ? (
           <HeroMedia
             videoUrl={track.track_canvas_url}
-            imageUrl={track.track_image_url || album?.cover_url}
+            imageUrl={track.track_hero_image_url || album?.hero_image_url || track.track_image_url || album?.cover_url}
             position="center top"
             style={{
               filter: 'brightness(0.9)',

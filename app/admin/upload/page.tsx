@@ -29,7 +29,7 @@ async function readAudioDuration(file: File): Promise<string> {
 
 type Artist = { id: string; name: string; bio?: string; photo_url?: string; content_origin?: string; creator_type?: string[]; creator_label?: string; artist_profile_video_url?: string; hero_video_url?: string }
 type Album  = { id: string; artist_id: string; title: string; description?: string; status?: string; cover_url?: string; hero_image_url?: string; hero_video_url?: string; album_type?: string; content_origin?: string; price?: number }
-type Track  = { id: string; album_id?: string; artist_id: string; title: string; track_number?: number; track_type?: string; duration?: string; status?: string; content_origin?: string; price?: number; text_content?: string; tagline?: string; cloudinary_url?: string; track_image_url?: string; track_canvas_url?: string }
+type Track  = { id: string; album_id?: string; artist_id: string; title: string; track_number?: number; track_type?: string; duration?: string; status?: string; content_origin?: string; price?: number; text_content?: string; tagline?: string; cloudinary_url?: string; track_image_url?: string; track_hero_image_url?: string; track_canvas_url?: string }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -187,6 +187,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
   const [editTrack, setEditTrack]           = useState<Partial<Track>>({})
   const [editTrackAudioFile, setEditTrackAudioFile] = useState<File | null>(null)
   const [trackImageFile, setTrackImageFile] = useState<File | null>(null)
+  const [trackHeroFile, setTrackHeroFile] = useState<File | null>(null)
   const [trackCanvasFile, setTrackCanvasFile] = useState<File | null>(null)
 
   const [confirmDelete, setConfirmDelete] = useState<{ type: string; id: string; name: string } | null>(null)
@@ -368,6 +369,9 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
       if (trackImageFile) {
         updates.track_image_url = (await uploadToCloudinary(trackImageFile, trackFolder, 'image')).url
       }
+      if (trackHeroFile) {
+        updates.track_hero_image_url = (await uploadToCloudinary(trackHeroFile, `${trackFolder}/hero`, 'image')).url
+      }
       if (trackCanvasFile) {
         updates.track_canvas_url = (await uploadToCloudinary(trackCanvasFile, `${trackFolder}/canvas`, 'video')).url
       }
@@ -392,6 +396,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
       setTracks(prev => prev.map(t => t.id === trackId ? { ...t, ...updates } : t))
       setEditingTrackId(null)
       setTrackImageFile(null)
+      setTrackHeroFile(null)
       setTrackCanvasFile(null)
       setEditTrackAudioFile(null)
       setMessage({ type: 'success', text: 'Track updated.' })
@@ -902,6 +907,20 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                       )}
                     </div>
                     <div>
+                      <label style={s.label}>Hero Image <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional wide shot (16:9) for the top of the song page. Leave blank to use the square artwork.</span></label>
+                      <input type="file" accept="image/*" style={s.fileInput} onChange={e => setTrackHeroFile(e.target.files?.[0] || null)} />
+                      {trackHeroFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackHeroFile.name}</div>}
+                      {(trackHeroFile || track.track_hero_image_url) && (
+                        <img src={trackHeroFile ? URL.createObjectURL(trackHeroFile) : track.track_hero_image_url}
+                          alt="Hero image preview"
+                          style={{ display: 'block', marginTop: '8px', width: '200px', aspectRatio: '16/9', objectFit: 'cover', borderRadius: '10px', border: '1px solid var(--border)' }} />
+                      )}
+                      {track.track_hero_image_url && !trackHeroFile && (
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Hero set · <a href={track.track_hero_image_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)' }}>view</a> · <button onClick={() => setEditTrack(p => ({ ...p, track_hero_image_url: null as any }))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#dc3c3c', padding: 0 }}>remove</button></div>
+                      )}
+                      {(editTrack as any).track_hero_image_url === null && !trackHeroFile && <div style={{ fontSize: '11px', color: '#dc3c3c', marginTop: '4px', fontStyle: 'italic' }}>Hero image will be removed on save</div>}
+                    </div>
+                    <div>
                       <label style={s.label}>Canvas <span style={{ fontWeight: '400', color: 'var(--text-muted)' }}>— optional: a short square clip (4–8s) that loops silently behind the artwork. Keep it calm & seamless — slow motion, no text, no flashing.</span></label>
                       <input type="file" accept="video/*,image/gif" style={s.fileInput} onChange={e => setTrackCanvasFile(e.target.files?.[0] || null)} />
                       {trackCanvasFile && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>✓ {trackCanvasFile.name}</div>}
@@ -948,7 +967,7 @@ const [heroVideoFile, setHeroVideoFile]     = useState<File | null>(null)
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button style={s.btnSave} onClick={() => handleSaveTrack(track.id)} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
-                    <button style={s.btnCancel} onClick={() => { setEditingTrackId(null); setEditTrack({}); setTrackImageFile(null); setTrackCanvasFile(null); setEditTrackAudioFile(null) }}>Cancel</button>
+                    <button style={s.btnCancel} onClick={() => { setEditingTrackId(null); setEditTrack({}); setTrackImageFile(null); setTrackHeroFile(null); setTrackCanvasFile(null); setEditTrackAudioFile(null) }}>Cancel</button>
                   </div>
                 </div>
               ) : (
